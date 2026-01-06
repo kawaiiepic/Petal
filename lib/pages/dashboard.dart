@@ -5,6 +5,7 @@ import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
+import 'package:blssmpetal/pages/overview.dart';
 import 'package:blssmpetal/pages/streams.dart';
 import 'package:flutter/material.dart';
 
@@ -41,16 +42,53 @@ class _DashboardState extends State<Dashboard> {
               ValueListenableBuilder<String?>(
                 valueListenable: backgroundImage,
                 builder: (context, image, _) {
+                  var networkImage = image != null
+                      ? Image.network(
+                          image,
+                          loadingBuilder: (context, child, loadingProgress) => loadingProgress == null
+                              ? child
+                              : Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.pink,
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                ),
+                          errorBuilder: (context, exception, stackTrace) => IconButton(onPressed: () => {print("Refresh")}, icon: const Icon(Icons.refresh)),
+                        )
+                      : Container();
                   return AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
-                    child: image == null
-                        ? Container(color: Colors.black)
-                        : Container(
-                            key: ValueKey(image),
-                            decoration: BoxDecoration(
-                              image: DecorationImage(image: NetworkImage(image), fit: BoxFit.cover),
-                            ),
-                          ),
+                    child: image == null ? Container(color: Colors.black) : networkImage,
+
+                    // : Container(
+                    //     key: ValueKey(image),
+                    //     decoration: BoxDecoration(
+                    //       image: DecorationImage(
+                    //         image: Image.network(
+                    //           image,
+                    //           loadingBuilder: (context, child, loadingProgress) => loadingProgress == null
+                    //               ? child
+                    //               : Center(
+                    //                   child: CircularProgressIndicator(
+                    //                     strokeWidth: 2.5,
+                    //                     color: Colors.pink,
+                    //                     value: loadingProgress.expectedTotalBytes != null
+                    //                         ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    //                         : null,
+                    //                   ),
+                    //                 ),
+                    //           errorBuilder: (context, exception, stackTrace) =>
+                    //               IconButton(onPressed: () => {
+                    //                 print("Refresh")
+                    //               }, icon: const Icon(Icons.refresh)),
+                    //         ).image,
+                    //         fit: BoxFit.cover,
+                    //       ),
+                    //     ),
+                    //   ),
                   );
                 },
               ),
@@ -105,7 +143,7 @@ class _DashboardState extends State<Dashboard> {
   Widget loadCatalog(List<Catalog> catalogs) {
     return Column(
       children: catalogs.asMap().entries.map((entry) {
-        if (entry.key > 0) return SizedBox();
+        // if (entry.key > 0) return SizedBox();
         return CatalogPage(catalog: entry.value, onItemHover: _setBackground);
       }).toList(),
     );
@@ -143,7 +181,12 @@ class _CatalogPageState extends State<CatalogPage> {
     return FutureBuilder<List<CatalogItem>>(
       future: _itemsFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return CircularProgressIndicator();
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
         final items = snapshot.data!;
 
         return Column(
@@ -214,7 +257,7 @@ class _CatalogRowState extends State<CatalogRow> {
                               message: item.name,
                               child: GestureDetector(
                                 onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => StreamsPage(item: item)));
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: item)));
                                 },
                                 child: NetworkPoster(
                                   poster: item.poster,
@@ -299,7 +342,14 @@ class _NetworkPosterState extends State<NetworkPoster> {
   @override
   void initState() {
     super.initState();
-    _image = Image.network(widget.poster, fit: BoxFit.cover);
+    _image = Image.network(
+      widget.poster,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        print("Error");
+        return Container();
+      },
+    );
 
     final ImageStream stream = _image.image.resolve(const ImageConfiguration());
     stream.addListener(

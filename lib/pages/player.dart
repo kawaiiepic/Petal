@@ -1,3 +1,5 @@
+import 'package:blssmpetal/models/catalog_item.dart';
+import 'package:blssmpetal/models/episode.dart';
 import 'package:blssmpetal/models/stream.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
@@ -5,7 +7,9 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 class StreamPlayer extends StatefulWidget {
   final StreamItem stream;
-  const StreamPlayer({super.key, required this.stream});
+  final CatalogItem catalogItem;
+  final Episode? episode;
+  const StreamPlayer({super.key, required this.stream, required this.catalogItem, this.episode});
 
   @override
   State<StatefulWidget> createState() => _StreamPlayerState();
@@ -103,9 +107,9 @@ class _StreamPlayerState extends State<StreamPlayer> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('\$showName - S\$seasonId:E\$episodeId'),
+              Text('${widget.catalogItem.name} - S${widget.stream.season}:E${widget.stream.episode}'),
               Text(
-                '\$episodeName (\$episodeYear)', // (${super.widget.torrentEpisode.show.year})
+                '${widget.episode?.title} (${widget.catalogItem.year})', // (${super.widget.torrentEpisode.show.year})
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
               ),
             ],
