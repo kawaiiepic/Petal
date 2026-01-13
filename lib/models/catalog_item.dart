@@ -24,6 +24,7 @@ class CatalogItem {
   final double imdbRating;
   final String awards;
   final String country;
+  final String releaseInfo;
 
   // People
   final List<String> genres;
@@ -51,6 +52,7 @@ class CatalogItem {
     required this.imdbRating,
     required this.awards,
     required this.country,
+    required this.releaseInfo,
     required this.genres,
     required this.cast,
     required this.directors,
@@ -100,6 +102,7 @@ class CatalogItem {
       imdbRating: json['imdbRating'] != null && json['imdbRating'] != "" ? double.parse(json['imdbRating']) : 0,
       awards: json['awards'] ?? '',
       country: (json['country'] is List) ? (json['country'] as List).join(', ') : (json['country'] ?? ''),
+      releaseInfo: json['releaseInfo'] ?? '',
 
       genres: List<String>.from(json['genres'] ?? []),
       cast: List<String>.from(json['cast'] ?? []),

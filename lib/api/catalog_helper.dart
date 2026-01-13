@@ -16,6 +16,7 @@ class CatalogApi {
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final items = (data['metas'] as List).map((e) => CatalogItem.fromJson(e, catalog)).toList();
+    
     return items;
   }
 }

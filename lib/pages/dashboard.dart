@@ -1,12 +1,15 @@
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/catalog_helper.dart';
+import 'package:blssmpetal/api/stream_helper.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/api/trakt/traktauth.dart';
+import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/pages/overview.dart';
 import 'package:blssmpetal/pages/streams.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class Dashboard extends StatefulWidget {
@@ -37,79 +40,56 @@ class _DashboardState extends State<Dashboard> {
         } else {
           final addons = snapshot.data!.where((e) => e.enabledResources.contains('catalog')).toList();
 
-          return Stack(
-            children: [
-              ValueListenableBuilder<String?>(
-                valueListenable: backgroundImage,
-                builder: (context, image, _) {
-                  var networkImage = image != null
-                      ? Image.network(
-                          image,
-                          loadingBuilder: (context, child, loadingProgress) => loadingProgress == null
-                              ? child
-                              : Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.pink,
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                        : null,
+          return Expanded(
+            child: Stack(
+              children: [
+                ValueListenableBuilder<String?>(
+                  valueListenable: backgroundImage,
+                  builder: (context, image, _) {
+                    var networkImage = image != null
+                        ? Image.network(
+                            image,
+                            loadingBuilder: (context, child, loadingProgress) => loadingProgress == null
+                                ? child
+                                : Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.pink,
+                                      value: loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                          : null,
+                                    ),
                                   ),
-                                ),
-                          errorBuilder: (context, exception, stackTrace) => IconButton(onPressed: () => {print("Refresh")}, icon: const Icon(Icons.refresh)),
-                        )
-                      : Container();
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    child: image == null ? Container(color: Colors.black) : networkImage,
+                            errorBuilder: (context, exception, stackTrace) => IconButton(onPressed: () => {print("Refresh")}, icon: const Icon(Icons.refresh)),
+                          )
+                        : Container();
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      child: image == null ? Container(color: Colors.black) : networkImage,
+                    );
+                  },
+                ),
 
-                    // : Container(
-                    //     key: ValueKey(image),
-                    //     decoration: BoxDecoration(
-                    //       image: DecorationImage(
-                    //         image: Image.network(
-                    //           image,
-                    //           loadingBuilder: (context, child, loadingProgress) => loadingProgress == null
-                    //               ? child
-                    //               : Center(
-                    //                   child: CircularProgressIndicator(
-                    //                     strokeWidth: 2.5,
-                    //                     color: Colors.pink,
-                    //                     value: loadingProgress.expectedTotalBytes != null
-                    //                         ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                    //                         : null,
-                    //                   ),
-                    //                 ),
-                    //           errorBuilder: (context, exception, stackTrace) =>
-                    //               IconButton(onPressed: () => {
-                    //                 print("Refresh")
-                    //               }, icon: const Icon(Icons.refresh)),
-                    //         ).image,
-                    //         fit: BoxFit.cover,
-                    //       ),
-                    //     ),
-                    //   ),
-                  );
-                },
-              ),
+                Container(color: Colors.black.withOpacity(0.65)),
 
-              Container(color: Colors.black.withOpacity(0.65)),
-
-              Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: addons.length,
-                      itemBuilder: (context, index) {
-                        final addon = addons[index];
-                        final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
-                        return loadCatalog(catalogs);
-                      },
+                Column(
+                  children: [
+                    Text("Moire gay"),
+                    Search(addons: addons),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: addons.length,
+                        itemBuilder: (context, index) {
+                          final addon = addons[index];
+                          final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
+                          return loadCatalog(catalogs);
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           );
         }
       },
@@ -150,6 +130,110 @@ class _DashboardState extends State<Dashboard> {
   }
 }
 
+class Search extends StatefulWidget {
+  const Search({super.key, required this.addons});
+  final List<Addon> addons;
+
+  @override
+  State<Search> createState() => _SearchState();
+}
+
+class _SearchState extends State<Search> {
+  String? _searchingWithQuery;
+  Iterable<Widget> _lastOptions = <Widget>[];
+  String _lastSearchQuery = "";
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.all(8),
+      child: SearchAnchor(
+        isFullScreen: false,
+        viewHintText: 'Search TV Shows, Movies & more...',
+        builder: (context, controller) {
+          return SearchBar(
+            controller: controller,
+            hintText: 'Search TV Shows, Movies & more...',
+            onTap: () => controller.openView(),
+            onChanged: (value) => controller.openView(),
+          );
+        },
+
+        suggestionsBuilder: (context, controller) async {
+          _searchingWithQuery = controller.text;
+
+          await Future.delayed(Duration(seconds: 1));
+
+          if (_searchingWithQuery != controller.text || _searchingWithQuery == null) {
+            return _lastOptions;
+          }
+
+          if (_lastSearchQuery == _searchingWithQuery && _lastSearchQuery != "") {
+            return _lastOptions;
+          }
+
+          _lastSearchQuery = _searchingWithQuery!;
+
+          List<CatalogItem> catalogItems = await StreamApi.searchCatalogItems(_searchingWithQuery!, widget.addons);
+
+          List<Widget> options0 = [];
+          List<Widget> series = [];
+
+          for (var item in catalogItems) {
+            print("Name: ${item.name} Type: ${item.type}");
+
+            switch (item.type) {
+              case "series":
+                {
+                  series.add(
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () async {
+                          final catalogItem = await StreamApi.fetchCatalogItem(item);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem!)));
+                        },
+                        child: Tooltip(
+                          message: item.name,
+                          child: Row(
+                            children: [
+                              Ink(
+                                height: 100,
+                                width: 60,
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(image: CachedNetworkImageProvider(item.poster), fit: BoxFit.cover),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+
+                              Container(width: 20),
+
+                              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${item.name} (${item.releaseInfo})')]),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+            }
+          }
+
+          if (series.isNotEmpty) {
+            options0.add(Text('Shows'));
+            options0.addAll(series);
+          }
+
+          _lastOptions = options0;
+
+          return _lastOptions;
+        },
+      ),
+    );
+  }
+}
+
 class CatalogPage extends StatefulWidget {
   final Catalog catalog;
   final ValueChanged<String?> onItemHover;
@@ -182,7 +266,7 @@ class _CatalogPageState extends State<CatalogPage> {
       future: _itemsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Container(color: Colors.pink);
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
@@ -336,54 +420,21 @@ class NetworkPoster extends StatefulWidget {
 }
 
 class _NetworkPosterState extends State<NetworkPoster> {
-  bool _loaded = false;
-  late Image _image;
+  late CachedNetworkImage _image;
 
   @override
   void initState() {
     super.initState();
-    _image = Image.network(
-      widget.poster,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        print("Error");
-        return Container();
-      },
-    );
-
-    final ImageStream stream = _image.image.resolve(const ImageConfiguration());
-    stream.addListener(
-      ImageStreamListener(
-        (info, _) {
-          if (mounted) {
-            setState(() {
-              _loaded = true;
-            });
-          }
-        },
-        onError: (error, stackTrace) {
-          if (mounted) {
-            setState(() {
-              _loaded = true; // stop loading spinner on error
-            });
-          }
-        },
-      ),
+    _image = CachedNetworkImage(
+      imageUrl: widget.poster,
+      progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+      errorWidget: (context, url, error) => Icon(Icons.error),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => widget.onHover?.call(),
-      onExit: (_) => widget.onExit?.call(),
-      child: Stack(
-        children: [
-          _image,
-          if (!_loaded) const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))),
-        ],
-      ),
-    );
+    return MouseRegion(onEnter: (_) => widget.onHover?.call(), onExit: (_) => widget.onExit?.call(), child: _image);
   }
 }
 

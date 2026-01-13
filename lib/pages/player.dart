@@ -26,7 +26,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
     super.initState();
 
     // Play a [Media] or [Playlist].
-    player.open(Media(widget.stream.url!));
+    player.open(Media(widget.stream.url));
   }
 
   @override

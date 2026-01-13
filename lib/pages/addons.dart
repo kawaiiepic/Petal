@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/api/api.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class Addons extends StatefulWidget {
@@ -143,6 +144,12 @@ class AddonTile extends StatefulWidget {
 class _AddonTileState extends State<AddonTile> {
   @override
   Widget build(BuildContext context) {
+    var _image = CachedNetworkImage(
+      imageUrl: widget.addon.manifest?['logo'] ?? '',
+      imageBuilder: (context, imageProvider) => CircleAvatar(foregroundImage: imageProvider, backgroundColor: Colors.transparent,),
+      progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+      errorWidget: (context, url, error) => CircleAvatar(child: Icon(Icons.extension)),
+    );
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
@@ -155,9 +162,7 @@ class _AddonTileState extends State<AddonTile> {
           child: ExpansionTile(
             leading: ReorderableDragStartListener(
               index: 0, // ignored when using builder
-              child: widget.addon.manifest != null && widget.addon.manifest!['logo'] != null
-                  ? CircleAvatar(backgroundImage: NetworkImage(widget.addon.manifest?['logo']), backgroundColor: Colors.transparent)
-                  : const CircleAvatar(child: Icon(Icons.extension)),
+              child: _image,
             ),
             title: Text(widget.addon.name),
             subtitle: Wrap(

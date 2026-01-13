@@ -36,7 +36,7 @@ class Api {
         }
       }
 
-      catalogs.add(Catalog(name: cat['name'], type: type, id: id, extras: extras, url: '$baseUrl/$id/catalog/$type/$id.json'));
+      catalogs.add(Catalog(name: cat['name'], type: type, id: id, extra: extras, url: '$baseUrl/$id/catalog/$type/$id.json'));
     }
 
     return catalogs;
