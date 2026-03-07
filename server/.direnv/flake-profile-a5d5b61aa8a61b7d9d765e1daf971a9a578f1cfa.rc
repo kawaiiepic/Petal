@@ -2113,9 +2113,12 @@ updateSourceDateEpoch ()
         fi;
     fi
 }
+printf -v NIX_SHELL_LEVEL "%d" "${NIX_SHELL_LEVEL:-0}" || NIX_SHELL_LEVEL=0
+export NIX_SHELL_LEVEL=$(( NIX_SHELL_LEVEL + 1 ))
 PATH="$PATH${nix_saved_PATH:+:$nix_saved_PATH}"
 XDG_DATA_DIRS="$XDG_DATA_DIRS${nix_saved_XDG_DATA_DIRS:+:$nix_saved_XDG_DATA_DIRS}"
 export NIX_BUILD_TOP="$(mktemp -d -t nix-shell.XXXXXX)"
+export NIX_LOG_FD=2
 export TMP="$NIX_BUILD_TOP"
 export TMPDIR="$NIX_BUILD_TOP"
 export TEMP="$NIX_BUILD_TOP"

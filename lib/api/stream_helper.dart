@@ -17,7 +17,6 @@ class StreamApi {
       final url = episode != null
           ? '$baseUrl/stream/${item.catalog.type}/${item.id}:${episode.season}:${episode.episode}.json'
           : '$baseUrl/stream/${item.catalog.type}/${item.id}.json';
-
       print(url);
 
       try {
