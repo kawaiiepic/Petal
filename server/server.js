@@ -36,8 +36,6 @@ const userAddons = {
       enabledResources: ["catalog"],
       config: {},
     },
-
-
   ],
 };
 
@@ -113,9 +111,10 @@ fs.mkdirSync(streamsDir, { recursive: true });
 // HLS transcoding endpoint
 app.get("/transcode", (req, res) => {
   const raw = req.query.url;
+  console.log("Transcode request:", raw);
   if (!raw) return res.status(400).send("Missing url");
 
-  const url = decodeURIComponent(raw);
+  const url = raw;
 
   const id = Date.now().toString();
   const dir = path.join(streamsDir, id);
@@ -124,25 +123,47 @@ app.get("/transcode", (req, res) => {
   const playlist = path.join(dir, "stream.m3u8");
 
   const ffmpeg = spawn("ffmpeg", [
-    "-i", url,
+    "-loglevel",
+    "warning",
 
-    "-map", "0:v:0",
-    "-map", "0:a:0",
+    "-i",
+    url,
 
-    "-c:v", "libx264",
-    "-preset", "veryfast",
-    "-crf", "23",
+    "-map",
+    "0:v:0",
+    "-map",
+    "0:a:0",
 
-    "-c:a", "aac",
-    "-b:a", "192k",
+    "-c:v",
+    "copy",
+    "-preset",
+    "veryfast",
+    "-crf",
+    "23",
 
-    "-f", "hls",
-    "-hls_time", "4",
-    "-hls_list_size", "6",
-    "-hls_flags", "delete_segments",
+    "-c:a",
+    "aac",
+    "-ac",
+    "2",
+    "-b:a",
+    "192k",
+    "-f",
+    "hls",
+    "-hls_time",
+    "2",
+    "-hls_list_size",
+    "6",
+    "-hls_flags",
+    "delete_segments+independent_segments",
+    "-hls_playlist_type",
+    "event",
+    "-hls_start_number_source",
+    "epoch",
 
-    playlist
+    playlist,
   ]);
+
+  console.log("Starting ffmpeg for:", url);
 
   ffmpeg.stderr.on("data", (data) => {
     console.log("ffmpeg:", data.toString());
@@ -150,15 +171,19 @@ app.get("/transcode", (req, res) => {
 
   ffmpeg.on("error", console.error);
 
-  // wait until playlist exists before redirecting
   const check = setInterval(() => {
-    if (fs.existsSync(playlist)) {
-      clearInterval(check);
-      res.redirect(`/streams/${id}/stream.m3u8`);
-    }
-  }, 500);
+    const files = fs.readdirSync(dir);
+    const segmentExists = files.some((f) => f.endsWith(".ts"));
 
-  // cleanup old streams after 1 hour
+    if (segmentExists) {
+      clearInterval(check);
+      res.json({
+        streamUrl: `/streams/${id}/stream.m3u8`,
+      });
+    }
+  }, 200);
+
+  // cleanup old streams
   setTimeout(() => {
     fs.rm(dir, { recursive: true, force: true }, () => {});
   }, 3600000);

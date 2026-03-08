@@ -20,77 +20,37 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
+          packages = with pkgs; [
             flutter
             google-chrome
+
+            # build tools
+            clang
+            cmake
+            ninja
             pkg-config
 
-            mpv
-            wayland.dev
-
-            ## Idk what is needed.
-            libarchive.dev
-            openssl.dev
-            libxml2.dev
-            libepoxy.dev
-            xorg.libXtst
-            libsysprof-capture
-            sqlite.dev
-            libpsl.dev
-            nghttp2.dev
-            libepoxy
-            pcre2
+            # flutter linux deps
             gtk3
+            libepoxy
+            libmpv
 
-            util-linux
-            libselinux
-            libsepol
-            libthai
-            libdatrie
-            xorg.libXdmcp
-            lerc
+            # runtime
+            wayland
             libxkbcommon
-            cmake
-            mpv
-            libass
-            mimalloc
-            ffmpeg
-            libplacebo
-            libunwind
-            shaderc
-            vulkan-loader
-            lcms
-            libdovi
-            libdvdnav
-            libdvdread
-            mujs
-            libbluray
-            lua
-            rubberband
-            SDL2
-            libuchardet
-            zimg
-            alsa-lib
-            openal
-            pipewire
-            pulseaudio
-            libcaca
-            libdrm
-            mesa
-            xorg.libXScrnSaver
-            xorg.libXpresent
-            xorg.libXv
-            nv-codec-headers-12
-            libva
-            libvdpau
-            ninja
-            webkitgtk_4_1
           ];
 
           shellHook = ''
-            echo "Flutter Web dev shell ready"
-            export CHROME_EXECUTABLE="${pkgs.google-chrome}/bin/google-chrome-stable"
-            export LD_LIBRARY_PATH="$(pwd)/build/linux/x64/debug/bundle/lib:$(pwd)/build/linux/x64/release/bundle/lib:$LD_LIBRARY_PATH"
+            echo "Flutter dev shell ready"
+
+            export CHROME_EXECUTABLE=${pkgs.google-chrome}/bin/google-chrome-stable
+            export LD_LIBRARY_PATH=${
+              pkgs.lib.makeLibraryPath [
+                pkgs.libmpv
+                pkgs.gtk3
+                pkgs.libepoxy
+              ]
+            }:$LD_LIBRARY_PATH
           '';
         };
       }

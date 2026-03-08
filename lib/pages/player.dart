@@ -5,6 +5,8 @@ import 'package:blssmpetal/api/api.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class StreamPlayer extends StatefulWidget {
   final StreamItem stream;
@@ -25,11 +27,31 @@ class _StreamPlayerState extends State<StreamPlayer> {
   @override
   void initState() {
     super.initState();
+    _startStream();
+  }
 
-    // Play a [Media] or [Playlist].
-    final transcoded = Api.ServerUrl + "/transcode?url=" + Uri.encodeComponent(widget.stream.url);
-    print("Using transcoded stream: $transcoded");
-    player.open(Media(transcoded));
+  Future<void> _startStream() async {
+    try {
+      final uri = Uri.parse("${Api.ServerUrl}/transcode?url=${Uri.encodeComponent(widget.stream.url)}");
+
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final streamUrl = Api.ServerUrl + data["streamUrl"];
+
+        print("Using HLS stream: $streamUrl");
+
+        player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
+      } else {
+        throw Exception("Transcode request failed");
+      }
+    } catch (e) {
+      print("Transcode error: $e");
+
+      // fallback to direct stream
+      player.open(Media(widget.stream.url));
+    }
   }
 
   @override
