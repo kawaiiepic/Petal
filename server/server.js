@@ -122,50 +122,56 @@ app.get("/transcode", (req, res) => {
 
   const playlist = path.join(dir, "stream.m3u8");
 
-  const ffmpeg = spawn("ffmpeg", [
-    "-loglevel",
-    "warning",
+  // Try low‑CPU path first: copy video, transcode audio
+  const spawnFfmpeg = (mode = "copy") => {
+    const args = [
+      "-loglevel","warning",
+      "-i", url,
+      "-map","0:v:0",
+      "-map","0:a:0",
+    ];
 
-    "-i",
-    url,
+    if (mode === "copy") {
+      args.push("-c:v","copy");
+    } else {
+      console.log("Falling back to full video transcode...");
+      args.push("-c:v","libx264","-preset","veryfast","-crf","23");
+    }
 
-    "-map",
-    "0:v:0",
-    "-map",
-    "0:a:0",
+    args.push(
+      "-c:a","aac",
+      "-ac","2",
+      "-b:a","192k",
+      "-threads","2",
+      "-f","hls",
+      "-hls_time","2",
+      "-hls_list_size","6",
+      "-hls_flags","delete_segments+independent_segments",
+      "-hls_playlist_type","event",
+      "-hls_start_number_source","epoch",
+      playlist
+    );
 
-    "-c:v",
-    "copy",
+    const proc = spawn("ffmpeg", args);
 
-    "-c:a",
-    "aac",
-    "-ac",
-    "2",
-    "-b:a",
-    "192k",
-    "-f",
-    "hls",
-    "-hls_time",
-    "2",
-    "-hls_list_size",
-    "6",
-    "-hls_flags",
-    "delete_segments+independent_segments",
-    "-hls_playlist_type",
-    "event",
-    "-hls_start_number_source",
-    "epoch",
+    proc.stderr.on("data", (data) => {
+      console.log("ffmpeg:", data.toString());
+    });
 
-    playlist,
-  ]);
+    proc.on("error", console.error);
+
+    proc.on("exit", (code) => {
+      if (code !== 0 && mode === "copy") {
+        // Retry with full transcoding if copy fails
+        spawnFfmpeg("transcode");
+      }
+    });
+
+    return proc;
+  };
 
   console.log("Starting ffmpeg for:", url);
-
-  ffmpeg.stderr.on("data", (data) => {
-    console.log("ffmpeg:", data.toString());
-  });
-
-  ffmpeg.on("error", console.error);
+  const ffmpeg = spawnFfmpeg("copy");
 
   const check = setInterval(() => {
     const files = fs.readdirSync(dir);
