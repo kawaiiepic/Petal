@@ -180,7 +180,7 @@ app.get("/transcode", (req, res) => {
     if (segmentExists) {
       clearInterval(check);
       res.json({
-        streamUrl: `/streams/${id}/stream.m3u8`,
+        streamUrl: `/streams/${id}/master.m3u8`,
       });
     }
   }, 200);
