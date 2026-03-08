@@ -108,11 +108,22 @@ import path from "path";
 const streamsDir = "/tmp/petal-streams";
 fs.mkdirSync(streamsDir, { recursive: true });
 
+// limit concurrent ffmpeg processes so the server can't be overwhelmed
+const MAX_TRANSCODES = 2;
+let activeTranscodes = 0;
+
 // HLS transcoding endpoint
 app.get("/transcode", (req, res) => {
   const raw = req.query.url;
   console.log("Transcode request:", raw);
+
+  if (activeTranscodes >= MAX_TRANSCODES) {
+    return res.status(429).json({ error: "Server busy, too many active streams" });
+  }
+
   if (!raw) return res.status(400).send("Missing url");
+
+  activeTranscodes++;
 
   const url = raw;
 
@@ -164,6 +175,8 @@ app.get("/transcode", (req, res) => {
     proc.on("error", console.error);
 
     proc.on("exit", (code) => {
+      activeTranscodes = Math.max(0, activeTranscodes - 1);
+
       if (code !== 0 && mode === "copy") {
         // Retry with full transcoding if copy fails
         spawnFfmpeg("transcode");
