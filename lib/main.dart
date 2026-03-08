@@ -1,5 +1,7 @@
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/navigation/navigation.dart';
+import 'package:blssmpetal/pages/trakt/traktlogin.dart';
+import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 
@@ -30,7 +32,7 @@ class _PetalState extends State<PetalApp> {
     return MaterialApp(
       title: 'Petal',
       theme: ThemeData.dark(),
-      home: Api.traktLoggedIn ? Navigation() : const TraktLoginPage(),
+      home: TraktAuth.accessToken == null ? const TraktLoginPage() : Navigation(),
     );
   }
 }
