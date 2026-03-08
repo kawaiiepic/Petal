@@ -8,7 +8,7 @@ class Api {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
   }
 
-  static const ServerUrl = 'http://localhost:3000';
+  static const ServerUrl = 'https://petal.blossomvale.dev/api';
   static late Future<List<Addon>> addonsFuture;
 
   static Future<void> initApi() async {
