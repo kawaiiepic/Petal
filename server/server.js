@@ -136,10 +136,6 @@ app.get("/transcode", (req, res) => {
 
     "-c:v",
     "copy",
-    "-preset",
-    "veryfast",
-    "-crf",
-    "23",
 
     "-c:a",
     "aac",
