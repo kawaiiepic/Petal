@@ -1,4 +1,5 @@
 import 'package:blssmpetal/api/trakt/traktauth.dart';
+import 'package:blssmpetal/api/api.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -29,6 +30,15 @@ class _TraktLoginPageState extends State<TraktLoginPage> {
     final token = await TraktAuth.pollForAccessToken(data['device_code'], data['interval'], data['expires_in']);
 
     print('Access token: $token');
+
+    if (token != null) {
+      TraktAuth.accessToken = token;
+      Api.traktLoggedIn = true;
+
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/');
+      }
+    }
   }
 
   @override
