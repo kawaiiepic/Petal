@@ -7,7 +7,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
 
-  Api.initApi();
+  await Api.initApi();
 
   runApp(PetalApp());
 }
@@ -27,6 +27,10 @@ class _PetalState extends State<PetalApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(title: 'Petal', theme: ThemeData.dark(), home: Navigation());
+    return MaterialApp(
+      title: 'Petal',
+      theme: ThemeData.dark(),
+      home: Api.traktLoggedIn ? Navigation() : const TraktLoginPage(),
+    );
   }
 }
