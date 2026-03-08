@@ -112,6 +112,9 @@ fs.mkdirSync(streamsDir, { recursive: true });
 const MAX_TRANSCODES = 2;
 let activeTranscodes = 0;
 
+// track running ffmpeg processes so we can kill idle ones
+const activeStreams = new Map();
+
 // HLS transcoding endpoint
 app.get("/transcode", (req, res) => {
   const raw = req.query.url;
@@ -189,6 +192,9 @@ app.get("/transcode", (req, res) => {
   console.log("Starting ffmpeg for:", url);
   const ffmpeg = spawnFfmpeg("copy");
 
+  // track process
+  activeStreams.set(id, ffmpeg);
+
   const check = setInterval(() => {
     const files = fs.readdirSync(dir);
     const segmentExists = files.some((f) => f.endsWith(".ts"));
@@ -203,6 +209,11 @@ app.get("/transcode", (req, res) => {
 
   // cleanup old streams
   setTimeout(() => {
+    const proc = activeStreams.get(id);
+    if (proc) {
+      try { proc.kill("SIGKILL"); } catch {}
+      activeStreams.delete(id);
+    }
     fs.rm(dir, { recursive: true, force: true }, () => {});
   }, 3600000);
 });
