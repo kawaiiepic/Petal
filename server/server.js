@@ -37,19 +37,55 @@ const userAddons = {
       config: {},
     },
 
-    {
-      id: "another-addon",
-      name: "Example Addon",
-      manifestUrl: "https://example.com/manifest.json",
-      enabled: false,
-      config: {},
-    },
+
   ],
 };
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// simple in-memory cache
+const imageCache = new Map();
+
+// Image proxy with decoding + caching
+app.get("/img", async (req, res) => {
+  try {
+    const raw = req.query.url;
+    if (!raw) return res.status(400).send("Missing url");
+
+    const url = decodeURIComponent(raw);
+
+    // serve cached
+    if (imageCache.has(url)) {
+      const cached = imageCache.get(url);
+      res.set("Content-Type", cached.type);
+      res.set("Cache-Control", "public, max-age=86400");
+      return res.send(cached.buffer);
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) return res.status(response.status).send("Upstream error");
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+
+    imageCache.set(url, { buffer, type: contentType });
+
+    res.set("Content-Type", contentType);
+    res.set("Cache-Control", "public, max-age=86400");
+
+    res.send(buffer);
+  } catch (err) {
+    console.error("Image proxy error:", err);
+    res.status(500).send("Proxy error");
+  }
+});
 
 // Save addons for a user
 app.post("/addons", (req, res) => {
@@ -66,6 +102,69 @@ app.get("/addons/:userId", (req, res) => {
   const { userId } = req.params;
   res.json({ addons: userAddons[userId] || [] });
 });
+
+import { spawn } from "child_process";
+import fs from "fs";
+import path from "path";
+
+const streamsDir = "/tmp/petal-streams";
+fs.mkdirSync(streamsDir, { recursive: true });
+
+// HLS transcoding endpoint
+app.get("/transcode", (req, res) => {
+  const raw = req.query.url;
+  if (!raw) return res.status(400).send("Missing url");
+
+  const url = decodeURIComponent(raw);
+
+  const id = Date.now().toString();
+  const dir = path.join(streamsDir, id);
+  fs.mkdirSync(dir, { recursive: true });
+
+  const playlist = path.join(dir, "stream.m3u8");
+
+  const ffmpeg = spawn("ffmpeg", [
+    "-i", url,
+
+    "-map", "0:v:0",
+    "-map", "0:a:0",
+
+    "-c:v", "libx264",
+    "-preset", "veryfast",
+    "-crf", "23",
+
+    "-c:a", "aac",
+    "-b:a", "192k",
+
+    "-f", "hls",
+    "-hls_time", "4",
+    "-hls_list_size", "6",
+    "-hls_flags", "delete_segments",
+
+    playlist
+  ]);
+
+  ffmpeg.stderr.on("data", (data) => {
+    console.log("ffmpeg:", data.toString());
+  });
+
+  ffmpeg.on("error", console.error);
+
+  // wait until playlist exists before redirecting
+  const check = setInterval(() => {
+    if (fs.existsSync(playlist)) {
+      clearInterval(check);
+      res.redirect(`/streams/${id}/stream.m3u8`);
+    }
+  }, 500);
+
+  // cleanup old streams after 1 hour
+  setTimeout(() => {
+    fs.rm(dir, { recursive: true, force: true }, () => {});
+  }, 3600000);
+});
+
+app.use("/streams", express.static(streamsDir));
 
 app.listen(port, () => {
   console.log(`Backend server running at http://localhost:${port}`);

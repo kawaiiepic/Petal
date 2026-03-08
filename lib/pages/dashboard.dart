@@ -20,7 +20,7 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  final ValueNotifier<String?> backgroundImage = ValueNotifier(null);
+  final ValueNotifier<String?> backgroundImage = ValueNotifier("https://image.tmdb.org/t/p/original/9n2tJBplPbgR2ca05hS5CKXwP2c.jpg");
 
   void _setBackground(String? image) {
     backgroundImage.value = image;
@@ -40,7 +40,7 @@ class _DashboardState extends State<Dashboard> {
         } else {
           final addons = snapshot.data!.where((e) => e.enabledResources.contains('catalog')).toList();
 
-          return Expanded(
+          return SizedBox.expand(
             child: Stack(
               children: [
                 ValueListenableBuilder<String?>(
@@ -48,7 +48,7 @@ class _DashboardState extends State<Dashboard> {
                   builder: (context, image, _) {
                     var networkImage = image != null
                         ? Image.network(
-                            image,
+                            Api.ServerUrl + "/img?url=" + Uri.encodeComponent(image),
                             loadingBuilder: (context, child, loadingProgress) => loadingProgress == null
                                 ? child
                                 : Center(
@@ -60,7 +60,11 @@ class _DashboardState extends State<Dashboard> {
                                           : null,
                                     ),
                                   ),
-                            errorBuilder: (context, exception, stackTrace) => IconButton(onPressed: () => {print("Refresh")}, icon: const Icon(Icons.refresh)),
+                            errorBuilder: (context, exception, stackTrace) => IconButton(
+                              onPressed: () => print("Refresh"),
+                              icon: const Icon(Icons.refresh),
+                            ),
+                            fit: BoxFit.cover,
                           )
                         : Container();
                     return AnimatedSwitcher(
@@ -426,7 +430,7 @@ class _NetworkPosterState extends State<NetworkPoster> {
   void initState() {
     super.initState();
     _image = CachedNetworkImage(
-      imageUrl: widget.poster,
+      imageUrl: Api.proxyImage(widget.poster),
       progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
       errorWidget: (context, url, error) => Icon(Icons.error),
     );

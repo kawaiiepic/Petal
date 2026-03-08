@@ -1,6 +1,7 @@
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/episode.dart';
 import 'package:blssmpetal/models/stream.dart';
+import 'package:blssmpetal/api/api.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -26,7 +27,9 @@ class _StreamPlayerState extends State<StreamPlayer> {
     super.initState();
 
     // Play a [Media] or [Playlist].
-    player.open(Media(widget.stream.url));
+    final transcoded = Api.ServerUrl + "/transcode?url=" + Uri.encodeComponent(widget.stream.url);
+    print("Using transcoded stream: $transcoded");
+    player.open(Media(transcoded));
   }
 
   @override

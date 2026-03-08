@@ -1,0 +1,34 @@
+version: '3'
+services:
+  petal-server:
+    build: ./server
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.petal-api.rule=Host(`petal.blossomvale.dev`) && PathPrefix(`/api`)
+      - traefik.http.routers.petal-api.entrypoints=websecure
+      - traefik.http.routers.petal-api.tls=true
+      - traefik.http.routers.petal-api.middlewares=anubis,petal-api-strip
+      - traefik.http.middlewares.petal-api-strip.stripprefix.prefixes=/api
+      - traefik.http.services.petal-api.loadbalancer.server.port=3000
+    networks:
+      - proxy
+
+  petal-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.petal.rule=Host(`petal.blossomvale.dev`)
+      - traefik.http.routers.petal.entrypoints=websecure
+      - traefik.http.routers.petal.tls=true
+      - traefik.http.routers.petal.middlewares=anubis
+      - traefik.http.services.petal.loadbalancer.server.port=80
+    depends_on:
+      - petal-server
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
