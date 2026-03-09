@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/catalog_helper.dart';
 import 'package:blssmpetal/api/stream_helper.dart';
@@ -60,10 +62,7 @@ class _DashboardState extends State<Dashboard> {
                                           : null,
                                     ),
                                   ),
-                            errorBuilder: (context, exception, stackTrace) => IconButton(
-                              onPressed: () => print("Refresh"),
-                              icon: const Icon(Icons.refresh),
-                            ),
+                            errorBuilder: (context, exception, stackTrace) => IconButton(onPressed: () => print("Refresh"), icon: const Icon(Icons.refresh)),
                             fit: BoxFit.cover,
                           )
                         : Container();
@@ -78,7 +77,6 @@ class _DashboardState extends State<Dashboard> {
 
                 Column(
                   children: [
-                    Text("Moire gay"),
                     Search(addons: addons),
                     Expanded(
                       child: ListView.builder(
@@ -143,9 +141,13 @@ class Search extends StatefulWidget {
 }
 
 class _SearchState extends State<Search> {
-  String? _searchingWithQuery;
-  Iterable<Widget> _lastOptions = <Widget>[];
-  String _lastSearchQuery = "";
+  late SearchControllerModel searchModel;
+
+  @override
+  void initState() {
+    super.initState();
+    searchModel = SearchControllerModel();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,82 +161,76 @@ class _SearchState extends State<Search> {
             controller: controller,
             hintText: 'Search TV Shows, Movies & more...',
             onTap: () => controller.openView(),
-            onChanged: (value) => controller.openView(),
+            onChanged: (value) {
+              controller.openView();
+              searchModel.search(value, widget.addons);
+            },
           );
         },
 
         suggestionsBuilder: (context, controller) async {
-          _searchingWithQuery = controller.text;
+          // return [Text("Test")];
+          return [
+            ListenableBuilder(
+              listenable: searchModel,
+              builder: (context, child) {
+                return Column(children: [Text('gay'), Text('more gay')]);
+              },
+            ),
+          ];
+          // ListenableBuilder(
+          //   listenable: searchModel,
+          //   builder: (context, _) {
+          //     if (searchModel.loading) {
+          //       return [Center(child: CircularProgressIndicator())];
+          //     }
 
-          await Future.delayed(Duration(seconds: 1));
-
-          if (_searchingWithQuery != controller.text || _searchingWithQuery == null) {
-            return _lastOptions;
-          }
-
-          if (_lastSearchQuery == _searchingWithQuery && _lastSearchQuery != "") {
-            return _lastOptions;
-          }
-
-          _lastSearchQuery = _searchingWithQuery!;
-
-          List<CatalogItem> catalogItems = await StreamApi.searchCatalogItems(_searchingWithQuery!, widget.addons);
-
-          List<Widget> options0 = [];
-          List<Widget> series = [];
-
-          for (var item in catalogItems) {
-            print("Name: ${item.name} Type: ${item.type}");
-
-            switch (item.type) {
-              case "series":
-                {
-                  series.add(
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: () async {
-                          final catalogItem = await StreamApi.fetchCatalogItem(item);
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem!)));
-                        },
-                        child: Tooltip(
-                          message: item.name,
-                          child: Row(
-                            children: [
-                              Ink(
-                                height: 100,
-                                width: 60,
-                                decoration: BoxDecoration(
-                                  image: DecorationImage(image: CachedNetworkImageProvider(item.poster), fit: BoxFit.cover),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-
-                              Container(width: 20),
-
-                              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${item.name} (${item.releaseInfo})')]),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-            }
-          }
-
-          if (series.isNotEmpty) {
-            options0.add(Text('Shows'));
-            options0.addAll(series);
-          }
-
-          _lastOptions = options0;
-
-          return _lastOptions;
+          //     return searchModel.results.map((item) {
+          //       return ListTile(
+          //         leading: Image.network(item.poster, width: 50),
+          //         title: Text("${item.name} (${item.releaseInfo})"),
+          //         onTap: () async {
+          //           final catalogItem = await StreamApi.fetchCatalogItem(item);
+          //           Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem!)));
+          //         },
+          //       );
+          //     });
+          //   },
+          // ).build(context);
         },
       ),
     );
+  }
+}
+
+class SearchControllerModel extends ChangeNotifier {
+  Timer? _debounce;
+
+  List<CatalogItem> results = [];
+  bool loading = false;
+
+  Future<void> search(String query, List<Addon> addons) async {
+    if (_debounce?.isActive ?? false) {
+      _debounce!.cancel();
+    }
+
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      if (query.length < 3) {
+        results = [];
+        notifyListeners();
+        return;
+      }
+
+      loading = true;
+      notifyListeners();
+
+      try {
+        results = await StreamApi.searchCatalogItems(query, addons);
+      } finally {
+        loading = false;
+        notifyListeners();
+      }
+    });
   }
 }
 

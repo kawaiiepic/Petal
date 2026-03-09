@@ -7,7 +7,7 @@ class TraktAuth {
   static const deviceCodeUrl = 'https://api.trakt.tv/oauth/device/code';
   static const tokenUrl = 'https://api.trakt.tv/oauth/device/token';
 
-  static const accessToken = 'f4850694d1fde7c124abb6db076bede337af8806ad4a83fccac9082f2fc47288';
+  static String accessToken = 'f';
 
   static Future<String> getAccessToken() async {
     return accessToken;

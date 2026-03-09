@@ -14,7 +14,7 @@ class _NavigationState extends State<Navigation> {
   Widget build(BuildContext context) {
     return OrientationBuilder(
       builder: (context, orientation) {
-        Orientation orientation = MediaQuery.of(context).orientation;
+        // Orientation orientation = MediaQuery.of(context).orientation;
 
         if (orientation == Orientation.landscape) {
           return Rail();

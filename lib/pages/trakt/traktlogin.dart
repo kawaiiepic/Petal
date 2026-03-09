@@ -31,13 +31,11 @@ class _TraktLoginPageState extends State<TraktLoginPage> {
 
     print('Access token: $token');
 
-    if (token != null) {
-      TraktAuth.accessToken = token;
-      Api.traktLoggedIn = true;
+    TraktAuth.accessToken = token;
+    Api.traktLoggedIn = true;
 
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/');
-      }
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/');
     }
   }
 

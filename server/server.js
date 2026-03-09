@@ -139,7 +139,7 @@ app.get("/transcode", (req, res) => {
   // Try low‑CPU path first: copy video, transcode audio
   const spawnFfmpeg = (mode = "copy") => {
     const args = [
-      "-loglevel","warning",
+      // "-loglevel","warning",
       "-i", url,
       "-map","0:v:0",
       "-map","0:a:0",
@@ -153,20 +153,33 @@ app.get("/transcode", (req, res) => {
     }
 
     args.push(
-      "-c:a","aac",
-      "-ac","2",
-      "-b:a","192k",
-      "-threads","2",
-      "-fflags","+genpts",
-      "-max_muxing_queue_size","1024",
-      "-f","hls",
-      "-start_number","0",
-      "-hls_time","2",
-      "-hls_list_size","6",
-      "-hls_flags","delete_segments+independent_segments",
-      "-hls_playlist_type","event",
-      "-hls_start_number_source","epoch",
-      playlist
+      "-c:a",
+      "aac",
+      "-ac",
+      "2",
+      "-b:a",
+      "192k",
+      "-threads",
+      "2",
+      "-fflags",
+      "+genpts",
+      "-max_muxing_queue_size",
+      "1024",
+      "-f",
+      "hls",
+      "-start_number",
+      "0",
+      "-hls_time",
+      "2",
+      "-hls_list_size",
+      "6",
+      "-hls_flags",
+      "delete_segments+independent_segments",
+      "-hls_playlist_type",
+      "event",
+      "-hls_start_number_source",
+      "epoch",
+      playlist,
     );
 
     const proc = spawn("ffmpeg", args);
@@ -190,7 +203,7 @@ app.get("/transcode", (req, res) => {
   };
 
   console.log("Starting ffmpeg for:", url);
-  const ffmpeg = spawnFfmpeg("copy");
+  const ffmpeg = spawnFfmpeg("test");
 
   // track process
   activeStreams.set(id, ffmpeg);
@@ -202,7 +215,7 @@ app.get("/transcode", (req, res) => {
     if (segmentExists) {
       clearInterval(check);
       res.json({
-        streamUrl: `/streams/${id}/master.m3u8`,
+        streamUrl: `/streams/${id}/stream.m3u8`,
       });
     }
   }, 200);

@@ -32,7 +32,7 @@ class _PetalState extends State<PetalApp> {
     return MaterialApp(
       title: 'Petal',
       theme: ThemeData.dark(),
-      home: TraktAuth.accessToken == null ? const TraktLoginPage() : Navigation(),
+      home: TraktAuth.accessToken.isEmpty ? const TraktLoginPage() : Navigation(),
     );
   }
 }

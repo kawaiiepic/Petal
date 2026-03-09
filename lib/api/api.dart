@@ -4,12 +4,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class Api {
+  static bool dev = true;
   static bool traktLoggedIn = false;
   static String proxyImage(String url) {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
   }
 
-  static const ServerUrl = 'https://petal.blossomvale.dev/api';
+  static final ServerUrl = dev ? 'http://localhost:3000' : 'https://petal.blossomvale.dev/api';
   static late Future<List<Addon>> addonsFuture;
 
   static Future<void> initApi() async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/episode.dart';
 import 'package:blssmpetal/models/stream.dart';
@@ -23,6 +25,9 @@ class _StreamPlayerState extends State<StreamPlayer> {
   late final player = Player();
   // Create a [VideoController] to handle video output from [Player].
   late final controller = VideoController(player);
+
+  bool showLeftSeek = false;
+  bool showRightSeek = false;
 
   @override
   void initState() {
@@ -106,6 +111,17 @@ class _StreamPlayerState extends State<StreamPlayer> {
     ],
   );
 
+  void seekRelative(Duration offset) async {
+    final current = player.state.position;
+    var target = current + offset;
+
+    if (target < Duration.zero) {
+      target = Duration.zero;
+    }
+
+    await player.seek(target);
+  }
+
   MaterialDesktopVideoControlsThemeData controls() {
     return MaterialDesktopVideoControlsThemeData(
       controlsTransitionDuration: Duration(seconds: 1),
@@ -115,7 +131,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
       seekBarThumbColor: Colors.pink.shade200,
       seekBarPositionColor: Colors.pink.shade200,
       controlsHoverDuration: const Duration(seconds: 5),
-      toggleFullscreenOnDoublePress: true,
+      toggleFullscreenOnDoublePress: false,
       primaryButtonBar: [MaterialPlayOrPauseButton(iconSize: 48.0)],
       // Modify top button bar:
       topButtonBar: [
@@ -131,13 +147,15 @@ class _StreamPlayerState extends State<StreamPlayer> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${widget.catalogItem.name} - S${widget.stream.season}:E${widget.stream.episode}'),
-              Text(
-                '${widget.episode?.title} (${widget.catalogItem.year})', // (${super.widget.torrentEpisode.show.year})
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-              ),
-            ],
+            children: widget.catalogItem.type == "series"
+                ? [
+                    Text('${widget.catalogItem.name} - S${widget.stream.season}:E${widget.stream.episode}'),
+                    Text(
+                      '${widget.episode?.title} (${widget.catalogItem.year})', // (${super.widget.torrentEpisode.show.year})
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                    ),
+                  ]
+                : [Text(widget.catalogItem.name), Text(widget.catalogItem.year.toString())],
           ),
         ),
         const Spacer(),
@@ -179,6 +197,9 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    final ValueNotifier<int> pressCount = ValueNotifier<int>(0);
+    final ValueNotifier<Timer> _timer = ValueNotifier<Timer>(Timer(Duration.zero, () {}));
+
     return MaterialDesktopVideoControlsTheme(
       normal: controls(),
       fullscreen: controls(),
@@ -187,22 +208,75 @@ class _StreamPlayerState extends State<StreamPlayer> {
           child: Stack(
             alignment: Alignment.topRight,
             children: [
-              Video(controller: controller, controls: MaterialDesktopVideoControls),
+              GestureDetector(
+                onTapUp: (details) async {
+                  await player.playOrPause();
+                },
 
-              // Visibility(
-              //   visible: true,
-              //   child: Container(
-              //     margin: EdgeInsets.fromLTRB(0, 12, 12, 0),
-              //     width: 100,
-              //     height: 100,
-              //     color: Colors.blue,
-              //     child: Center(child: Text("I'm visible")),
-              //   ),
-              // ),
+                onDoubleTapDown: (details) async {
+                  final width = MediaQuery.of(context).size.width;
+
+                  if (details.globalPosition.dx < width / 2) {
+                    seekRelative(const Duration(seconds: -10));
+
+                    setState(() => showLeftSeek = true);
+                    Future.delayed(const Duration(milliseconds: 600), () {
+                      setState(() => showLeftSeek = false);
+                    });
+                  } else {
+                    seekRelative(const Duration(seconds: 10));
+
+                    setState(() => showRightSeek = true);
+                    Future.delayed(const Duration(milliseconds: 600), () {
+                      setState(() => showRightSeek = false);
+                    });
+                  }
+                },
+
+                child: Stack(
+                  children: [
+                    Video(controller: controller, controls: MaterialDesktopVideoControls),
+                    if (showLeftSeek) _seekOverlay(left: true),
+                    if (showRightSeek) _seekOverlay(left: false),
+                  ],
+                ),
+              ),
+
+              // Video(controller: controller, controls: MaterialDesktopVideoControls),
+              Visibility(
+                visible: true,
+                child: Container(
+                  margin: EdgeInsets.fromLTRB(0, 12, 12, 0),
+                  width: 100,
+                  height: 100,
+                  color: Colors.blue,
+                  child: Center(child: Text("I'm visible")),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+Widget _seekOverlay({required bool left}) {
+  return Positioned.fill(
+    child: Align(
+      alignment: left ? Alignment.centerLeft : Alignment.centerRight,
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: AnimatedOpacity(
+          opacity: 1,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(40)),
+            child: Text(left ? "<< 10s" : "10s >>", style: const TextStyle(color: Colors.white, fontSize: 20)),
+          ),
+        ),
+      ),
+    ),
+  );
 }
