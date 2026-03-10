@@ -44,9 +44,8 @@ class _StreamPlayerState extends State<StreamPlayer> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final streamUrl = Api.ServerUrl + data["streamUrl"];
-        final duration = data["duration"];
 
-        print("Using HLS stream: $streamUrl & Duraction: $duration");
+        print("Using HLS stream: $streamUrl");
 
         await player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
       } else {
@@ -58,8 +57,6 @@ class _StreamPlayerState extends State<StreamPlayer> {
       // fallback to direct stream
       player.open(Media(widget.stream.url));
       player.play();
-
-      print(player.state.subtitle.join('|'));
     }
   }
 
