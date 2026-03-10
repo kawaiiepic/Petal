@@ -48,7 +48,7 @@ class OverviewPage extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 // ▶ PLAY BUTTON
                 ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StreamsPage(item: item, episode: Episode(season: 0, episode: 1, title: '', overview: '', thumbnail: ''),))),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StreamsPage(item: item, episode: Episode(season: 1, episode: 1, title: '', overview: '', thumbnail: ''),))),
                   icon: const Icon(Icons.play_arrow),
                   label: const Text("Play"),
                   style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),

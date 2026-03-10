@@ -120,14 +120,6 @@ app.get("/transcode", async (req, res) => {
   const raw = req.query.url;
   if (!raw) return res.status(400).send("Missing url");
 
-  const key = crypto.createHash("md5").update(raw).digest("hex");
-
-  if (activeStreams.has(key)) {
-    return res.json({
-      streamUrl: `/streams/${key}/master.m3u8`,
-    });
-  }
-
   if (activeTranscodes >= MAX_TRANSCODES)
     return res
       .status(429)
