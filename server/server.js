@@ -119,8 +119,10 @@ const activeStreams = new Map();
 app.get("/transcode", (req, res) => {
   const raw = req.query.url;
   console.log("Transcode request:", raw);
+  console.log("Current transcodes:", activeTranscodes)
 
   if (activeTranscodes >= MAX_TRANSCODES) {
+    console.log("Too many transcodes currently running.")
     return res.status(429).json({ error: "Server busy, too many active streams" });
   }
 
@@ -139,7 +141,7 @@ app.get("/transcode", (req, res) => {
   // Try low‑CPU path first: copy video, transcode audio
   const spawnFfmpeg = (mode = "copy") => {
     const args = [
-      // "-loglevel","warning",
+      "-loglevel","warning",
       "-i", url,
       "-map","0:v:0",
       "-map","0:a:0",
@@ -149,7 +151,7 @@ app.get("/transcode", (req, res) => {
       args.push("-c:v","copy");
     } else {
       console.log("Falling back to full video transcode...");
-      args.push("-c:v","libx264","-preset","veryfast","-crf","23");
+      args.push("-c:v", "h264_amf", "-preset", "veryfast", "-crf", "23");
     }
 
     args.push(
@@ -203,7 +205,7 @@ app.get("/transcode", (req, res) => {
   };
 
   console.log("Starting ffmpeg for:", url);
-  const ffmpeg = spawnFfmpeg("test");
+  const ffmpeg = spawnFfmpeg("copy");
 
   // track process
   activeStreams.set(id, ffmpeg);

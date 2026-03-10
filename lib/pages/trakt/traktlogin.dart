@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/api/api.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TraktLoginPage extends StatefulWidget {
@@ -27,6 +32,7 @@ class _TraktLoginPageState extends State<TraktLoginPage> {
     }
 
     // Polling can be done every `interval` seconds until user completes auth
+
     final token = await TraktAuth.pollForAccessToken(data['device_code'], data['interval'], data['expires_in']);
 
     print('Access token: $token');

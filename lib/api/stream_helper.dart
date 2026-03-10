@@ -87,7 +87,6 @@ class StreamApi {
       if (res.statusCode != 200) return null;
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
-      print(data['meta']);
       return CatalogItem.fromJson(data['meta'], item.catalog);
     } catch (e) {
       print('Error fetching CatalogItem ${item.id}: $e');

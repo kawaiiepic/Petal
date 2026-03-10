@@ -1,5 +1,6 @@
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/navigation/navigation.dart';
+import 'package:blssmpetal/pages/offline.dart';
 import 'package:blssmpetal/pages/trakt/traktlogin.dart';
 import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +33,14 @@ class _PetalState extends State<PetalApp> {
     return MaterialApp(
       title: 'Petal',
       theme: ThemeData.dark(),
-      home: TraktAuth.accessToken.isEmpty ? const TraktLoginPage() : Navigation(),
+      home: ValueListenableBuilder<bool>(
+        valueListenable: Api.healthy,
+        builder: (_, healthy, _) {
+          if (!healthy) return Offline();
+
+          return TraktAuth.accessToken.isEmpty ? const TraktLoginPage() : Navigation();
+        },
+      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/catalog_helper.dart';
@@ -10,7 +11,6 @@ import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/pages/overview.dart';
-import 'package:blssmpetal/pages/streams.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -48,33 +48,48 @@ class _DashboardState extends State<Dashboard> {
                 ValueListenableBuilder<String?>(
                   valueListenable: backgroundImage,
                   builder: (context, image, _) {
-                    var networkImage = image != null
-                        ? Image.network(
-                            Api.ServerUrl + "/img?url=" + Uri.encodeComponent(image),
-                            loadingBuilder: (context, child, loadingProgress) => loadingProgress == null
-                                ? child
-                                : Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: Colors.pink,
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                          : null,
-                                    ),
-                                  ),
-                            errorBuilder: (context, exception, stackTrace) => IconButton(onPressed: () => print("Refresh"), icon: const Icon(Icons.refresh)),
-                            fit: BoxFit.cover,
-                          )
-                        : Container();
                     return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 400),
-                      child: image == null ? Container(color: Colors.black) : networkImage,
+                      duration: const Duration(milliseconds: 600),
+                      child: image != null
+                          ? ClipRect(
+                              child: SizedBox(
+                                key: ValueKey(image), // force AnimatedSwitcher to recognize new images
+                                width: double.infinity,
+                                height: 400, // only top portion
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(12), // rounded corners at the bottom
+                                  ),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Image.network(Api.proxyImage(image), fit: BoxFit.cover),
+                                      // Blur only the background
+                                      BackdropFilter(
+                                        filter: ImageFilter.blur(sigmaX: 0.2, sigmaY: 0.2),
+                                        child: Container(color: Colors.black.withValues(alpha: 0.65)),
+                                      ),
+                                      // Gradient overlay for readability
+                                      Container(
+                                        decoration: const BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [Colors.transparent, Colors.black],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Container(key: const ValueKey('empty'), height: 350, color: Colors.black),
                     );
                   },
                 ),
 
-                Container(color: Colors.black.withOpacity(0.65)),
-
+                // Container(color: Colors.black.withOpacity(0.65)),
                 Column(
                   children: [
                     Search(addons: addons),
@@ -105,8 +120,6 @@ class _DashboardState extends State<Dashboard> {
     Future<TraktNextUpItem?> buildNextUp(TraktShow show, {limit = 50}) async {
       if (show.traktId == null) return null;
 
-      int index = 0;
-
       final progress = await trakt.fetchShowProgress(show.traktId!);
 
       final next = progress.nextEpisode;
@@ -124,9 +137,10 @@ class _DashboardState extends State<Dashboard> {
 
   Widget loadCatalog(List<Catalog> catalogs) {
     return Column(
-      children: catalogs.asMap().entries.map((entry) {
-        // if (entry.key > 0) return SizedBox();
-        return CatalogPage(catalog: entry.value, onItemHover: _setBackground);
+      children: catalogs.map((catalog) {
+        final future = CatalogApi.fetchCatalogItems(catalog); // start immediately
+
+        return CatalogPage(catalog: catalog, itemsFuture: future, onItemHover: _setBackground);
       }).toList(),
     );
   }
@@ -140,8 +154,11 @@ class Search extends StatefulWidget {
   State<Search> createState() => _SearchState();
 }
 
+enum SearchType { seriesAndMovies, series, movies, actors }
+
 class _SearchState extends State<Search> {
   late SearchControllerModel searchModel;
+  final ValueNotifier<SearchType> searchTypeNotifier = ValueNotifier(SearchType.seriesAndMovies);
 
   @override
   void initState() {
@@ -151,11 +168,34 @@ class _SearchState extends State<Search> {
 
   @override
   Widget build(BuildContext context) {
+    String label(SearchType type) {
+      switch (type) {
+        case SearchType.series:
+          return "Shows";
+        case SearchType.movies:
+          return "Movies";
+        case SearchType.seriesAndMovies:
+          return "Shows & Movies";
+        case SearchType.actors:
+          return "Actors";
+      }
+    }
+
     return Padding(
       padding: EdgeInsets.all(8),
       child: SearchAnchor(
         isFullScreen: false,
         viewHintText: 'Search TV Shows, Movies & more...',
+        viewLeading: ValueListenableBuilder<SearchType>(
+          valueListenable: searchTypeNotifier,
+          builder: (context, type, _) {
+            return PopupMenuButton<SearchType>(
+              icon: Row(children: [Icon(Icons.filter_list), SizedBox(width: 6), Text(label(type))]),
+              onSelected: (t) => searchTypeNotifier.value = t,
+              itemBuilder: (context) => SearchType.values.map((type) => PopupMenuItem<SearchType>(value: type, child: Text(label(type)))).toList(),
+            );
+          },
+        ),
         builder: (context, controller) {
           return SearchBar(
             controller: controller,
@@ -163,40 +203,88 @@ class _SearchState extends State<Search> {
             onTap: () => controller.openView(),
             onChanged: (value) {
               controller.openView();
-              searchModel.search(value, widget.addons);
             },
           );
         },
 
-        suggestionsBuilder: (context, controller) async {
-          // return [Text("Test")];
+        suggestionsBuilder: (context, controller) {
+          searchModel.search(controller.text, widget.addons);
           return [
-            ListenableBuilder(
-              listenable: searchModel,
-              builder: (context, child) {
-                return Column(children: [Text('gay'), Text('more gay')]);
+            ValueListenableBuilder<SearchType>(
+              valueListenable: searchTypeNotifier,
+              builder: (context, searchType, _) {
+                return ListenableBuilder(
+                  listenable: searchModel,
+                  builder: (context, _) {
+                    return Column(
+                      children: searchModel.results
+                          .where((item) {
+                            switch (searchTypeNotifier.value) {
+                              case SearchType.series:
+                                return item.type == "series";
+
+                              case SearchType.movies:
+                                return item.type == "movie";
+
+                              case SearchType.seriesAndMovies:
+                                return item.type == "series" || item.type == "movie";
+
+                              case SearchType.actors:
+                                return item.type == "actor";
+                            }
+                          })
+                          .map((item) {
+                            return Container(
+                              padding: EdgeInsets.all(8),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: () async {
+                                  final catalogItem = await StreamApi.fetchCatalogItem(item);
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem!)));
+                                },
+                                child: Tooltip(
+                                  message: item.name,
+                                  child: Row(
+                                    children: [
+                                      Ink(
+                                        height: 100,
+                                        width: 60,
+                                        decoration: BoxDecoration(
+                                          image: DecorationImage(image: CachedNetworkImageProvider(item.poster), fit: BoxFit.cover),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+
+                                      Container(width: 20),
+
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        spacing: 8,
+                                        children: [
+                                          Text(item.name),
+                                          Row(
+                                            spacing: 8,
+                                            children: [
+                                              Chip(label: Text(item.type)),
+                                              Chip(label: Text(item.releaseInfo)),
+                                            ],
+                                          ),
+                                          Text(item.genres.join(', ')),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          })
+                          .toList(),
+                    );
+                  },
+                );
               },
             ),
           ];
-          // ListenableBuilder(
-          //   listenable: searchModel,
-          //   builder: (context, _) {
-          //     if (searchModel.loading) {
-          //       return [Center(child: CircularProgressIndicator())];
-          //     }
-
-          //     return searchModel.results.map((item) {
-          //       return ListTile(
-          //         leading: Image.network(item.poster, width: 50),
-          //         title: Text("${item.name} (${item.releaseInfo})"),
-          //         onTap: () async {
-          //           final catalogItem = await StreamApi.fetchCatalogItem(item);
-          //           Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem!)));
-          //         },
-          //       );
-          //     });
-          //   },
-          // ).build(context);
         },
       ),
     );
@@ -236,23 +324,17 @@ class SearchControllerModel extends ChangeNotifier {
 
 class CatalogPage extends StatefulWidget {
   final Catalog catalog;
+  final Future<List<CatalogItem>> itemsFuture;
   final ValueChanged<String?> onItemHover;
 
-  const CatalogPage({super.key, required this.catalog, required this.onItemHover});
+  const CatalogPage({super.key, required this.catalog, required this.itemsFuture, required this.onItemHover});
 
   @override
   State<CatalogPage> createState() => _CatalogPageState();
 }
 
 class _CatalogPageState extends State<CatalogPage> {
-  late Future<List<CatalogItem>> _itemsFuture;
   final ScrollController _controller = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _itemsFuture = CatalogApi.fetchCatalogItems(widget.catalog);
-  }
 
   @override
   void dispose() {
@@ -263,7 +345,7 @@ class _CatalogPageState extends State<CatalogPage> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<CatalogItem>>(
-      future: _itemsFuture,
+      future: widget.itemsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(color: Colors.pink);
@@ -346,7 +428,7 @@ class _CatalogRowState extends State<CatalogRow> {
                                 child: NetworkPoster(
                                   poster: item.poster,
                                   onHover: () {
-                                    widget.onItemHover(item.background ?? item.poster);
+                                    widget.onItemHover(item.background);
                                   },
                                   onExit: () {
                                     // optional: widget.onItemHover(null);
@@ -427,7 +509,7 @@ class _NetworkPosterState extends State<NetworkPoster> {
     super.initState();
     _image = CachedNetworkImage(
       imageUrl: Api.proxyImage(widget.poster),
-      progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+      progressIndicatorBuilder: (context, url, downloadProgress) => Center(child: CircularProgressIndicator(value: downloadProgress.progress)),
       errorWidget: (context, url, error) => Icon(Icons.error),
     );
   }

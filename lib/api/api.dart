@@ -1,5 +1,10 @@
+import 'dart:async';
+
+import 'package:blssmpetal/api/catalog_helper.dart';
+import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -11,18 +16,56 @@ class Api {
   }
 
   static final ServerUrl = dev ? 'http://localhost:3000' : 'https://petal.blossomvale.dev/api';
+
+  static final ValueNotifier<bool> healthy = ValueNotifier(true);
+  static Timer? _healthPoller;
+
   static late Future<List<Addon>> addonsFuture;
 
   static Future<void> initApi() async {
-    addonsFuture = Api.fetchUserAddons('mia');
+    await TraktAuth.loadAccessCode();
+
+    _healthPoller?.cancel();
+
+    _healthPoller = Timer.periodic(const Duration(seconds: 5), (_) async {
+      final ok = await healthCheck();
+
+      if (healthy.value != ok) {
+        healthy.value = ok;
+
+        if (ok) {
+          _onBackendRecovered();
+        }
+      }
+    });
+
+    // initial check
+    final ok = await healthCheck();
+    healthy.value = ok;
+
+    if (ok) {
+      addonsFuture = fetchUserAddons('mia');
+    }
   }
 
-  static Future<bool> canPingServer() async {
-    return false;
+  static void _onBackendRecovered() {
+    addonsFuture = fetchUserAddons('mia');
+    CatalogApi.clearCache();
+  }
+
+  static Future<bool> healthCheck() async {
+    try {
+      final res = await http.get(Uri.parse("$ServerUrl/health")).timeout(const Duration(seconds: 3));
+
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 
   // Other
   static List<Catalog> generateCatalogs(String baseUrl, String slug, Map<String, dynamic> manifest) {
+    print("Generating Catalogs");
     final List<Catalog> catalogs = [];
 
     if (manifest['catalogs'] == null) return catalogs;
@@ -62,6 +105,7 @@ class Api {
 
   // Private Server
   static Future<List<Addon>> fetchUserAddons(String userId) async {
+    print("Fetching user addons");
     final url = '$ServerUrl/addons/$userId'; // your server URL
     final response = await http.get(Uri.parse(url));
 
