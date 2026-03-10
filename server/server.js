@@ -166,7 +166,7 @@ app.get("/transcode", (req, res) => {
       "-c:a",
       "copy",
       "-c:s",
-      "copy",
+      "webvtt",
       "-ac",
       "2",
       "-b:a",
