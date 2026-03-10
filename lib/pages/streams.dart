@@ -76,7 +76,7 @@ class StreamTile extends StatelessWidget {
       trailing: Text(stream.addon.name),
       onTap: () {
         if (MediaQuery.of(context).orientation == Orientation.portrait) {
-          launchUrl(Uri.parse('outplayer://${stream.url}'));
+          launchUrl(Uri.parse('${stream.url}'));
         } else {
           // later: open player / external app
           Navigator.push(
