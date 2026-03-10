@@ -119,6 +119,15 @@ const activeStreams = new Map();
 app.get("/transcode", async (req, res) => {
   const raw = req.query.url;
   if (!raw) return res.status(400).send("Missing url");
+
+  const key = crypto.createHash("md5").update(raw).digest("hex");
+
+  if (activeStreams.has(key)) {
+    return res.json({
+      streamUrl: `/streams/${key}/master.m3u8`,
+    });
+  }
+
   if (activeTranscodes >= MAX_TRANSCODES)
     return res
       .status(429)
@@ -163,7 +172,7 @@ app.get("/transcode", async (req, res) => {
     subtitleStreams.forEach((s, i) => {
       subArgs.push(
         "-map",
-        `0:s:${i}`,
+        `0:s:${s.index}`,
         "-c:s",
         "webvtt",
         path.join(dir, `sub_${i}.vtt`),
@@ -181,7 +190,7 @@ app.get("/transcode", async (req, res) => {
   //  ffmpeg will auto-generate a master.m3u8 with EXT-X-MEDIA for each audio.
 
   const mapArgs = ["-map", "0:v:0"];
-  audioStreams.forEach((_, i) => mapArgs.push("-map", `0:a:${i}`));
+  audioStreams.forEach((s) => mapArgs.push("-map", `0:${s.index}`));
 
   // Audio-group entries  (stream indices start at 1 because 0 = video)
   const audioGroupEntries = audioStreams.map((s, i) => {
@@ -205,8 +214,14 @@ app.get("/transcode", async (req, res) => {
   const spawnFfmpeg = (mode = "copy") => {
     const args = ["-loglevel", "warning", "-i", raw, ...mapArgs];
 
+    const videoStream = streams.find((s) => s.codec_type === "video");
+    const isH264 = videoStream?.codec_name === "h264";
+
     if (mode === "copy") {
       args.push("-c:v", "copy");
+      if (isH264) {
+        args.push("-bsf:v", "h264_mp4toannexb");
+      }
     } else {
       console.log("Falling back to full video transcode…");
       args.push("-c:v", "libx264", "-preset", "veryfast", "-crf", "23");
@@ -226,11 +241,11 @@ app.get("/transcode", async (req, res) => {
       "-f",
       "hls",
       "-hls_time",
-      "2",
+      "8",
       "-hls_list_size",
-      "6",
+      "0",
       "-hls_flags",
-      "delete_segments+independent_segments",
+      "independent_segments",
       "-hls_playlist_type",
       "event",
       "-hls_start_number_source",
@@ -259,8 +274,7 @@ app.get("/transcode", async (req, res) => {
 
   // ── 5. Wait for first segment, then respond ───────────────────────────────
   const check = setInterval(() => {
-    const files = fs.readdirSync(dir);
-    if (files.some((f) => f.endsWith(".ts"))) {
+    if (fs.existsSync(masterPlaylist)) {
       clearInterval(check);
 
       // Append subtitle tracks to master playlist once ffmpeg writes it
@@ -289,7 +303,8 @@ app.get("/transcode", async (req, res) => {
     const proc = activeStreams.get(id);
     if (proc) {
       try {
-        proc.kill("SIGKILL");
+        proc.kill("SIGTERM");
+        setTimeout(() => proc.kill("SIGKILL"), 3000);
       } catch {}
       activeStreams.delete(id);
     }
@@ -315,7 +330,7 @@ function appendSubtitlesToMaster(masterPath, subtitleStreams, id) {
         const def = i === 0 ? "YES" : "NO";
         return (
           `#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",` +
-          `NAME="${name}",LANGUAGE="${lang}",DEFAULT=${def},` +
+          `NAME="${name}",LANGUAGE="${lang}",DEFAULT=${def},AUTOSELECT=YES` +
           `FORCED=NO,URI="sub_${i}.vtt"`
         );
       })

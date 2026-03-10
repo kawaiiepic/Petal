@@ -1,3 +1,4 @@
+import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/episode.dart';
 import 'package:blssmpetal/models/trailer.dart';
@@ -25,7 +26,7 @@ class OverviewPage extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(item.background, fit: BoxFit.cover),
+                  Image.network(Api.proxyImage(item.background), fit: BoxFit.cover),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
