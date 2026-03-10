@@ -156,7 +156,6 @@ app.get("/transcode", async (req, res) => {
   const { streams, format } = await probe();
   const audioStreams = streams.filter((s) => s.codec_type === "audio");
   const subtitleStreams = streams.filter((s) => s.codec_type === "subtitle");
-  const duration = format?.duration ? parseFloat(format.duration) : null;
 
   // ── 2. Extract ALL subtitle tracks as .vtt files (async, don't await) ────
   if (subtitleStreams.length) {
@@ -164,7 +163,7 @@ app.get("/transcode", async (req, res) => {
     subtitleStreams.forEach((s, i) => {
       subArgs.push(
         "-map",
-        `0:s:${s.index}`,
+        `0:s:${i}`,
         "-c:s",
         "webvtt",
         path.join(dir, `sub_${i}.vtt`),
@@ -274,7 +273,6 @@ app.get("/transcode", async (req, res) => {
 
       res.json({
         streamUrl: `/streams/${id}/master.m3u8`,
-        duration,
         audioTracks: audioStreams.map((s, i) => ({
           index: i,
           language: s.tags?.language ?? null,
