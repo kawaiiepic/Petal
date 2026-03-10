@@ -44,10 +44,15 @@ class _StreamPlayerState extends State<StreamPlayer> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final streamUrl = Api.ServerUrl + data["streamUrl"];
+        final duration = data["duration"];
 
         print("Using HLS stream: $streamUrl");
 
-        player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
+        await player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
+
+        if (duration != null && player.platform is NativePlayer) {
+          await (player.platform as NativePlayer).setProperty("length", duration.toString());
+        }
       } else {
         throw Exception("Transcode request failed");
       }

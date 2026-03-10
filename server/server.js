@@ -119,11 +119,13 @@ const activeStreams = new Map();
 app.get("/transcode", (req, res) => {
   const raw = req.query.url;
   console.log("Transcode request:", raw);
-  console.log("Current transcodes:", activeTranscodes)
+  console.log("Current transcodes:", activeTranscodes);
 
   if (activeTranscodes >= MAX_TRANSCODES) {
-    console.log("Too many transcodes currently running.")
-    return res.status(429).json({ error: "Server busy, too many active streams" });
+    console.log("Too many transcodes currently running.");
+    return res
+      .status(429)
+      .json({ error: "Server busy, too many active streams" });
   }
 
   if (!raw) return res.status(400).send("Missing url");
@@ -141,14 +143,18 @@ app.get("/transcode", (req, res) => {
   // Try low‑CPU path first: copy video, transcode audio
   const spawnFfmpeg = (mode = "copy") => {
     const args = [
-      "-loglevel","warning",
-      "-i", url,
-      "-map","0:v:0",
-      "-map","0:a:0",
+      "-loglevel",
+      "warning",
+      "-i",
+      url,
+      "-map",
+      "0:v:0",
+      "-map",
+      "0:a:0",
     ];
 
     if (mode === "copy") {
-      args.push("-c:v","copy");
+      args.push("-c:v", "copy");
     } else {
       console.log("Falling back to full video transcode...");
       args.push("-c:v", "h264_amf", "-preset", "veryfast", "-crf", "23");
@@ -178,7 +184,7 @@ app.get("/transcode", (req, res) => {
       "-hls_flags",
       "delete_segments+independent_segments",
       "-hls_playlist_type",
-      "event",
+      "vod",
       "-hls_start_number_source",
       "epoch",
       playlist,
@@ -210,14 +216,38 @@ app.get("/transcode", (req, res) => {
   // track process
   activeStreams.set(id, ffmpeg);
 
-  const check = setInterval(() => {
+  const getduration = () =>
+    new Promise((resolve) => {
+      const probe = spawn("ffprobe", [
+        "-v",
+        "quiet",
+        "-print_format",
+        "json",
+        "-show_format",
+        url,
+      ]);
+      let out = "";
+      probe.stdout.on("data", (d) => (out += d));
+      probe.on("exit", () => {
+        try {
+          const duration = JSON.parse(out).format?.duration;
+          resolve(duration ? parseFloat(duration) : null);
+        } catch {
+          resolve(null);
+        }
+      });
+    });
+
+  const check = setInterval(async () => {
     const files = fs.readdirSync(dir);
     const segmentExists = files.some((f) => f.endsWith(".ts"));
 
     if (segmentExists) {
       clearInterval(check);
+      const duration = await getduration();
       res.json({
         streamUrl: `/streams/${id}/stream.m3u8`,
+        duration, // seconds as float, e.g. 5423.4
       });
     }
   }, 200);
@@ -226,7 +256,9 @@ app.get("/transcode", (req, res) => {
   setTimeout(() => {
     const proc = activeStreams.get(id);
     if (proc) {
-      try { proc.kill("SIGKILL"); } catch {}
+      try {
+        proc.kill("SIGKILL");
+      } catch {}
       activeStreams.delete(id);
     }
     fs.rm(dir, { recursive: true, force: true }, () => {});
