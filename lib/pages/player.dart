@@ -9,6 +9,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:html' as html;
 
 class StreamPlayer extends StatefulWidget {
   final StreamItem stream;
@@ -47,7 +48,9 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
         print("Using HLS stream: $streamUrl");
 
-        await player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
+         player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
+
+         html.window.open(streamUrl, '_blank');
       } else {
         throw Exception("Transcode request failed");
       }
@@ -56,7 +59,6 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
       // fallback to direct stream
       player.open(Media(widget.stream.url));
-      player.play();
     }
   }
 
