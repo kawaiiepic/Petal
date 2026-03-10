@@ -203,7 +203,17 @@ app.get("/transcode", async (req, res) => {
   const masterPlaylist = path.join(dir, "master.m3u8");
 
   const spawnFfmpeg = (mode = "copy") => {
-    const args = ["-loglevel", "warning", "-i", raw, ...mapArgs];
+    const args = [
+      "-loglevel",
+      "warning",
+      "-analyzeduration",
+      "10M",
+      "-probesize",
+      "10M",
+      "-i",
+      raw,
+      ...mapArgs,
+    ];
 
     const videoStream = streams.find((s) => s.codec_type === "video");
     const isH264 = videoStream?.codec_name === "h264";
@@ -219,6 +229,12 @@ app.get("/transcode", async (req, res) => {
     }
 
     args.push(
+      "-g",
+      "48",
+      "-keyint_min",
+      "48",
+      "-sc_threshold",
+      "0",
       "-c:a",
       "aac",
       "-ar",
@@ -230,21 +246,31 @@ app.get("/transcode", async (req, res) => {
       "-threads",
       "2",
       "-fflags",
-      "+genpts",
+      "+genpts+discardcorrupt",
+      "-avoid_negative_ts",
+      "make_zero",
       "-max_muxing_queue_size",
       "1024",
       "-f",
       "hls",
       "-hls_time",
       "8",
+      "-hls_init_time",
+      "1",
       "-hls_list_size",
       "0",
+      "-flags",
+      "+low_delay",
+      "-max_delay",
+      "0",
       "-hls_flags",
-      "independent_segments",
+      "independent_segments+append_list+split_by_time",
       "-hls_playlist_type",
       "event",
       "-hls_start_number_source",
       "epoch",
+      "-hls_segment_type",
+      "fmp4",
       "-hls_segment_filename",
       segmentPattern,
       "-var_stream_map",
