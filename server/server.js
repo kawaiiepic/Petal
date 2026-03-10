@@ -116,61 +116,107 @@ let activeTranscodes = 0;
 const activeStreams = new Map();
 
 // HLS transcoding endpoint
-app.get("/transcode", (req, res) => {
+app.get("/transcode", async (req, res) => {
   const raw = req.query.url;
-  console.log("Transcode request:", raw);
-  console.log("Current transcodes:", activeTranscodes);
-
-  if (activeTranscodes >= MAX_TRANSCODES) {
-    console.log("Too many transcodes currently running.");
+  if (!raw) return res.status(400).send("Missing url");
+  if (activeTranscodes >= MAX_TRANSCODES)
     return res
       .status(429)
       .json({ error: "Server busy, too many active streams" });
-  }
-
-  if (!raw) return res.status(400).send("Missing url");
 
   activeTranscodes++;
-
-  const url = raw;
-
   const id = Date.now().toString();
   const dir = path.join(streamsDir, id);
   fs.mkdirSync(dir, { recursive: true });
 
-  const playlist = path.join(dir, "stream.m3u8");
+  // ── 1. Probe all streams ──────────────────────────────────────────────────
+  const probe = () =>
+    new Promise((resolve) => {
+      const p = spawn("ffprobe", [
+        "-v",
+        "quiet",
+        "-print_format",
+        "json",
+        "-show_streams",
+        "-show_format",
+        raw,
+      ]);
+      let out = "";
+      p.stdout.on("data", (d) => (out += d));
+      p.on("exit", () => {
+        try {
+          resolve(JSON.parse(out));
+        } catch {
+          resolve({ streams: [], format: {} });
+        }
+      });
+    });
 
-  // Try low‑CPU path first: copy video, transcode audio
+  const { streams, format } = await probe();
+  const audioStreams = streams.filter((s) => s.codec_type === "audio");
+  const subtitleStreams = streams.filter((s) => s.codec_type === "subtitle");
+  const duration = format?.duration ? parseFloat(format.duration) : null;
+
+  // ── 2. Extract ALL subtitle tracks as .vtt files (async, don't await) ────
+  if (subtitleStreams.length) {
+    const subArgs = ["-loglevel", "warning", "-i", raw];
+    subtitleStreams.forEach((s, i) => {
+      subArgs.push(
+        "-map",
+        `0:s:${i}`,
+        "-c:s",
+        "webvtt",
+        path.join(dir, `sub_${i}.vtt`),
+      );
+    });
+    spawn("ffmpeg", subArgs).on("error", console.error);
+  }
+
+  // ── 3. Build map + var_stream_map for video + all audio tracks ────────────
+  //
+  //  var_stream_map layout:
+  //    stream 0   → video-only carrier that references the audio group
+  //    stream 1…N → one entry per audio track
+  //
+  //  ffmpeg will auto-generate a master.m3u8 with EXT-X-MEDIA for each audio.
+
+  const mapArgs = ["-map", "0:v:0"];
+  audioStreams.forEach((_, i) => mapArgs.push("-map", `0:a:${i}`));
+
+  // Audio-group entries  (stream indices start at 1 because 0 = video)
+  const audioGroupEntries = audioStreams.map((s, i) => {
+    const lang = s.tags?.language ?? `track${i}`;
+    const name = s.tags?.title ?? lang;
+    const def = i === 0 ? ",default:yes" : "";
+    // stream index in var_stream_map is a:i (ffmpeg counts only mapped audio)
+    return `a:${i},agroup:audio,language:${lang},name:${name}${def}`;
+  });
+
+  // Video stream references the audio group; if no audio just omit agroup
+  const videoEntry = audioStreams.length ? "v:0,agroup:audio" : "v:0";
+
+  const varStreamMap = [videoEntry, ...audioGroupEntries].join(" ");
+
+  // ── 4. Spawn ffmpeg ───────────────────────────────────────────────────────
+  const segmentPattern = path.join(dir, "stream_%v_%03d.ts");
+  const playlistPattern = path.join(dir, "stream_%v.m3u8");
+  const masterPlaylist = path.join(dir, "master.m3u8");
+
   const spawnFfmpeg = (mode = "copy") => {
-    const args = [
-      "-loglevel",
-      "warning",
-      "-i",
-      url,
-      "-map",
-      "0:v:0",
-      "-map",
-      "0:a",
-      "-map",
-      "0:s",
-    ];
+    const args = ["-loglevel", "warning", "-i", raw, ...mapArgs];
 
     if (mode === "copy") {
       args.push("-c:v", "copy");
     } else {
-      console.log("Falling back to full video transcode...");
+      console.log("Falling back to full video transcode…");
       args.push("-c:v", "libx264", "-preset", "veryfast", "-crf", "23");
     }
 
     args.push(
       "-c:a",
-      "copy",
-      "-c:s",
-      "webvtt",
-      "-ac",
-      "2",
+      "aac",
       "-b:a",
-      "192k",
+      "192k", // re-encode so channel/format is safe
       "-threads",
       "2",
       "-fflags",
@@ -179,8 +225,6 @@ app.get("/transcode", (req, res) => {
       "1024",
       "-f",
       "hls",
-      "-start_number",
-      "0",
       "-hls_time",
       "2",
       "-hls_list_size",
@@ -191,72 +235,56 @@ app.get("/transcode", (req, res) => {
       "event",
       "-hls_start_number_source",
       "epoch",
-      playlist,
+      "-hls_segment_filename",
+      segmentPattern,
+      "-var_stream_map",
+      varStreamMap,
+      "-master_pl_name",
+      "master.m3u8",
+      playlistPattern,
     );
 
     const proc = spawn("ffmpeg", args);
-
-    proc.stderr.on("data", (data) => {
-      console.log("ffmpeg:", data.toString());
-    });
-
+    proc.stderr.on("data", (d) => console.log("ffmpeg:", d.toString()));
     proc.on("error", console.error);
-
     proc.on("exit", (code) => {
       activeTranscodes = Math.max(0, activeTranscodes - 1);
-
-      if (code !== 0 && mode === "copy") {
-        // Retry with full transcoding if copy fails
-        spawnFfmpeg("transcode");
-      }
+      if (code !== 0 && mode === "copy") spawnFfmpeg("transcode");
     });
-
     return proc;
   };
 
-  console.log("Starting ffmpeg for:", url);
   const ffmpeg = spawnFfmpeg("copy");
-
-  // track process
   activeStreams.set(id, ffmpeg);
 
-  const getduration = () =>
-    new Promise((resolve) => {
-      const probe = spawn("ffprobe", [
-        "-v",
-        "quiet",
-        "-print_format",
-        "json",
-        "-show_format",
-        url,
-      ]);
-      let out = "";
-      probe.stdout.on("data", (d) => (out += d));
-      probe.on("exit", () => {
-        try {
-          const duration = JSON.parse(out).format?.duration;
-          resolve(duration ? parseFloat(duration) : null);
-        } catch {
-          resolve(null);
-        }
-      });
-    });
-
-  const check = setInterval(async () => {
+  // ── 5. Wait for first segment, then respond ───────────────────────────────
+  const check = setInterval(() => {
     const files = fs.readdirSync(dir);
-    const segmentExists = files.some((f) => f.endsWith(".ts"));
-
-    if (segmentExists) {
+    if (files.some((f) => f.endsWith(".ts"))) {
       clearInterval(check);
-      const duration = await getduration();
+
+      // Append subtitle tracks to master playlist once ffmpeg writes it
+      appendSubtitlesToMaster(masterPlaylist, subtitleStreams, id);
+
       res.json({
-        streamUrl: `/streams/${id}/stream.m3u8`,
-        duration, // seconds as float, e.g. 5423.4
+        streamUrl: `/streams/${id}/master.m3u8`,
+        duration,
+        audioTracks: audioStreams.map((s, i) => ({
+          index: i,
+          language: s.tags?.language ?? null,
+          title: s.tags?.title ?? null,
+        })),
+        subtitleTracks: subtitleStreams.map((s, i) => ({
+          index: i,
+          language: s.tags?.language ?? null,
+          title: s.tags?.title ?? null,
+          url: `/streams/${id}/sub_${i}.vtt`,
+        })),
       });
     }
   }, 200);
 
-  // cleanup old streams
+  // ── 6. Cleanup after 1 hour ───────────────────────────────────────────────
   setTimeout(() => {
     const proc = activeStreams.get(id);
     if (proc) {
@@ -266,8 +294,48 @@ app.get("/transcode", (req, res) => {
       activeStreams.delete(id);
     }
     fs.rm(dir, { recursive: true, force: true }, () => {});
-  }, 3600000);
+  }, 3_600_000);
 });
+
+// ── Append EXT-X-MEDIA subtitle entries to the master playlist ─────────────
+function appendSubtitlesToMaster(masterPath, subtitleStreams, id) {
+  if (!subtitleStreams.length) return;
+
+  // Poll until ffmpeg has written the master playlist
+  const attempt = (tries = 0) => {
+    if (tries > 50) return;
+    if (!fs.existsSync(masterPath)) {
+      return setTimeout(() => attempt(tries + 1), 200);
+    }
+
+    const subtitleLines = subtitleStreams
+      .map((s, i) => {
+        const lang = s.tags?.language ?? `sub${i}`;
+        const name = s.tags?.title ?? lang;
+        const def = i === 0 ? "YES" : "NO";
+        return (
+          `#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",` +
+          `NAME="${name}",LANGUAGE="${lang}",DEFAULT=${def},` +
+          `FORCED=NO,URI="sub_${i}.vtt"`
+        );
+      })
+      .join("\n");
+
+    let master = fs.readFileSync(masterPath, "utf8");
+
+    // Inject subtitle entries before the first #EXT-X-STREAM-INF line
+    master = master.replace(/(#EXT-X-STREAM-INF)/, `${subtitleLines}\n$1`);
+
+    // Add SUBTITLES="subs" to every EXT-X-STREAM-INF line
+    master = master.replace(/(#EXT-X-STREAM-INF:[^\n]+)/g, (line) =>
+      line.includes("SUBTITLES") ? line : `${line},SUBTITLES="subs"`,
+    );
+
+    fs.writeFileSync(masterPath, master);
+  };
+
+  attempt();
+}
 
 app.use("/streams", express.static(streamsDir));
 
