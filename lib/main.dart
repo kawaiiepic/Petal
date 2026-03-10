@@ -38,7 +38,7 @@ class _PetalState extends State<PetalApp> {
         builder: (_, healthy, _) {
           if (!healthy) return Offline();
 
-          return TraktAuth.accessToken.isEmpty ? const TraktLoginPage() : Navigation();
+          return Navigation();
         },
       ),
     );

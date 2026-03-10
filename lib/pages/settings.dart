@@ -1,3 +1,4 @@
+import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/pages/trakt/traktlogin.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,7 +11,7 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
-  bool traktConnected = false;
+  bool traktConnected = TraktAuth.accessToken.isNotEmpty;
 
   void _launchUrl(String url) async {
     final uri = Uri.parse(url);
@@ -54,7 +55,7 @@ class _SettingsState extends State<Settings> {
               title: const Text("About"),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [Text("App: BLS-SMPetal"), Text("Version: 1.0.0"), Text("Contributors: Linvo, Others")],
+                children: const [Text("App: Petal"), Text("Version: 1.0.0"), Text("Contributors: Mia")],
               ),
             ),
           ),
@@ -71,8 +72,8 @@ class _SettingsState extends State<Settings> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(icon: const Icon(Icons.discord_rounded), onPressed: () => _launchUrl("https://discord.gg/yourserver")),
-                  IconButton(icon: const Icon(Icons.code_rounded), onPressed: () => _launchUrl("https://github.com/yourrepo")),
+                  IconButton(icon: const Icon(Icons.discord_rounded), onPressed: () => _launchUrl("#")),
+                  IconButton(icon: const Icon(Icons.code_rounded), onPressed: () => _launchUrl("#")),
                 ],
               ),
             ),
@@ -87,7 +88,7 @@ class _SettingsState extends State<Settings> {
               leading: const Icon(Icons.support),
               title: const Text("Support"),
               subtitle: const Text("Report issues or contact us"),
-              trailing: ElevatedButton(onPressed: () => _launchUrl("mailto:support@example.com"), child: const Text("Contact")),
+              trailing: ElevatedButton(onPressed: () => _launchUrl("#"), child: const Text("Contact")),
             ),
           ),
 
@@ -100,7 +101,7 @@ class _SettingsState extends State<Settings> {
               leading: const Icon(Icons.volunteer_activism),
               title: const Text("Donate"),
               subtitle: const Text("Support development of the app"),
-              trailing: ElevatedButton(onPressed: () => _launchUrl("https://www.buymeacoffee.com/yourpage"), child: const Text("Donate")),
+              trailing: ElevatedButton(onPressed: () => _launchUrl("#"), child: const Text("Donate")),
             ),
           ),
         ],
