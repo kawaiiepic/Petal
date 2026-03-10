@@ -147,10 +147,12 @@ app.get("/transcode", (req, res) => {
       "warning",
       "-i",
       url,
-      "-map",
+      "`-map`",
       "0:v:0",
       "-map",
-      "0:a:0",
+      "0:a",
+      "-map",
+      "0:s"
     ];
 
     if (mode === "copy") {
@@ -162,7 +164,9 @@ app.get("/transcode", (req, res) => {
 
     args.push(
       "-c:a",
-      "aac",
+      "copy",
+      "-c:s",
+      "copy",
       "-ac",
       "2",
       "-b:a",
