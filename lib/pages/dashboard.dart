@@ -94,29 +94,20 @@ class _DashboardState extends State<Dashboard> {
                 Column(
                   children: [
                     Search(addons: addons),
-                    Text('Testing'),
                     Expanded(
                       child: ListView.builder(
                         itemCount: addons.length + 2,
                         itemBuilder: (context, index) {
                           switch (index) {
                             case 0:
-                              final future = TraktFuture.fetchHistory();
-                              return TraktPage(itemsFuture: future, onItemHover: _setBackground);
-                            // return FutureBuilder(
-                            //   future: TraktFuture.fetchHistory(),
-                            //   builder: (context, snapshot) {
-                            //     if (snapshot.hasData) {
-                            //       return TraktRow(items: snapshot.data!, onItemHover: (value) {});
-                            //       // return Row(children: snapshot.data!);
-                            //     } else {
-                            //       return CircularProgressIndicator();
-                            //     }
-                            //   },
-                            // );
-                            // return Text('Testing');
+                              if (TraktApi.accessToken.isNotEmpty) {
+                                final future = TraktFuture.fetchHistory();
+                                return TraktPage(itemsFuture: future, onItemHover: _setBackground);
+                              } else {
+                                return SizedBox();
+                              }
                             case 1:
-                              return Text('Testing');
+                              return SizedBox();
                             default:
                               {
                                 final addon = addons[index - 2];
