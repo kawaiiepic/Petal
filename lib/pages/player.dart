@@ -9,7 +9,6 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:html' as html;
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -52,9 +51,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
         player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
 
-        if (!await launchUrl(Uri.parse(streamUrl))) {
-          throw Exception('Could not launch');
-        }
+
       } else {
         throw Exception("Transcode request failed");
       }

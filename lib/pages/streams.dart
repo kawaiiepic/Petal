@@ -5,6 +5,7 @@ import 'package:blssmpetal/models/episode.dart';
 import 'package:blssmpetal/models/stream.dart';
 import 'package:blssmpetal/pages/player.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StreamsPage extends StatefulWidget {
   final CatalogItem item;
@@ -74,13 +75,17 @@ class StreamTile extends StatelessWidget {
       subtitle: Text(stream.title),
       trailing: Text(stream.addon.name),
       onTap: () {
-        // later: open player / external app
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => StreamPlayer(stream: stream, catalogItem: item, episode: episode),
-          ),
-        );
+        if (MediaQuery.of(context).orientation == Orientation.portrait) {
+          launchUrl(Uri.parse('outplayer://${stream.url}'));
+        } else {
+          // later: open player / external app
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StreamPlayer(stream: stream, catalogItem: item, episode: episode),
+            ),
+          );
+        }
         debugPrint(stream.url);
       },
     );
