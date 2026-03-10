@@ -184,7 +184,7 @@ app.get("/transcode", (req, res) => {
       "-hls_flags",
       "delete_segments+independent_segments",
       "-hls_playlist_type",
-      "vod",
+      "event",
       "-hls_start_number_source",
       "epoch",
       playlist,
