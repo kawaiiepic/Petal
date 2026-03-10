@@ -221,6 +221,10 @@ app.get("/transcode", async (req, res) => {
     args.push(
       "-c:a",
       "aac",
+      "-ar",
+      "48000",
+      "-ac",
+      "2",
       "-b:a",
       "192k", // re-encode so channel/format is safe
       "-threads",
