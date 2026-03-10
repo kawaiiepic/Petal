@@ -11,6 +11,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:html' as html;
 
+import 'package:url_launcher/url_launcher.dart';
+
 class StreamPlayer extends StatefulWidget {
   final StreamItem stream;
   final CatalogItem catalogItem;
@@ -48,9 +50,11 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
         print("Using HLS stream: $streamUrl");
 
-         player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
+        player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
 
-         html.window.open(streamUrl, '_blank');
+        if (!await launchUrl(Uri.parse(streamUrl))) {
+          throw Exception('Could not launch');
+        }
       } else {
         throw Exception("Transcode request failed");
       }

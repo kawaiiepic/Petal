@@ -693,7 +693,7 @@ class _NetworkPosterState extends State<NetworkPoster> {
   void initState() {
     super.initState();
     _image = CachedNetworkImage(
-      imageUrl: widget.poster,
+      imageUrl: Api.proxyImage(widget.poster),
       progressIndicatorBuilder: (context, url, downloadProgress) => Center(child: CircularProgressIndicator(value: downloadProgress.progress)),
       errorWidget: (context, url, error) => Icon(Icons.error),
     );
