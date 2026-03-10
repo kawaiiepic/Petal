@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/api/api.dart';
 import 'package:flutter/foundation.dart';
@@ -37,7 +38,7 @@ class _TraktLoginPageState extends State<TraktLoginPage> {
 
     print('Access token: $token');
 
-    TraktAuth.accessToken = token;
+    TraktApi.accessToken = token;
     Api.traktLoggedIn = true;
 
     if (mounted) {

@@ -1,4 +1,3 @@
-
 class TraktNextUpItem {
   final TraktShow show;
   final int? season;
@@ -54,13 +53,14 @@ class TraktShow {
   final String title;
   final int year;
   final String? imdbId;
+  final int? tmdbId;
   final int? traktId;
 
-  TraktShow({required this.title, required this.year, this.imdbId, this.traktId});
+  TraktShow({required this.title, required this.year, this.imdbId, this.tmdbId, this.traktId});
 
   factory TraktShow.fromJson(Map<String, dynamic> json) {
     final ids = json['ids'] ?? {};
-    return TraktShow(title: json['title'] ?? '', year: json['year'] ?? 0, imdbId: ids['imdb'], traktId: ids['trakt']);
+    return TraktShow(title: json['title'] ?? '', year: json['year'] ?? 0, imdbId: ids['imdb'] ?? '', tmdbId: ids['tmdb'] ?? 0, traktId: ids['trakt'] ?? '');
   }
 }
 

@@ -56,6 +56,9 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
       // fallback to direct stream
       player.open(Media(widget.stream.url));
+      player.play();
+
+      print(player.state.subtitle.join('|'));
     }
   }
 
@@ -94,6 +97,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
   PopupMenuButton _subtitles() => PopupMenuButton<SubtitleTrack>(
     icon: const Icon(Icons.closed_caption_rounded),
     onSelected: player.setSubtitleTrack,
+    tooltip: 'Set Subtitles',
     itemBuilder: (_) {
       return player.state.tracks.subtitle.where((t) => t.language != null).map((t) => PopupMenuItem(value: t, child: Text(t.language!))).toList();
     },
@@ -243,16 +247,16 @@ class _StreamPlayerState extends State<StreamPlayer> {
               ),
 
               // Video(controller: controller, controls: MaterialDesktopVideoControls),
-              Visibility(
-                visible: true,
-                child: Container(
-                  margin: EdgeInsets.fromLTRB(0, 12, 12, 0),
-                  width: 100,
-                  height: 100,
-                  color: Colors.blue,
-                  child: Center(child: Text("I'm visible")),
-                ),
-              ),
+              // Visibility(
+              //   visible: true,
+              //   child: Container(
+              //     margin: EdgeInsets.fromLTRB(0, 12, 12, 0),
+              //     width: 100,
+              //     height: 100,
+              //     color: Colors.blue,
+              //     child: Center(child: Text("I'm visible")),
+              //   ),
+              // ),
             ],
           ),
         ),

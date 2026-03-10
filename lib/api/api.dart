@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:blssmpetal/api/catalog_helper.dart';
+import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
@@ -23,21 +24,21 @@ class Api {
   static late Future<List<Addon>> addonsFuture;
 
   static Future<void> initApi() async {
-    await TraktAuth.loadAccessCode();
+    await TraktApi.loadAccessCode();
 
     _healthPoller?.cancel();
 
-    _healthPoller = Timer.periodic(const Duration(seconds: 5), (_) async {
-      final ok = await healthCheck();
+    // _healthPoller = Timer.periodic(const Duration(seconds: 60), (_) async {
+    //   final ok = await healthCheck();
 
-      if (healthy.value != ok) {
-        healthy.value = ok;
+    //   if (healthy.value != ok) {
+    //     healthy.value = ok;
 
-        if (ok) {
-          _onBackendRecovered();
-        }
-      }
-    });
+    //     if (ok) {
+    //       _onBackendRecovered();
+    //     }
+    //   }
+    // });
 
     // initial check
     final ok = await healthCheck();

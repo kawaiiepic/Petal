@@ -15,9 +15,8 @@ class StreamApi {
       if (!addon.enabledResources.contains('stream')) continue;
       final baseUrl = addon.baseUrl; // you should already have this
       final url = episode != null
-          ? '$baseUrl/stream/${item.catalog.type}/${item.id}:${episode.season}:${episode.episode}.json'
-          : '$baseUrl/stream/${item.catalog.type}/${item.id}.json';
-      print(url);
+          ? '$baseUrl/stream/${item.type}/${item.id}:${episode.season}:${episode.episode}.json'
+          : '$baseUrl/stream/${item.type}/${item.id}.json';
 
       try {
         final res = await http.get(Uri.parse(url));
@@ -30,9 +29,6 @@ class StreamApi {
 
         if (episode != null) {
           final tag = "S${episode.season.toString().padLeft(2, '0')}E${episode.episode.toString().padLeft(2, '0')}";
-          for (var s in mappedStreams) {
-            print("Season: " + s.season.toString());
-          }
           allStreams.addAll(mappedStreams.where((s) => s.season == episode.season && s.episode == episode.episode || s.name.toUpperCase().contains(tag)));
         } else {
           allStreams.addAll(mappedStreams);
@@ -59,8 +55,6 @@ class StreamApi {
 
         final url = '${addon.baseUrl}/catalog/${catalog.type}/${catalog.id}/search=$encodedQuery.json';
 
-        print(url);
-
         try {
           final res = await http.get(Uri.parse(url));
           if (res.statusCode != 200) continue;
@@ -68,7 +62,7 @@ class StreamApi {
           final data = jsonDecode(res.body);
           final metas = data['metas'] as List? ?? [];
 
-          final items = metas.map((m) => CatalogItem.fromJson(m, catalog));
+          final items = metas.map((m) => CatalogItem.fromJson(m));
 
           allItems.addAll(items);
         } catch (_) {
@@ -79,6 +73,19 @@ class StreamApi {
     return allItems;
   }
 
+  static Future<CatalogItem?> fetchCatalogItemById(String id, String type, {String baseUrl = 'https://v3-cinemeta.strem.io/meta'}) async {
+    final url = '$baseUrl/$type/$id.json';
+    try {
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      return CatalogItem.fromJson(data['meta']);
+    } catch (e) {
+      print('Error fetching CatalogItem $id: $e');
+      return null;
+    }
+  }
+
   static Future<CatalogItem?> fetchCatalogItem(CatalogItem item, {String baseUrl = 'https://v3-cinemeta.strem.io/meta'}) async {
     final url = '$baseUrl/${item.type}/${item.id}.json';
 
@@ -87,7 +94,7 @@ class StreamApi {
       if (res.statusCode != 200) return null;
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
-      return CatalogItem.fromJson(data['meta'], item.catalog);
+      return CatalogItem.fromJson(data['meta']);
     } catch (e) {
       print('Error fetching CatalogItem ${item.id}: $e');
       return null;

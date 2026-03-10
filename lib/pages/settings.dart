@@ -1,4 +1,4 @@
-import 'package:blssmpetal/api/trakt/traktauth.dart';
+import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/pages/trakt/traktlogin.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,7 +11,7 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
-  bool traktConnected = TraktAuth.accessToken.isNotEmpty;
+  bool traktConnected = TraktApi.accessToken.isNotEmpty;
 
   void _launchUrl(String url) async {
     final uri = Uri.parse(url);

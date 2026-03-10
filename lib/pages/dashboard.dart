@@ -4,6 +4,9 @@ import 'dart:ui';
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/catalog_helper.dart';
 import 'package:blssmpetal/api/stream_helper.dart';
+import 'package:blssmpetal/api/tmdb/tmdb.dart';
+import 'package:blssmpetal/api/trakt/trakt_future.dart';
+import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/api/trakt/traktauth.dart';
@@ -30,9 +33,7 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // fetchHistory();
-
-    return FutureBuilder(
+    var catalogWidget = FutureBuilder(
       future: Api.addonsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -93,13 +94,36 @@ class _DashboardState extends State<Dashboard> {
                 Column(
                   children: [
                     Search(addons: addons),
+                    Text('Testing'),
                     Expanded(
                       child: ListView.builder(
-                        itemCount: addons.length,
+                        itemCount: addons.length + 2,
                         itemBuilder: (context, index) {
-                          final addon = addons[index];
-                          final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
-                          return loadCatalog(catalogs);
+                          switch (index) {
+                            case 0:
+                              final future = TraktFuture.fetchHistory();
+                              return TraktPage(itemsFuture: future, onItemHover: _setBackground);
+                            // return FutureBuilder(
+                            //   future: TraktFuture.fetchHistory(),
+                            //   builder: (context, snapshot) {
+                            //     if (snapshot.hasData) {
+                            //       return TraktRow(items: snapshot.data!, onItemHover: (value) {});
+                            //       // return Row(children: snapshot.data!);
+                            //     } else {
+                            //       return CircularProgressIndicator();
+                            //     }
+                            //   },
+                            // );
+                            // return Text('Testing');
+                            case 1:
+                              return Text('Testing');
+                            default:
+                              {
+                                final addon = addons[index - 2];
+                                final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
+                                return loadCatalog(catalogs);
+                              }
+                          }
                         },
                       ),
                     ),
@@ -111,28 +135,8 @@ class _DashboardState extends State<Dashboard> {
         }
       },
     );
-  }
 
-  void fetchHistory() async {
-    final trakt = TraktApi(clientId: TraktAuth.clientId, accessToken: TraktAuth.accessToken);
-    final nextUp = await trakt.getNextUp(limit: 10);
-
-    Future<TraktNextUpItem?> buildNextUp(TraktShow show, {limit = 50}) async {
-      if (show.traktId == null) return null;
-
-      final progress = await trakt.fetchShowProgress(show.traktId!);
-
-      final next = progress.nextEpisode;
-      if (next == null) return null;
-      return TraktNextUpItem(show: show, season: next['season'], episode: next['number'], title: next['title'], progress: progress.completed);
-    }
-
-    for (var item in nextUp) {
-      var nextUpComplete = await buildNextUp(item.show);
-      if (nextUpComplete != null) {
-        print(nextUpComplete.show.title);
-      }
-    }
+    return catalogWidget;
   }
 
   Widget loadCatalog(List<Catalog> catalogs) {
@@ -366,6 +370,196 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 }
 
+class TraktPage extends StatefulWidget {
+  final Future<List<TraktShow>> itemsFuture;
+  final ValueChanged<String?> onItemHover;
+
+  const TraktPage({super.key, required this.itemsFuture, required this.onItemHover});
+
+  @override
+  State<TraktPage> createState() => _TraktPageState();
+}
+
+class _TraktPageState extends State<TraktPage> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<TraktShow>>(
+      future: widget.itemsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(color: Colors.pink);
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final items = snapshot.data!;
+
+        return Column(
+          children: [
+            Text('Next Up'),
+            TraktRow(items: items, onItemHover: widget.onItemHover),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class TraktRow extends StatefulWidget {
+  final List<TraktShow> items;
+  final ValueChanged<String?> onItemHover;
+
+  const TraktRow({super.key, required this.items, required this.onItemHover});
+
+  @override
+  State<TraktRow> createState() => _TraktRowState();
+}
+
+class _TraktRowState extends State<TraktRow> {
+  final ScrollController _controller = ScrollController();
+  List<String?> _posterUrls = [];
+  bool _isLoading = true;
+
+  bool _canScrollLeft = false;
+  bool _canScrollRight = true;
+  bool _isHovering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPosters();
+    _controller.addListener(_updateArrows);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateArrows();
+    });
+  }
+
+  Future<void> _loadPosters() async {
+    final urls = await Future.wait(widget.items.map((item) => TMDB.posterUrl(MediaType.show, item.tmdbId!.toString())));
+    setState(() {
+      _posterUrls = urls;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      cursor: SystemMouseCursors.click,
+      child: SizedBox(
+        height: 200,
+        child: Stack(
+          children: [
+            ListView.builder(
+              scrollDirection: Axis.horizontal,
+              controller: _controller,
+              itemCount: widget.items.length,
+              itemBuilder: (context, index) {
+                final item = widget.items[index];
+                final poster = _posterUrls[index];
+
+                if (poster == null) return const SizedBox(width: 128);
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4), // space between posters
+                  child: SizedBox(
+                    width: 120,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: AspectRatio(
+                            aspectRatio: 2 / 3,
+                            child: Tooltip(
+                              message: item.title,
+                              child: GestureDetector(
+                                onTap: () async {
+                                  final catalogItem = await StreamApi.fetchCatalogItemById(item.imdbId!, "series");
+                                  if (catalogItem == null) return;
+                                  if (!context.mounted) return; // important after async gap
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem)));
+                                },
+
+                                child: NetworkPoster(
+                                  poster: poster,
+                                  onHover: () {
+                                    widget.onItemHover(poster);
+                                  },
+                                  onExit: () {
+                                    // optional: widget.onItemHover(null);
+                                  },
+                                ),
+                                // child:
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            Positioned(
+              left: 8,
+              top: 0,
+              bottom: 0,
+
+              child: Center(
+                child: ArrowButton(visible: _isHovering && _canScrollLeft, icon: Icons.arrow_back_ios_new, onPressed: () => _scrollBy(-900)),
+              ),
+            ),
+
+            Positioned(
+              right: 8,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: ArrowButton(visible: _isHovering && _canScrollRight, icon: Icons.arrow_forward_ios, onPressed: () => _scrollBy(900)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _updateArrows() {
+    if (!_controller.hasClients) return;
+
+    final pos = _controller.position;
+
+    setState(() {
+      _canScrollLeft = pos.pixels > 0;
+      _canScrollRight = pos.pixels < pos.maxScrollExtent;
+    });
+  }
+
+  void _scrollBy(double offset) {
+    _controller.animateTo(_controller.offset + offset, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+}
+
 class CatalogRow extends StatefulWidget {
   final List<CatalogItem> items;
   final ValueChanged<String?> onItemHover;
@@ -508,7 +702,7 @@ class _NetworkPosterState extends State<NetworkPoster> {
   void initState() {
     super.initState();
     _image = CachedNetworkImage(
-      imageUrl: Api.proxyImage(widget.poster),
+      imageUrl: widget.poster,
       progressIndicatorBuilder: (context, url, downloadProgress) => Center(child: CircularProgressIndicator(value: downloadProgress.progress)),
       errorWidget: (context, url, error) => Icon(Icons.error),
     );

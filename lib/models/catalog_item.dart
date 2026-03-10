@@ -4,8 +4,6 @@ import 'package:blssmpetal/models/season.dart';
 import 'trailer.dart';
 
 class CatalogItem {
-  final Catalog catalog;
-
   // Core
   final String id;
   final String name;
@@ -38,7 +36,6 @@ class CatalogItem {
   final List<Season> seasons;
 
   CatalogItem({
-    required this.catalog,
     required this.id,
     required this.name,
     required this.type,
@@ -75,7 +72,7 @@ class CatalogItem {
     }).toList()..sort((a, b) => a.number.compareTo(b.number));
   }
 
-  factory CatalogItem.fromJson(Map<String, dynamic> json, Catalog catalog) {
+  factory CatalogItem.fromJson(Map<String, dynamic> json) {
     int yearInt = 0;
     if (json['year'] != null) {
       String year = json['year'];
@@ -86,7 +83,6 @@ class CatalogItem {
     final videos = json['videos'] as List<dynamic>? ?? [];
 
     return CatalogItem(
-      catalog: catalog,
       id: json['id'],
       name: json['name'],
       type: json['type'] ?? '',

@@ -1,4 +1,4 @@
-import 'package:blssmpetal/api/trakt/trakt.dart';
+import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:flutter/material.dart';
 
 class Profile extends StatelessWidget {
@@ -7,7 +7,7 @@ class Profile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: Trakt.userProfile(),
+      future: TraktApi.userProfile(),
       builder: (context, snapshot) {
         String tooltip = "Profile"; // default tooltip
         Widget avatarChild = Icon(Icons.person);
