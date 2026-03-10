@@ -1,4 +1,5 @@
 import 'package:blssmpetal/models/catalog_item.dart';
+import 'package:blssmpetal/models/episode.dart';
 import 'package:blssmpetal/models/trailer.dart';
 import 'package:blssmpetal/pages/streams.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -46,7 +47,7 @@ class OverviewPage extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 // ▶ PLAY BUTTON
                 ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StreamsPage(item: item))),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StreamsPage(item: item, episode: Episode(season: 0, episode: 1, title: '', overview: '', thumbnail: ''),))),
                   icon: const Icon(Icons.play_arrow),
                   label: const Text("Play"),
                   style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
