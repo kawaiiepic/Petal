@@ -157,7 +157,7 @@ app.get("/transcode", (req, res) => {
       args.push("-c:v", "copy");
     } else {
       console.log("Falling back to full video transcode...");
-      args.push("-c:v", "h264_amf", "-preset", "veryfast", "-crf", "23");
+      args.push("-c:v", "libx264", "-preset", "veryfast", "-crf", "23");
     }
 
     args.push(
