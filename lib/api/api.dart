@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class Api {
-  static bool dev = false;
+  static bool dev = true;
   static bool traktLoggedIn = false;
   static String proxyImage(String url) {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";

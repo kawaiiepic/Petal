@@ -30,11 +30,30 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
   bool showLeftSeek = false;
   bool showRightSeek = false;
+  late final ValueNotifier<String?> _breadcrumb = ValueNotifier(null);
+  ValueNotifier<AudioTrack?> currentAudioTrack = ValueNotifier(null);
+  ValueNotifier<SubtitleTrack?> currentSubtitleTrack = ValueNotifier(null);
+
+  bool controlsVisible = false;
+  Timer? timer;
 
   @override
   void initState() {
     super.initState();
     _startStream();
+
+    currentAudioTrack.value = player.state.tracks.audio[0];
+    currentSubtitleTrack.value = player.state.tracks.subtitle[0];
+
+    player.stream.track.listen((track) {
+      if (track.audio != currentAudioTrack.value) {
+        currentAudioTrack.value = track.audio;
+      }
+
+      if (track.subtitle != currentSubtitleTrack.value) {
+        currentSubtitleTrack.value = track.subtitle;
+      }
+    });
   }
 
   Future<void> _startStream() async {
@@ -49,9 +68,9 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
         print("Using HLS stream: $streamUrl");
 
+        await Future.delayed(Duration(seconds: 5));
+
         player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
-
-
       } else {
         throw Exception("Transcode request failed");
       }
@@ -61,6 +80,13 @@ class _StreamPlayerState extends State<StreamPlayer> {
       // fallback to direct stream
       player.open(Media(widget.stream.url));
     }
+  }
+
+  void showBreadcrumb(String message, {Duration duration = const Duration(seconds: 2)}) {
+    _breadcrumb.value = message;
+    Future.delayed(duration, () {
+      _breadcrumb.value = null;
+    });
   }
 
   @override
@@ -89,7 +115,10 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
   PopupMenuButton _audioTrack() => PopupMenuButton<AudioTrack>(
     icon: const Icon(Icons.audiotrack_rounded),
-    onSelected: player.setAudioTrack,
+    onSelected: (value) {
+      print(value.title);
+      player.setAudioTrack(value);
+    },
     itemBuilder: (_) {
       return player.state.tracks.audio.where((t) => t.language != null).map((t) => PopupMenuItem(value: t, child: Text(t.language!))).toList();
     },
@@ -191,8 +220,73 @@ class _StreamPlayerState extends State<StreamPlayer> {
         const MaterialDesktopVolumeButton(),
         const MaterialDesktopPositionIndicator(),
         const Spacer(),
-        _audioTrack(),
-        _subtitles(),
+
+        // _audioTrack(),
+        MaterialDesktopCustomButton(
+          onPressed: () {
+            var tracks = player.state.tracks.audio.where((a) => a.language != null).toList();
+            var index = tracks.indexOf(player.state.track.audio) + 1;
+
+            if (index + 1 > tracks.length) {
+              index = 0;
+            }
+
+            player.setAudioTrack(tracks[index]);
+            setState(() {});
+            showBreadcrumb("Audio: ${tracks[index].language}");
+          },
+          icon: ValueListenableBuilder<AudioTrack?>(
+            valueListenable: currentAudioTrack,
+            builder: (context, track, child) {
+              return Tooltip(
+                message: player.state.tracks.audio.where((a) => a.language != null).isEmpty
+                    ? 'No audio tracks'
+                    : player.state.tracks.audio
+                          .where((a) => a.language != null)
+                          .map((a) {
+                            if (a.language == player.state.track.audio.language) {
+                              return "${a.language} ";
+                            } else {
+                              return "${a.language}";
+                            }
+                          })
+                          .join('\n'),
+                child: Icon(Icons.audiotrack_rounded),
+              );
+            },
+          ),
+        ),
+        // _subtitles(),
+        MaterialDesktopCustomButton(
+          onPressed: () {
+            var subtitles = player.state.tracks.subtitle.where((a) => a.language != null).toList();
+            var index = subtitles.indexOf(player.state.track.subtitle) + 1;
+
+            if (index + 1 > subtitles.length) {
+              index = 0;
+            }
+
+            player.setSubtitleTrack(subtitles[index]);
+            setState(() {});
+            showBreadcrumb("Subtitle: ${subtitles[index].title}");
+          },
+          icon: Tooltip(
+            key: ValueKey(player.state.track.subtitle),
+            message: player.state.tracks.subtitle.isEmpty
+                ? 'No Subtitle tracks'
+                : player.state.tracks.subtitle
+                      .where((a) => a.language != null)
+                      .map((a) {
+                        if (a.language == player.state.track.subtitle.language) {
+                          return "${a.title} ";
+                        } else {
+                          return "${a.title}";
+                        }
+                      })
+                      .join('\n'),
+            child: Icon(Icons.closed_caption_rounded),
+          ),
+        ),
         _playbackSpeed(),
         MaterialDesktopCustomButton(onPressed: () {}, icon: const Icon(Icons.settings)),
         const MaterialDesktopFullscreenButton(),
@@ -200,66 +294,157 @@ class _StreamPlayerState extends State<StreamPlayer> {
     );
   }
 
+double controlsOffset(BuildContext context) {
+    final theme = MaterialDesktopVideoControlsTheme.maybeOf(context)?.normal;
+
+    final buttonBarHeight = theme?.buttonBarHeight ?? 56;
+    final margin = theme?.bottomButtonBarMargin.vertical ?? 0;
+    final padding = theme?.padding?.bottom ?? 0;
+
+    return buttonBarHeight + margin + padding;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final ValueNotifier<int> pressCount = ValueNotifier<int>(0);
-    final ValueNotifier<Timer> _timer = ValueNotifier<Timer>(Timer(Duration.zero, () {}));
-
     return MaterialDesktopVideoControlsTheme(
       normal: controls(),
       fullscreen: controls(),
       child: Scaffold(
-        body: Center(
-          child: Stack(
-            alignment: Alignment.topRight,
-            children: [
-              GestureDetector(
-                onTapUp: (details) async {
-                  await player.playOrPause();
-                },
+        body: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            GestureDetector(
+              onTapUp: (details) async {
+                // await player.playOrPause();
+              },
 
-                onDoubleTapDown: (details) async {
-                  final width = MediaQuery.of(context).size.width;
+              onDoubleTapDown: (details) async {
+                final width = MediaQuery.of(context).size.width;
 
-                  if (details.globalPosition.dx < width / 2) {
-                    seekRelative(const Duration(seconds: -10));
+                if (details.globalPosition.dx < width / 2) {
+                  seekRelative(const Duration(seconds: -10));
 
-                    setState(() => showLeftSeek = true);
-                    Future.delayed(const Duration(milliseconds: 600), () {
-                      setState(() => showLeftSeek = false);
-                    });
-                  } else {
-                    seekRelative(const Duration(seconds: 10));
+                  setState(() => showLeftSeek = true);
+                  Future.delayed(const Duration(milliseconds: 600), () {
+                    setState(() => showLeftSeek = false);
+                  });
+                } else {
+                  seekRelative(const Duration(seconds: 10));
 
-                    setState(() => showRightSeek = true);
-                    Future.delayed(const Duration(milliseconds: 600), () {
-                      setState(() => showRightSeek = false);
-                    });
-                  }
-                },
+                  setState(() => showRightSeek = true);
+                  Future.delayed(const Duration(milliseconds: 600), () {
+                    setState(() => showRightSeek = false);
+                  });
+                }
+              },
 
-                child: Stack(
-                  children: [
-                    Video(controller: controller, controls: MaterialDesktopVideoControls),
-                    if (showLeftSeek) _seekOverlay(left: true),
-                    if (showRightSeek) _seekOverlay(left: false),
-                  ],
-                ),
+              child: Stack(
+                children: [
+                  Video(controller: controller, controls: MaterialDesktopVideoControls),
+                  MouseRegion(
+                    onHover: (_) {
+                      setState(() => controlsVisible = true);
+
+                      timer?.cancel();
+                      timer = Timer(Duration(milliseconds: 5500), () {
+                        setState(() => controlsVisible = false);
+                      });
+                    },
+                    child: Video(controller: controller),
+                  ),
+                  Positioned(
+                    right: 20,
+                    bottom: 40,
+                    child: AnimatedSlide(
+                      duration: Duration(milliseconds: 200),
+                      offset: controlsVisible ? Offset(0, -0.35) : Offset.zero,
+                      child: Visibility(
+                        visible: true,
+                        child: Container(
+                          margin: EdgeInsets.fromLTRB(0, 0, 12, 12),
+                          width: 400,
+                          height: 200,
+                          color: Colors.blue,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text("Up Next"),
+                              Text("Episode 5"),
+                              ElevatedButton(
+                                onPressed: () {
+                                  // playNextEpisode();
+                                },
+                                child: Text("Watch Now"),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Container(
+                  //   alignment: AlignmentDirectional.bottomEnd,
+                  //   child: Visibility(
+                  //     visible: false,
+                  //     child: Container(
+                  //       margin: EdgeInsets.fromLTRB(0, 0, 12, 12),
+                  //       width: 400,
+                  //       height: 200,
+                  //       color: Colors.blue,
+                  //       child: Column(
+                  //         mainAxisAlignment: MainAxisAlignment.center,
+                  //         children: [
+                  //           Text("Up Next"),
+                  //           Text("Episode 5"),
+                  //           ElevatedButton(
+                  //             onPressed: () {
+                  //               // playNextEpisode();
+                  //             },
+                  //             child: Text("Watch Now"),
+                  //           ),
+                  //         ],
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
+                  if (showLeftSeek) _seekOverlay(left: true),
+                  if (showRightSeek) _seekOverlay(left: false),
+
+                  // Breadcrumb overlay
+                  ValueListenableBuilder<String?>(
+                    valueListenable: _breadcrumb,
+                    builder: (context, msg, _) {
+                      if (msg == null) return const SizedBox.shrink();
+                      return Center(
+                        heightFactor: 20,
+                        child: AnimatedOpacity(
+                          opacity: 1,
+                          duration: const Duration(milliseconds: 200),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(12)),
+                            child: Text(msg, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
+            ),
 
-              // Video(controller: controller, controls: MaterialDesktopVideoControls),
-              // Visibility(
-              //   visible: true,
-              //   child: Container(
-              //     margin: EdgeInsets.fromLTRB(0, 12, 12, 0),
-              //     width: 100,
-              //     height: 100,
-              //     color: Colors.blue,
-              //     child: Center(child: Text("I'm visible")),
-              //   ),
-              // ),
-            ],
-          ),
+            // Video(controller: controller, controls: MaterialDesktopVideoControls),
+            // Visibility(
+            //   visible: true,
+            //   child: Container(
+            //     margin: EdgeInsets.fromLTRB(0, 12, 12, 0),
+            //     width: 100,
+            //     height: 100,
+            //     color: Colors.blue,
+            //     child: Center(child: Text("I'm visible")),
+            //   ),
+            // ),
+          ],
         ),
       ),
     );
