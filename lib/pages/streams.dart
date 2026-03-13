@@ -96,7 +96,7 @@ class StreamTile extends StatelessWidget {
         } else if (MediaQuery.of(context).orientation == Orientation.portrait) {
           launchUrl(Uri.parse('outplayer://${stream.url}'));
         } else {
-          if (!kIsWeb) {
+          if (kIsWeb) {
             showDialog(
               context: context,
               builder: (context) {

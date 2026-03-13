@@ -57,29 +57,30 @@ class _StreamPlayerState extends State<StreamPlayer> {
   }
 
   Future<void> _startStream() async {
-    try {
-      final uri = Uri.parse("${Api.ServerUrl}/transcode?url=${Uri.encodeComponent(widget.stream.url)}");
+    player.open(Media(widget.stream.url));
+    // try {
+    //   final uri = Uri.parse("${Api.ServerUrl}/transcode?url=${Uri.encodeComponent(widget.stream.url)}");
 
-      final response = await http.get(uri);
+    //   final response = await http.get(uri);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final streamUrl = Api.ServerUrl + data["streamUrl"];
+    //   if (response.statusCode == 200) {
+    //     final data = jsonDecode(response.body);
+    //     final streamUrl = Api.ServerUrl + data["streamUrl"];
 
-        print("Using HLS stream: $streamUrl");
+    //     print("Using HLS stream: $streamUrl");
 
-        await Future.delayed(Duration(seconds: 5));
+    //     await Future.delayed(Duration(seconds: 5));
 
-        player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
-      } else {
-        throw Exception("Transcode request failed");
-      }
-    } catch (e) {
-      print("Transcode error: $e");
+    //     player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
+    //   } else {
+    //     throw Exception("Transcode request failed");
+    //   }
+    // } catch (e) {
+    //   print("Transcode error: $e");
 
-      // fallback to direct stream
-      player.open(Media(widget.stream.url));
-    }
+    //   // fallback to direct stream
+    //   player.open(Media(widget.stream.url));
+    // }
   }
 
   void showBreadcrumb(String message, {Duration duration = const Duration(seconds: 2)}) {
