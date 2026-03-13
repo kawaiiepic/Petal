@@ -4,18 +4,28 @@ class StreamItem {
   final String name;
   final String title;
   final String url;
+  final bool external;
   final Addon addon;
 
   // Optional parsed fields
   final int? season;
   final int? episode;
 
-  StreamItem({required this.name, required this.title, required this.url, required this.addon, this.season, this.episode});
+  StreamItem({
+    required this.name,
+    required this.title,
+    required this.url,
+    required this.external,
+    required this.addon,
+    this.season,
+    this.episode,
+  });
 
   factory StreamItem.fromJson(Map<String, dynamic> json, Addon addon) {
     final name = json['name'] ?? '';
     final title = json['title'] ?? json['description'] ?? '';
-    final url = json['url'] ?? '';
+    final url = json['url'] ?? json['externalUrl'] ?? '';
+    final external = json['externalUrl'] != null;
 
     int? season;
     int? episode;
@@ -24,8 +34,6 @@ class StreamItem {
     final regex = RegExp(r'[Ss](\d{1,2})[Ee](\d{1,2})');
     final match = regex.firstMatch(title);
 
-    print(title);
-
     if (match != null) {
       print("First Match ${match.group(1)} Second Match ${match.group(2)}");
 
@@ -33,6 +41,14 @@ class StreamItem {
       episode = int.tryParse(match.group(2)!);
     }
 
-    return StreamItem(name: name, title: title, url: url, addon: addon, season: season, episode: episode);
+    return StreamItem(
+      name: name,
+      title: title,
+      url: url,
+      external: external,
+      addon: addon,
+      season: season,
+      episode: episode,
+    );
   }
 }

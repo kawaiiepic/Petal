@@ -4,6 +4,7 @@ import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/episode.dart';
 import 'package:blssmpetal/models/stream.dart';
 import 'package:blssmpetal/pages/player.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -44,14 +45,22 @@ class _StreamsPageState extends State<StreamsPage> {
 
           final streams = snapshot.data!;
           if (streams.isEmpty) {
-            return const Center(child: Text('No streams found'));
+            if (snapshot.data!.isEmpty) {
+              return const Center(child: Text('No \'stream\' capable Addons'));
+            } else {
+              return const Center(child: Text('No streams found'));
+            }
           }
 
           return ListView.builder(
             itemCount: streams.length,
             itemBuilder: (context, index) {
               final stream = streams[index];
-              return StreamTile(stream: stream, item: widget.item, episode: widget.episode);
+              return StreamTile(
+                stream: stream,
+                item: widget.item,
+                episode: widget.episode,
+              );
             },
           );
         },
@@ -65,26 +74,66 @@ class StreamTile extends StatelessWidget {
   final CatalogItem item;
   final Episode? episode;
 
-  const StreamTile({super.key, required this.stream, required this.item, this.episode});
+  const StreamTile({
+    super.key,
+    required this.stream,
+    required this.item,
+    this.episode,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.play_circle),
+      leading: stream.external
+          ? const Icon(Icons.play_circle)
+          : const Icon(Icons.play_circle_outline),
       title: Text(stream.name),
       subtitle: Text(stream.title),
       trailing: Text(stream.addon.name),
       onTap: () {
-        if (MediaQuery.of(context).orientation == Orientation.portrait) {
+        if (stream.external) {
+          launchUrl(Uri.parse(stream.url));
+        } else if (MediaQuery.of(context).orientation == Orientation.portrait) {
           launchUrl(Uri.parse('outplayer://${stream.url}'));
         } else {
-          // later: open player / external app
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => StreamPlayer(stream: stream, catalogItem: item, episode: episode),
-            ),
-          );
+          if (!kIsWeb) {
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text("Playback not supported"),
+                  content: SelectableText(
+                    "This stream can't be played in the built-in player. Open it externally.\n\n${stream.url}",
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text("Cancel"),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text("Open Stream"),
+                    ),
+                  ],
+                );
+              },
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => StreamPlayer(
+                  stream: stream,
+                  catalogItem: item,
+                  episode: episode,
+                ),
+              ),
+            );
+          }
         }
         debugPrint(stream.url);
       },

@@ -12,6 +12,7 @@ class Settings extends StatefulWidget {
 
 class _SettingsState extends State<Settings> {
   bool traktConnected = TraktApi.accessToken.isNotEmpty;
+  String selectedPlayer = "Disabled";
 
   void _launchUrl(String url) async {
     final uri = Uri.parse(url);
@@ -42,6 +43,33 @@ class _SettingsState extends State<Settings> {
               title: const Text("Connect Trakt"),
               subtitle: Text(traktConnected ? "Connected" : "Sync your watchlist and history"),
               trailing: ElevatedButton(onPressed: traktConnected ? null : _connectTrakt, child: Text(traktConnected ? "Connected" : "Connect")),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: ListTile(
+              leading: const Icon(Icons.play_circle_outline),
+              title: const Text("External Player"),
+              subtitle: const Text("Choose your preferred player"),
+              trailing: DropdownButton<String>(
+                value: selectedPlayer,
+                items: ["Disabled", "Outplayer", "MX Player"].map((player) {
+                  return DropdownMenuItem(
+                    value: player,
+                    child: Text(player),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    selectedPlayer = value;
+                    // optionally save to persistent storage here
+                  });
+                },
+              ),
             ),
           ),
 

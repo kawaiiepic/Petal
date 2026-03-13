@@ -2,14 +2,94 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
+import Database from "better-sqlite3";
+import crypto from "crypto";
+
+const db = new Database("database.db");
+
+setupDb();
 
 const app = express();
 const port = 3000;
 
-function sanitize(str) {
-  return String(str ?? "")
-    .replace(/[^a-zA-Z0-9_-]/g, "_") // replace spaces and special chars
-    .substring(0, 30); // optional limit
+function setupDb() {
+  // enable WAL mode (important for performance)
+  db.pragma("journal_mode = WAL");
+  db.pragma("synchronous = NORMAL");
+  db.pragma("temp_store = MEMORY");
+
+  // users
+  db.prepare(
+    `
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    created_at INTEGER
+  )
+  `,
+  ).run();
+
+  // user addons
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS addons (
+      user_id TEXT,
+      id TEXT,
+      name TEXT,
+      manifest_url TEXT,
+      icon TEXT,
+      enabled_resources TEXT,
+      forced INTEGER,
+      config TEXT,
+      PRIMARY KEY (user_id, id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+  `,
+  ).run();
+
+  // image cache
+  db.prepare(
+    `
+  CREATE TABLE IF NOT EXISTS image_cache (
+    url TEXT PRIMARY KEY,
+    content_type TEXT,
+    cached_at INTEGER
+  )
+  `,
+  ).run();
+
+  // stream sessions
+  db.prepare(
+    `
+  CREATE TABLE IF NOT EXISTS streams (
+    id TEXT PRIMARY KEY,
+    source_url TEXT,
+    directory TEXT,
+    created_at INTEGER,
+    last_access INTEGER
+  )
+  `,
+  ).run();
+
+  setInterval(
+    () => {
+      const cutoff = Date.now() - 1000 * 60 * 60 * 6; // 6 hours
+
+      const old = db
+        .prepare(
+          `
+      SELECT * FROM streams WHERE last_access < ?
+    `,
+        )
+        .all(cutoff);
+
+      for (const stream of old) {
+        fs.rmSync(stream.directory, { recursive: true, force: true });
+
+        db.prepare("DELETE FROM streams WHERE id = ?").run(stream.id);
+      }
+    },
+    1000 * 60 * 60,
+  );
 }
 
 const userAddons = {
@@ -93,17 +173,87 @@ app.get("/img", async (req, res) => {
 // Save addons for a user
 app.post("/addons", (req, res) => {
   const { userId, addons } = req.body;
+
   if (!userId || !addons) {
-    return res.status(400).json({ error: "Missing userId or addons" });
+    return res.status(400).json({ error: "Missing data" });
   }
-  userAddons[userId] = addons;
+
+  console.log("Saving addons for user:", userId);
+
+  db.prepare(
+    `
+    INSERT OR IGNORE INTO users (id, created_at)
+    VALUES (?, ?)
+  `,
+  ).run(userId, Date.now());
+
+  const insert = db.prepare(`
+    INSERT OR REPLACE INTO addons
+    (id, user_id, name, manifest_url, icon, enabled_resources, forced, config)
+    VALUES (?,?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const tx = db.transaction(() => {
+    for (const addon of addons) {
+      insert.run(
+        addon.id,
+        userId,
+        addon.name,
+        addon.manifestUrl,
+        addon.icon || "",
+
+        JSON.stringify(addon.enabledResources || []),
+        addon.forced,
+        JSON.stringify(addon.config || {}),
+      );
+    }
+  });
+
+  tx();
+
   res.json({ success: true });
 });
 
 // Get addons for a user
 app.get("/addons/:userId", (req, res) => {
-  const { userId } = req.params;
-  res.json({ addons: userAddons[userId] || [] });
+  console.log("Fetching addons for user:", req.params.userId);
+  const rows = db
+    .prepare(
+      `
+    SELECT * FROM addons WHERE user_id = ?
+  `,
+    )
+    .all(req.params.userId);
+
+  const addons = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    manifestUrl: r.manifest_url,
+    icon: r.icon,
+    enabledResources: JSON.parse(r.enabled_resources),
+    forced: 0,
+    config: JSON.parse(r.config),
+  }));
+
+  addons.push({
+    id: "com.linvo.cinemeta",
+    name: "Cinemeta",
+    manifestUrl: "https://v3-cinemeta.strem.io/manifest.json",
+    enabledResources: ["catalog"],
+    forced: 1,
+    config: {},
+  });
+
+  addons.push({
+    id: "org.stremio.watchhub",
+    name: "WatchHub",
+    manifestUrl: "https://watchhub.strem.io/manifest.json",
+    enabledResources: ["stream"],
+    forced: 1,
+    config: {},
+  });
+
+  res.json({ addons });
 });
 
 import { spawn } from "child_process";
@@ -118,25 +268,51 @@ app.get("/transcode", async (req, res) => {
   const raw = req.query.url;
   if (!raw) return res.status(400).send("Missing url");
 
-  const id = raw;
+  const id = crypto.createHash("md5").update(raw).digest("hex");
 
   const dir = path.join(streamsDir, id);
 
   if (fs.existsSync(dir)) {
-    console.log("Stream already exists")
+    db.prepare(
+      `
+    UPDATE streams SET last_access = ?
+    WHERE id = ?
+    `,
+    ).run(Date.now(), id);
+
+    console.log("Stream already exists");
     res.json({ streamUrl: `/streams/${id}/master.m3u8` });
     return;
   }
 
+  db.prepare(
+    `
+  INSERT OR REPLACE INTO streams
+  (id, source_url, directory, created_at, last_access)
+  VALUES (?, ?, ?, ?, ?)
+  `,
+  ).run(id, raw, dir, Date.now(), Date.now());
+
   fs.mkdirSync(dir, { recursive: true });
-  const segmentPattern = path.join(dir, "stream_%v_%03d.ts");
-  const playlistPattern = path.join(dir, "stream_%v.m3u8");
   const masterPlaylist = path.join(dir, "master.m3u8");
 
   const spawnFfmpeg = (mode = "copy") => {
     const args = [
-      "-loglevel",
-      "warning",
+      // "-loglevel", "warning",
+      "-fflags",
+      "+genpts",
+      "-reconnect",
+      "1",
+      "-probesize",
+      "100M",
+      "-analyzeduration",
+      "200M",
+      "-reconnect_streamed",
+      "1",
+      "-reconnect_delay_max",
+      "5",
+      "-user_agent",
+      "Mozilla/5.0",
       "-i",
       raw,
     ];
@@ -145,52 +321,33 @@ app.get("/transcode", async (req, res) => {
       args.push("-c:v", "copy");
     } else {
       console.log("Falling back to full video transcode…");
-      args.push("-c:v", "libx264", "-preset", "medium", "-crf", "23");
+      args.push("-c:v", "libx264", "-preset", "veryfast", "-crf", "23");
     }
 
-    args.push("-c:a", "aac", "-b:a", "128k", masterPlaylist);
+    args.push(
+      "-map",
+      "0:v:0",
+      "-map",
+      "0:a:0?",
+      "-c:a",
+      "aac",
 
-    // args.push(
-    //   "-c:a",
-    //   "aac",
-    //   // "-ar",
-    //   // "48000",
-    //   // "-ac",
-    //   // "2",
-    //   "-b:a",
-    //   "192k", // re-encode so channel/format is safe
-    //   // "-threads",
-    //   // "2",
-    //   // "-fflags",
-    //   // "+genpts+discardcorrupt",
-    //   // "-avoid_negative_ts",
-    //   // "make_zero",
-    //   // "-max_muxing_queue_size",
-    //   // "1024",
-    //   "-f",
-    //   "hls",
-    //   "-hls_time",
-    //   "2",
-    //   "-hls_list_size",
-    //   "0",
-    //   // "-flags",
-    //   // "+low_delay",
-    //   // "-max_delay",
-    //   // "0",
-    //   // "-hls_flags",
-    //   // "independent_segments+append_list",
-    //   "-hls_playlist_type",
-    //   "vod",
-    //   "-hls_start_number_source",
-    //   "epoch",
-    //   "-hls_segment_filename",
-    //   segmentPattern,
-    //   "-var_stream_map",
-    //   varStreamMap,
-    //   "-master_pl_name",
-    //   "master.m3u8",
-    //   playlistPattern,
-    // );
+      "-ar",
+      "48000",
+      "-ac",
+      "2",
+      "-b:a",
+      "128k",
+      "-f",
+      "hls",
+      "-hls_time",
+      "6",
+      "-hls_list_size",
+      "10",
+      "-hls_flags",
+      "delete_segments",
+      masterPlaylist,
+    );
 
     const proc = spawn("ffmpeg", args);
     proc.stderr.on("data", (d) => console.log("ffmpeg:", d.toString()));
@@ -202,8 +359,16 @@ app.get("/transcode", async (req, res) => {
   };
 
   const ffmpeg = spawnFfmpeg("copy");
-  activeStreams.set(id, ffmpeg);
 
+  await new Promise((resolve, reject) => {
+    const check = () => {
+      if (fs.existsSync(masterPlaylist)) return resolve();
+
+      setTimeout(check, 200);
+    };
+
+    check();
+  });
   res.json({ streamUrl: `/streams/${id}/master.m3u8` });
 });
 

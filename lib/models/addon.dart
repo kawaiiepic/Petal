@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 
 import 'package:blssmpetal/models/resource.dart';
 import 'package:http/http.dart' as http;
@@ -11,12 +12,27 @@ class Addon {
   Map<String, dynamic>? manifest; // full manifest JSON, may contain logo/icon
   // user state
   final Set<String> enabledResources;
+  final int forced;
 
-  Addon({required this.id, required this.name, required this.manifestUrl, required this.baseUrl, this.manifest, Set<String>? enabledResources})
-    : enabledResources = enabledResources ?? {};
+  Addon({
+    required this.id,
+    required this.name,
+    required this.manifestUrl,
+    required this.baseUrl,
+    this.manifest,
+    Set<String>? enabledResources,
+    required this.forced
+  }) : enabledResources = enabledResources ?? {};
 
   factory Addon.fromJson(Map<String, dynamic> json) {
-    return Addon(id: json['id'], name: json['name'], manifestUrl: json['manifestUrl'], baseUrl: json['manifestUrl'].replaceAll('/manifest.json', ''), enabledResources: Set<String>.from(json['enabledResources'] ?? []));
+    return Addon(
+      id: json['id'],
+      name: json['name'],
+      manifestUrl: json['manifestUrl'],
+      baseUrl: json['manifestUrl'].replaceAll('/manifest.json', ''),
+      enabledResources: Set<String>.from(json['enabledResources'] ?? []),
+      forced: json['forced'] ?? 0,
+    );
   }
 
   // async method to fetch manifest
