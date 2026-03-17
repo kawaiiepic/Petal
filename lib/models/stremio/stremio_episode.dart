@@ -1,14 +1,14 @@
-class Episode {
+class StremioEpisode {
   final int season;
   final int episode;
   final String title;
   final String overview;
   final String thumbnail;
 
-  Episode({required this.season, required this.episode, required this.title, required this.overview, required this.thumbnail});
+  StremioEpisode({required this.season, required this.episode, required this.title, required this.overview, required this.thumbnail});
 
-  factory Episode.fromJson(Map<String, dynamic> json) {
-    return Episode(
+  factory StremioEpisode.fromJson(Map<String, dynamic> json) {
+    return StremioEpisode(
       season: json['season'],
       episode: json['episode'],
       title: json['name'] ?? '',

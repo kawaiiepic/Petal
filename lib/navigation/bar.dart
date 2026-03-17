@@ -1,5 +1,5 @@
 import 'package:blssmpetal/pages/addons.dart';
-import 'package:blssmpetal/pages/dashboard.dart';
+import 'package:blssmpetal/pages/dashboard/dashboard.dart';
 import 'package:blssmpetal/pages/settings.dart';
 import 'package:flutter/material.dart';
 

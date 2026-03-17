@@ -11,7 +11,7 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
-  bool traktConnected = TraktApi.accessToken.isNotEmpty;
+  bool traktConnected = TraktApi.accessToken.value != null;
   String selectedPlayer = "Disabled";
 
   void _launchUrl(String url) async {
@@ -45,9 +45,9 @@ class _SettingsState extends State<Settings> {
               trailing: ElevatedButton(onPressed: traktConnected ? null : _connectTrakt, child: Text(traktConnected ? "Connected" : "Connect")),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListTile(

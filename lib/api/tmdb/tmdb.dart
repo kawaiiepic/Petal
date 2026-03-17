@@ -15,10 +15,18 @@ class TMDB {
   static Map<String, String> get _headers => {'accept': 'application/json', 'Authorization': 'Bearer $accessToken'};
 
   static Future<Uint8List> poster(MediaType mediaType, String id) {
-    if (imageData.containsKey(id)) {
-      return imageData[id]!;
+    if (imageData.containsKey("poster_$id")) {
+      return imageData["poster_$id"]!;
     } else {
-      return imageData[id] = _poster(mediaType, id);
+      return imageData["poster_$id"] = _poster(mediaType, id);
+    }
+  }
+
+  static Future<Uint8List> still(String id, int season, int episode) {
+    if (imageData.containsKey("still_${id}_${season}_$episode")) {
+      return imageData["still_${id}_${season}_$episode"]!;
+    } else {
+      return imageData["still_${id}_${season}_$episode"] = _episode_still(id, season, episode);
     }
   }
 
@@ -46,37 +54,55 @@ class TMDB {
   }
 
   static Future<Uint8List> _poster(MediaType mediaType, String tmdb) async {
-    final directory = await getApplicationSupportDirectory();
-    final file = File('${directory.path}/cache/tmdb/$tmdb.jpg');
+    final directory = await getApplicationCacheDirectory();
+    final file = File('${directory.path}/cache/tmdb/poster_$tmdb.jpg');
+
+    // check disk cache first
+    if (await file.exists()) {
+      final bytes = await file.readAsBytes();
+      return bytes;
+    }
+
+    final path = mediaType == MediaType.show ? '/3/tv/$tmdb/images' : '/3/movie/$tmdb/images';
+    final url = Uri.https('api.themoviedb.org', path, {'language': 'en'});
+
+    final response = await http.get(url, headers: _headers);
+    if (response.statusCode != 200) return Future.error(Exception('Failed: ${response.statusCode}'));
+
+    final images = Images.fromJson(jsonDecode(response.body));
+    if (images.posters == null || images.posters!.isEmpty) return Future.error(Exception('No posters'));
+
+    final art = await http.get(Uri.parse('https://image.tmdb.org/t/p/w500${images.posters![0].filePath!}'));
+    // use w500 instead of original — much smaller file, plenty for a poster thumbnail
+
+    await file.create(recursive: true); // use async version
+    await file.writeAsBytes(art.bodyBytes);
+
+    return art.bodyBytes;
+  }
+
+  static Future<Uint8List> _episode_still(String tmdb, int season, int episode) async {
+    final directory = await getApplicationCacheDirectory();
+    final file = File('${directory.path}/cache/tmdb/still_${season}_${episode}_$tmdb.jpg');
 
     if (await file.exists()) {
-      var bytes = await file.readAsBytes();
-      return imageData[tmdb] = Future.value(bytes);
-    } else {
-      Uri url = Uri();
-      if (mediaType == MediaType.show) {
-        url = Uri.https('api.themoviedb.org', '/3/tv/$tmdb/images', {'language': 'en'});
-      } else if (mediaType == MediaType.movie) {
-        url = Uri.https('api.themoviedb.org', '/3/movie/$tmdb/images', {'language': 'en'});
-      }
-
-      var response = await http.get(url, headers: _headers);
-
-      if (response.statusCode == 200) {
-        var images = Images.fromJson(jsonDecode(response.body));
-
-        if (images.posters != null && images.posters!.isNotEmpty) {
-          var art = await http.get(Uri.parse('https://image.tmdb.org/t/p/original${images.posters![0].filePath!}'));
-          file.createSync(recursive: true);
-          file.writeAsBytes(art.bodyBytes);
-
-          return art.bodyBytes;
-        } else {
-          return Future.error(Exception('Missing Poster'));
-        }
-      } else {
-        return Future.error(Exception());
-      }
+      return await file.readAsBytes();
     }
+
+    final url = Uri.https('api.themoviedb.org', '/3/tv/$tmdb/season/$season/episode/$episode/images');
+    final response = await http.get(url, headers: _headers);
+
+    if (response.statusCode != 200) return Future.error(Exception('Failed: ${response.statusCode}'));
+
+    final images = Images.fromJson(jsonDecode(response.body));
+    if (images.stills == null || images.stills!.isEmpty) return Future.error(Exception('No stills'));
+
+    final art = await http.get(Uri.parse('https://image.tmdb.org/t/p/w780${images.stills![0].filePath!}'));
+    // w780 is ideal for episode stills — good quality without being huge
+
+    await file.create(recursive: true);
+    await file.writeAsBytes(art.bodyBytes);
+
+    return art.bodyBytes;
   }
 }

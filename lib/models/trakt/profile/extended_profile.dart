@@ -1,8 +1,3 @@
-import 'dart:convert';
-
-ExtendedProfile profileFromJson(String str) => ExtendedProfile.fromJson(json.decode(str));
-String profileToJson(ExtendedProfile data) => json.encode(data.toJson());
-
 class ExtendedProfile {
   String username;
   bool private;

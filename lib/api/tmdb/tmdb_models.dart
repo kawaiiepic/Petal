@@ -3,8 +3,9 @@ class Images {
   int? id;
   List<Logos>? logos;
   List<Logos>? posters;
+  List<Logos>? stills;
 
-  Images({this.backdrops, this.id, this.logos, this.posters});
+  Images({this.backdrops, this.id, this.logos, this.posters, this.stills});
 
   Images.fromJson(Map<String, dynamic> json) {
     if (json['backdrops'] != null) {
@@ -24,6 +25,12 @@ class Images {
       posters = <Logos>[];
       json['posters'].forEach((v) {
         posters!.add(Logos.fromJson(v));
+      });
+    }
+    if (json['stills'] != null) {
+      stills = <Logos>[];
+      json['stills'].forEach((v) {
+        stills!.add(Logos.fromJson(v));
       });
     }
   }

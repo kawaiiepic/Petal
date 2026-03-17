@@ -17,7 +17,7 @@ class TraktAuth {
       final data = jsonDecode(response.body);
       return data;
     } else {
-      throw Exception('Failed to get device code: ${response.body}');
+      throw Exception('Failed to get device code: ${response.statusCode}');
     }
   }
 
@@ -52,7 +52,7 @@ class TraktAuth {
         // Authorization pending, keep polling
         continue;
       } else {
-        throw Exception('Polling failed: ${res.body}');
+        throw Exception('Polling failed: ${res.statusCode}');
       }
     }
 

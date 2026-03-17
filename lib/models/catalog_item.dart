@@ -1,6 +1,6 @@
-import 'package:blssmpetal/models/catalog.dart';
-import 'package:blssmpetal/models/episode.dart';
-import 'package:blssmpetal/models/season.dart';
+import 'package:blssmpetal/api/trakt/models.dart';
+import 'package:blssmpetal/models/stremio/stremio_episode.dart';
+import 'package:blssmpetal/models/stremio/stremio_season.dart';
 import 'trailer.dart';
 
 class CatalogItem {
@@ -33,7 +33,7 @@ class CatalogItem {
   // Extras
   final List<Trailer> trailers;
 
-  final List<Season> seasons;
+  final List<StremioSeason> seasons;
 
   CatalogItem({
     required this.id,
@@ -58,17 +58,17 @@ class CatalogItem {
     required this.seasons,
   });
 
-  static List<Season> _buildSeasons(List<dynamic> videos) {
-    final Map<int, List<Episode>> grouped = {};
+  static List<StremioSeason> _buildSeasons(List<dynamic> videos) {
+    final Map<int, List<StremioEpisode>> grouped = {};
 
     for (final v in videos) {
-      final ep = Episode.fromJson(v);
+      final ep = StremioEpisode.fromJson(v);
       grouped.putIfAbsent(ep.season, () => []).add(ep);
     }
 
     return grouped.entries.map((entry) {
       entry.value.sort((a, b) => a.episode.compareTo(b.episode));
-      return Season(number: entry.key, episodes: entry.value);
+      return StremioSeason(number: entry.key, episodes: entry.value);
     }).toList()..sort((a, b) => a.number.compareTo(b.number));
   }
 

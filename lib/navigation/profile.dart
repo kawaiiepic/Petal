@@ -9,17 +9,17 @@ class Profile extends StatelessWidget {
     return FutureBuilder(
       future: TraktApi.userProfile(),
       builder: (context, snapshot) {
-        String tooltip = "Profile"; // default tooltip
+        String tooltip = "Profile";
         Widget avatarChild = Icon(Icons.person);
 
         if (snapshot.hasData) {
           final profile = snapshot.data!;
-          tooltip = profile.name; // set tooltip to username
+          tooltip = profile.name;
           avatarChild = ClipRRect(borderRadius: BorderRadius.circular(25), child: Image.network(profile.images.avatar.full));
         }
 
         return PopupMenuButton(
-          tooltip: tooltip, // directly set tooltip here
+          tooltip: tooltip,
           onSelected: (value) => print(value),
           borderRadius: BorderRadius.circular(50),
           itemBuilder: (context) => [],
