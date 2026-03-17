@@ -36,9 +36,35 @@ class _DashboardState extends State<Dashboard> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Search(addons: addons)
-        Text("Testing"),
+        FutureBuilder(
+          future: Api.addonsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Search(addons: snapshot.data!);
+            }
+            return Container();
+          },
+        ),
         NextUpRow(selectedItem: selectedItem, onItemHover: setSelectedItem),
+
+        FutureBuilder(
+          future: Api.addonsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Expanded(
+                child: ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    final addon = snapshot.data![index - 2];
+                    final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
+                    return loadCatalog(catalogs);
+                  },
+                ),
+              );
+            }
+            return Container();
+          },
+        ),
       ],
     );
 
