@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 class TraktCache {
@@ -21,35 +22,46 @@ class TraktCache {
   }
 
   static Future<void> set(String key, dynamic value) async {
-    final file = await _file(key);
-    await file.writeAsString(jsonEncode({'invalidated': false, 'cachedAt': DateTime.now().toIso8601String(), 'data': value}));
+    if (kIsWeb) {
+    } else {
+      final file = await _file(key);
+      await file.writeAsString(jsonEncode({'invalidated': false, 'cachedAt': DateTime.now().toIso8601String(), 'data': value}));
+    }
   }
 
   static Future<T?> get<T>(String key, {Duration? maxAge}) async {
-    print("Getting ${key}");
-    final file = await _file(key);
-    if (!await file.exists()) return null;
-
-    final json = jsonDecode(await file.readAsString());
-
-    if (json['invalidate'] == true) {
+    if (kIsWeb) {
       return null;
-    }
-    if (maxAge != null) {
-      final cachedAt = DateTime.parse(json['cachedAt']);
-      if (DateTime.now().difference(cachedAt) > maxAge) {
+    } else {
+      print("Getting ${key}");
+      final file = await _file(key);
+      if (!await file.exists()) return null;
+
+      final json = jsonDecode(await file.readAsString());
+
+      if (json['invalidate'] == true) {
         return null;
       }
-    }
+      if (maxAge != null) {
+        final cachedAt = DateTime.parse(json['cachedAt']);
+        if (DateTime.now().difference(cachedAt) > maxAge) {
+          return null;
+        }
+      }
 
-    return json['data'] as T?;
+      return json['data'] as T?;
+    }
   }
 
   static Future<DateTime?> cachedAt(String key) async {
-    final file = await _file(key);
-    if (!await file.exists()) return null;
-    final json = jsonDecode(await file.readAsString());
-    return DateTime.parse(json['cachedAt']);
+    if (kIsWeb) {
+      return null;
+    } else {
+      final file = await _file(key);
+      if (!await file.exists()) return null;
+      final json = jsonDecode(await file.readAsString());
+      return DateTime.parse(json['cachedAt']);
+    }
   }
 
   static Future<void> invalidate(String key) async {
