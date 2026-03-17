@@ -152,7 +152,17 @@ app.get("/img", async (req, res) => {
       return res.send(cached.buffer);
     }
 
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000); // 20s
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+      },
+    });
+
+    clearTimeout(timeout);
     if (!response.ok) return res.status(response.status).send("Upstream error");
 
     const buffer = Buffer.from(await response.arrayBuffer());

@@ -19,8 +19,6 @@ class CatalogApi {
 
     final response = await http.get(uri);
 
-    print(uri);
-
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch catalog');
     }

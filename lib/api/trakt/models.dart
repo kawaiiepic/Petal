@@ -342,7 +342,6 @@ class Season {
   Season({required this.number, required this.title, required this.aired, required this.completed, required this.stats, required this.episodes});
 
   factory Season.fromJson(Map<String, dynamic> json) {
-    print(json);
     return Season(
       number: json['number'],
       title: json['title'],

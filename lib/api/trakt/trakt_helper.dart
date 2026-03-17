@@ -132,8 +132,6 @@ class TraktApi {
     final url = Uri.parse('$baseUrl/shows/$traktId/seasons?extended=episodes,full');
     final res = await http.get(url, headers: _headers);
 
-    print("Fetching seasons");
-
     if (res.statusCode == 200) {
       final List data = json.decode(res.body);
       return data.map((e) => TraktSeason.fromJson(e)).toList();
@@ -179,7 +177,6 @@ class TraktApi {
       if (result.length >= 10) break;
       final progress = await fetchShowProgress(w.show.ids.trakt);
       final season = await fetchShowSeasons(w.show.ids.trakt.toString());
-      print(progress);
       if (progress.nextEpisode != null) {
         result.add(TraktWatchedShowWithProgress(watchedShow: w, showProgress: progress, seasons: season));
       }

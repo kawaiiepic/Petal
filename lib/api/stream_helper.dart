@@ -13,7 +13,6 @@ class StreamApi {
     final List<StreamItem> allStreams = [];
 
     for (final addon in addons) {
-      print(addon.enabledResources);
       if (!addon.enabledResources.contains('stream')) continue;
       final baseUrl = addon.baseUrl;
       final url = episode != null

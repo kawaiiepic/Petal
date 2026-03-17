@@ -125,11 +125,11 @@ class _AddonsState extends State<Addons> {
                         onPressed: () async {
                           final url = _textController.text.trim();
                           if (url.isEmpty) return;
-                        
+
                           try {
                             final manifestRes = await http.get(Uri.parse(url));
                             final manifest = jsonDecode(manifestRes.body);
-                        
+
                             final addon = {
                               "id": manifest["id"],
                               "name": manifest["name"],
@@ -139,7 +139,7 @@ class _AddonsState extends State<Addons> {
                               "forced": 0,
                               "config": {}
                             };
-                        
+
                             await http.post(
                               Uri.parse("${Api.ServerUrl}/addons"),
                               headers: {"Content-Type": "application/json"},
@@ -148,11 +148,11 @@ class _AddonsState extends State<Addons> {
                                 "addons": [addon]
                               }),
                             );
-                        
+
                             setState(() {
                               Api.addonsFuture = Api.fetchUserAddons("mia");
                             });
-                        
+
                             _textController.clear();
                           } catch (e) {
                             print("Addon add failed: $e");
@@ -199,7 +199,7 @@ class _AddonTileState extends State<AddonTile> {
   @override
   Widget build(BuildContext context) {
     var _image = CachedNetworkImage(
-      imageUrl: widget.addon.manifest?['logo'] ?? '',
+      imageUrl: Api.proxyImage(widget.addon.manifest?['logo']),
       imageBuilder: (context, imageProvider) => CircleAvatar(
         foregroundImage: imageProvider,
         backgroundColor: Colors.transparent,

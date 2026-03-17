@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class Api {
-  static bool dev = true;
+  static bool dev = false;
   static bool traktLoggedIn = false;
   static String proxyImage(String url) {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
@@ -94,9 +94,7 @@ class Api {
       catalogs.add(Catalog(name: cat['name'], type: type, id: id, extra: extras, url: '$baseUrl/$id/catalog/$type/$id.json'));
     }
 
-    _generatedCatalogs[slug] = catalogs;
-
-    print(catalogs.length);
+    _generatedCatalogs[baseUrl + slug] = catalogs;
 
     return catalogs;
   }
@@ -118,8 +116,6 @@ class Api {
     print("Fetching user addons");
     final url = '$ServerUrl/addons/$userId'; // your server URL
     final response = await http.get(Uri.parse(url));
-
-    print(response.body);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
