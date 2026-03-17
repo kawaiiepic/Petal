@@ -34,9 +34,9 @@ class TMDB {
   static Future<String> posterUrl(MediaType mediaType, String tmdb) async {
     Uri url = Uri();
     if (mediaType == MediaType.show) {
-      url = Uri.https('api.themoviedb.org', '/3/tv/$tmdb/images', {'language': 'en'});
+      url = Uri.parse(Api.proxyImage('api.themoviedb.org' + '/3/tv/$tmdb/images'));
     } else if (mediaType == MediaType.movie) {
-      url = Uri.https('api.themoviedb.org', '/3/movie/$tmdb/images', {'language': 'en'});
+      url = Uri.parse(Api.proxyImage('api.themoviedb.org' + '/3/movie/$tmdb/images'));
     }
 
     var response = await http.get(url, headers: _headers);
@@ -65,7 +65,7 @@ class TMDB {
     }
 
     final path = mediaType == MediaType.show ? '/3/tv/$tmdb/images' : '/3/movie/$tmdb/images';
-    final url = Uri.https('api.themoviedb.org', path, {'language': 'en'});
+    final url = Uri.parse(Api.proxyImage('api.themoviedb.org$path'));
 
     final response = await http.get(url, headers: _headers);
     if (response.statusCode != 200) return Future.error(Exception('Failed: ${response.statusCode}'));
