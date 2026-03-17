@@ -55,7 +55,7 @@ class _DashboardState extends State<Dashboard> {
                 child: ListView.builder(
                   itemCount: snapshot.data!.length,
                   itemBuilder: (context, index) {
-                    final addon = snapshot.data![index - 2];
+                    final addon = snapshot.data![index];
                     final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
                     return loadCatalog(catalogs);
                   },
