@@ -56,10 +56,11 @@ class TMDB {
   }
 
   static Future<Uint8List> _poster(MediaType mediaType, String tmdb) async {
+    File? file;
     if (kIsWeb) {
     } else {
       final directory = await getApplicationCacheDirectory();
-      final file = File('${directory.path}/cache/tmdb/poster_$tmdb.jpg');
+      file = File('${directory.path}/cache/tmdb/poster_$tmdb.jpg');
 
       // check disk cache first
       if (await file.exists()) {
@@ -80,17 +81,20 @@ class TMDB {
     final art = await http.get(Uri.parse(Api.proxyImage('https://image.tmdb.org/t/p/w500${images.posters![0].filePath!}')));
     // use w500 instead of original — much smaller file, plenty for a poster thumbnail
 
-    await file.create(recursive: true); // use async version
-    await file.writeAsBytes(art.bodyBytes);
+    if (!kIsWeb && file != null) {
+      await file.create(recursive: true); // use async version
+      await file.writeAsBytes(art.bodyBytes);
+    }
 
     return art.bodyBytes;
   }
 
   static Future<Uint8List> _episode_still(String tmdb, int season, int episode) async {
+    File? file;
     if (kIsWeb) {
     } else {
       final directory = await getApplicationCacheDirectory();
-      final file = File('${directory.path}/cache/tmdb/still_${season}_${episode}_$tmdb.jpg');
+      file = File('${directory.path}/cache/tmdb/still_${season}_${episode}_$tmdb.jpg');
 
       if (await file.exists()) {
         return await file.readAsBytes();
@@ -108,8 +112,10 @@ class TMDB {
     final art = await http.get(Uri.parse(Api.proxyImage('https://image.tmdb.org/t/p/w780${images.stills![0].filePath!}')));
     // w780 is ideal for episode stills — good quality without being huge
 
-    await file.create(recursive: true);
-    await file.writeAsBytes(art.bodyBytes);
+    if (!kIsWeb && file != null) {
+      await file.create(recursive: true);
+      await file.writeAsBytes(art.bodyBytes);
+    }
 
     return art.bodyBytes;
   }
