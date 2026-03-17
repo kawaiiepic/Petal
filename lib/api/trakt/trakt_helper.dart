@@ -4,6 +4,7 @@ import 'package:blssmpetal/api/trakt/activity.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/api/trakt/trakt_cache.dart';
 import 'package:blssmpetal/api/trakt/trakt_class.dart';
+import 'package:blssmpetal/api/trakt/trakt_sync.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:blssmpetal/models/trakt/profile/extended_profile.dart';
 import 'package:flutter/foundation.dart';
@@ -33,6 +34,9 @@ class TraktApi {
         if (json["access_token"] != null) {
           accessToken.value = json["access_token"];
         }
+
+        await TraktSync.syncUpdates();
+        
         return true;
       } else {
         print("Missing Trakt API Code");

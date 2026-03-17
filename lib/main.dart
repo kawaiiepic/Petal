@@ -13,7 +13,6 @@ void main() async {
   MediaKit.ensureInitialized();
 
   await Api.initApi();
-  await TraktSync.syncUpdates();
 
   runApp(PetalApp());
 }
