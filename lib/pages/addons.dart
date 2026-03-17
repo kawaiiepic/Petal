@@ -199,7 +199,7 @@ class _AddonTileState extends State<AddonTile> {
   @override
   Widget build(BuildContext context) {
     var _image = CachedNetworkImage(
-      imageUrl: Api.proxyImage(widget.addon.manifest?['logo']),
+      imageUrl: Api.proxyImage(widget.addon.manifest?['logo'] ?? ''),
       imageBuilder: (context, imageProvider) => CircleAvatar(
         foregroundImage: imageProvider,
         backgroundColor: Colors.transparent,
