@@ -35,6 +35,7 @@ class _PetalState extends State<PetalApp> {
     return MaterialApp(
       title: 'Petal',
       theme: ThemeData.dark(),
+      themeMode: ThemeMode.dark,
       home: ValueListenableBuilder(
         valueListenable: TraktApi.accessToken,
         builder: (context, token, child) {
