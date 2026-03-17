@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:flutter/services.dart';
@@ -72,7 +73,7 @@ class TMDB {
     final images = Images.fromJson(jsonDecode(response.body));
     if (images.posters == null || images.posters!.isEmpty) return Future.error(Exception('No posters'));
 
-    final art = await http.get(Uri.parse('https://image.tmdb.org/t/p/w500${images.posters![0].filePath!}'));
+    final art = await http.get( Uri.parse(Api.proxyImage('https://image.tmdb.org/t/p/w500${images.posters![0].filePath!}')));
     // use w500 instead of original — much smaller file, plenty for a poster thumbnail
 
     await file.create(recursive: true); // use async version
@@ -97,7 +98,7 @@ class TMDB {
     final images = Images.fromJson(jsonDecode(response.body));
     if (images.stills == null || images.stills!.isEmpty) return Future.error(Exception('No stills'));
 
-    final art = await http.get(Uri.parse('https://image.tmdb.org/t/p/w780${images.stills![0].filePath!}'));
+    final art = await http.get(Uri.parse(Api.proxyImage('https://image.tmdb.org/t/p/w780${images.stills![0].filePath!}')));
     // w780 is ideal for episode stills — good quality without being huge
 
     await file.create(recursive: true);
