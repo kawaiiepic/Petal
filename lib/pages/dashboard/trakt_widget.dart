@@ -56,7 +56,8 @@ class _NextUpRowState extends State<NextUpRow> {
         return SizedBox(
           height: 300,
           child: ListView.builder(
-            shrinkWrap: false,
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
             scrollDirection: Axis.horizontal,
             controller: _controller,
             itemCount: itemCount,

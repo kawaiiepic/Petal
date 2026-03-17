@@ -48,6 +48,7 @@ class _DashboardState extends State<Dashboard> {
 
               ListView.builder(
                 shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
                 itemCount: addons.length,
                 itemBuilder: (context, index) {
                   final addon = addons[index];
