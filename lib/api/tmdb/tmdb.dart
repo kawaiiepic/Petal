@@ -90,7 +90,7 @@ class TMDB {
       return await file.readAsBytes();
     }
 
-    final url = Uri.https('api.themoviedb.org', '/3/tv/$tmdb/season/$season/episode/$episode/images');
+    final url = Uri.parse(Api.proxyImage('api.themoviedb.org' +'/3/tv/$tmdb/season/$season/episode/$episode/images'));
     final response = await http.get(url, headers: _headers);
 
     if (response.statusCode != 200) return Future.error(Exception('Failed: ${response.statusCode}'));
