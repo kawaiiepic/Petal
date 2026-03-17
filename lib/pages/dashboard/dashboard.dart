@@ -34,38 +34,33 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        FutureBuilder(
-          future: Api.addonsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return Search(addons: snapshot.data!);
-            }
-            return Container();
-          },
-        ),
-        NextUpRow(selectedItem: selectedItem, onItemHover: setSelectedItem),
+    return FutureBuilder(
+      future: Api.addonsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final addons = snapshot.data!.where((element) => element.enabledResources.contains("catalog")).toList();
+          return
+          SingleChildScrollView(child:
+          Column(
+            children: [
+              Search(addons: snapshot.data!),
+              NextUpRow(selectedItem: selectedItem, onItemHover: setSelectedItem),
 
-        FutureBuilder(
-          future: Api.addonsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return Expanded(
-                child: ListView.builder(
-                  itemCount: snapshot.data!.length,
-                  itemBuilder: (context, index) {
-                    final addon = snapshot.data![index];
-                    final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
-                    return loadCatalog(catalogs);
-                  },
-                ),
-              );
-            }
-            return Container();
-          },
-        ),
-      ],
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: addons.length,
+                itemBuilder: (context, index) {
+                  final addon = addons[index];
+                  print("Loading Catalog");
+                  final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
+                  return loadCatalog(catalogs);
+                },
+              ),
+            ],
+          ));
+        }
+        return Container();
+      },
     );
 
     return FutureBuilder(

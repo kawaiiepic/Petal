@@ -36,7 +36,7 @@ class TraktApi {
         }
 
         await TraktSync.syncUpdates();
-        
+
         return true;
       } else {
         print("Missing Trakt API Code");
@@ -176,7 +176,7 @@ class TraktApi {
     final result = <TraktWatchedShowWithProgress>[];
 
     for (final w in watched) {
-      if (result.length >= 2) break;
+      if (result.length >= 10) break;
       final progress = await fetchShowProgress(w.show.ids.trakt);
       final season = await fetchShowSeasons(w.show.ids.trakt.toString());
       print(progress);

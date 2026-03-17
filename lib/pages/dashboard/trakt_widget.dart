@@ -53,8 +53,10 @@ class _NextUpRowState extends State<NextUpRow> {
         final loadingInk = Ink(
                                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.black.withValues(alpha: 0.3)),
                                   );
-        return Expanded(
+        return SizedBox(
+          height: 300,
           child: ListView.builder(
+            shrinkWrap: false,
             scrollDirection: Axis.horizontal,
             controller: _controller,
             itemCount: itemCount,

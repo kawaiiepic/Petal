@@ -69,7 +69,7 @@ class Api {
   static var _generatedCatalogs = {};
 
   static List<Catalog> generateCatalogs(String baseUrl, String slug, Map<String, dynamic> manifest) {
-    if (_generatedCatalogs[slug] != null) return _generatedCatalogs[slug]!;
+    if (_generatedCatalogs[baseUrl + slug] != null) return _generatedCatalogs[baseUrl + slug]!;
     print("Generating Catalogs");
     final List<Catalog> catalogs = [];
 
@@ -78,6 +78,7 @@ class Api {
     const allowed = {'top', 'year', 'imdbRating'};
 
     for (final cat in manifest['catalogs']) {
+      print("Running catalog");
       final id = cat['id'];
       final type = cat['type'];
       if (!allowed.contains(id)) continue;
@@ -94,6 +95,8 @@ class Api {
     }
 
     _generatedCatalogs[slug] = catalogs;
+
+    print(catalogs.length);
 
     return catalogs;
   }
