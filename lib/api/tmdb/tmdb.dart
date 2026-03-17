@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -34,9 +35,9 @@ class TMDB {
   static Future<String> posterUrl(MediaType mediaType, String tmdb) async {
     Uri url = Uri();
     if (mediaType == MediaType.show) {
-      url = Uri.parse(Api.proxyImage('api.themoviedb.org' + '/3/tv/$tmdb/images'));
+      url = Uri.https('api.themoviedb.org', '/3/tv/$tmdb/images', {'language': 'en'});
     } else if (mediaType == MediaType.movie) {
-      url = Uri.parse(Api.proxyImage('api.themoviedb.org' + '/3/movie/$tmdb/images'));
+      url = Uri.https('api.themoviedb.org', '/3/movie/$tmdb/images', {'language': 'en'});
     }
 
     var response = await http.get(url, headers: _headers);
@@ -55,17 +56,20 @@ class TMDB {
   }
 
   static Future<Uint8List> _poster(MediaType mediaType, String tmdb) async {
-    final directory = await getApplicationCacheDirectory();
-    final file = File('${directory.path}/cache/tmdb/poster_$tmdb.jpg');
+    if (kIsWeb) {
+    } else {
+      final directory = await getApplicationCacheDirectory();
+      final file = File('${directory.path}/cache/tmdb/poster_$tmdb.jpg');
 
-    // check disk cache first
-    if (await file.exists()) {
-      final bytes = await file.readAsBytes();
-      return bytes;
+      // check disk cache first
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        return bytes;
+      }
     }
 
     final path = mediaType == MediaType.show ? '/3/tv/$tmdb/images' : '/3/movie/$tmdb/images';
-    final url = Uri.parse(Api.proxyImage('api.themoviedb.org$path'));
+    final url = Uri.https('api.themoviedb.org', path, {'language': 'en'});
 
     final response = await http.get(url, headers: _headers);
     if (response.statusCode != 200) return Future.error(Exception('Failed: ${response.statusCode}'));
@@ -73,7 +77,7 @@ class TMDB {
     final images = Images.fromJson(jsonDecode(response.body));
     if (images.posters == null || images.posters!.isEmpty) return Future.error(Exception('No posters'));
 
-    final art = await http.get( Uri.parse(Api.proxyImage('https://image.tmdb.org/t/p/w500${images.posters![0].filePath!}')));
+    final art = await http.get(Uri.parse(Api.proxyImage('https://image.tmdb.org/t/p/w500${images.posters![0].filePath!}')));
     // use w500 instead of original — much smaller file, plenty for a poster thumbnail
 
     await file.create(recursive: true); // use async version
@@ -83,14 +87,17 @@ class TMDB {
   }
 
   static Future<Uint8List> _episode_still(String tmdb, int season, int episode) async {
-    final directory = await getApplicationCacheDirectory();
-    final file = File('${directory.path}/cache/tmdb/still_${season}_${episode}_$tmdb.jpg');
+    if (kIsWeb) {
+    } else {
+      final directory = await getApplicationCacheDirectory();
+      final file = File('${directory.path}/cache/tmdb/still_${season}_${episode}_$tmdb.jpg');
 
-    if (await file.exists()) {
-      return await file.readAsBytes();
+      if (await file.exists()) {
+        return await file.readAsBytes();
+      }
     }
 
-    final url = Uri.parse(Api.proxyImage('api.themoviedb.org' +'/3/tv/$tmdb/season/$season/episode/$episode/images'));
+    final url = Uri.https('api.themoviedb.org', '/3/tv/$tmdb/season/$season/episode/$episode/images');
     final response = await http.get(url, headers: _headers);
 
     if (response.statusCode != 200) return Future.error(Exception('Failed: ${response.statusCode}'));
