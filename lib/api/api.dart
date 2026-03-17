@@ -16,9 +16,7 @@ class Api {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
   }
 
-  static final ServerUrl = dev
-      ? 'http://localhost:3000'
-      : 'https://petal.blossomvale.dev/api';
+  static final ServerUrl = dev ? 'http://localhost:3000' : 'https://petal.blossomvale.dev/api';
 
   static final ValueNotifier<bool> healthy = ValueNotifier(true);
   static Timer? _healthPoller;
@@ -58,9 +56,7 @@ class Api {
 
   static Future<bool> healthCheck() async {
     try {
-      final res = await http
-          .get(Uri.parse("$ServerUrl/health"))
-          .timeout(const Duration(seconds: 3));
+      final res = await http.get(Uri.parse("$ServerUrl/health")).timeout(const Duration(seconds: 3));
 
       return res.statusCode == 200;
     } catch (_) {
@@ -72,12 +68,8 @@ class Api {
   //
   static var _generatedCatalogs = {};
 
-  static List<Catalog> generateCatalogs(
-    String baseUrl,
-    String slug,
-    Map<String, dynamic> manifest,
-  ) {
-    if(_generatedCatalogs[slug] != null) return _generatedCatalogs[slug]!;
+  static List<Catalog> generateCatalogs(String baseUrl, String slug, Map<String, dynamic> manifest) {
+    if (_generatedCatalogs[slug] != null) return _generatedCatalogs[slug]!;
     print("Generating Catalogs");
     final List<Catalog> catalogs = [];
 
@@ -94,28 +86,11 @@ class Api {
 
       if (cat['extra'] is List) {
         for (final extra in cat['extra']) {
-          extras.add(
-            CatalogExtra(
-              name: extra['name'],
-              options:
-                  (extra['options'] as List?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  [],
-            ),
-          );
+          extras.add(CatalogExtra(name: extra['name'], options: (extra['options'] as List?)?.map((e) => e.toString()).toList() ?? []));
         }
       }
 
-      catalogs.add(
-        Catalog(
-          name: cat['name'],
-          type: type,
-          id: id,
-          extra: extras,
-          url: '$baseUrl/$id/catalog/$type/$id.json',
-        ),
-      );
+      catalogs.add(Catalog(name: cat['name'], type: type, id: id, extra: extras, url: '$baseUrl/$id/catalog/$type/$id.json'));
     }
 
     _generatedCatalogs[slug] = catalogs;
@@ -123,18 +98,11 @@ class Api {
     return catalogs;
   }
 
-  static String buildCatalogUrl({
-    required String baseUrl,
-    required String slug,
-    required Catalog catalog,
-    Map<String, String>? selectedExtras,
-  }) {
+  static String buildCatalogUrl({required String baseUrl, required String slug, required Catalog catalog, Map<String, String>? selectedExtras}) {
     var url = '$baseUrl/$slug/catalog/${catalog.type}/${catalog.id}.json';
 
     if (selectedExtras != null && selectedExtras.isNotEmpty) {
-      final query = selectedExtras.entries
-          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-          .join('&');
+      final query = selectedExtras.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
 
       url += '?$query';
     }
@@ -147,6 +115,8 @@ class Api {
     print("Fetching user addons");
     final url = '$ServerUrl/addons/$userId'; // your server URL
     final response = await http.get(Uri.parse(url));
+
+    print(response.body);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);

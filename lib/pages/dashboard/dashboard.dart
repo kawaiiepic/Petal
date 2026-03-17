@@ -170,7 +170,7 @@ class _DashboardState extends State<Dashboard> {
   Widget loadCatalog(List<Catalog> catalogs) {
     return Column(
       children: catalogs.map((catalog) {
-        final future = CatalogApi.fetchCatalogItems(catalog); // start immediately
+        final future = CatalogApi.fetchCatalogItems(catalog);
 
         return CatalogPage(catalog: catalog, itemsFuture: future, onItemHover: _setBackground);
       }).toList(),

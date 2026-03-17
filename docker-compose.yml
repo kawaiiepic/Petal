@@ -22,14 +22,8 @@ services:
       - traefik.http.routers.petal.rule=Host(`petal.blossomvale.dev`)
       - traefik.http.routers.petal.entrypoints=websecure
       - traefik.http.routers.petal.tls=true
-      - traefik.http.routers.petal.middlewares=anubis,cors-allow-all@docker
+      - traefik.http.routers.petal.middlewares=anubis,cors@docker
       - traefik.http.services.petal.loadbalancer.server.port=80
-
-      - "traefik.http.middlewares.cors-allow-all.headers.accessControlAllowOriginList=*"
-      - "traefik.http.middlewares.cors-allow-all.headers.accessControlAllowCredentials=true"
-      - "traefik.http.middlewares.cors-allow-all.headers.accessControlAllowMethods=GET,OPTIONS,PUT,POST,DELETE"
-      - "traefik.http.middlewares.cors-allow-all.headers.accessControlAllowHeaders=Content-Type,Authorization,Accepts,Set-Cookie,Cookie,Range"
-      - "traefik.http.middlewares.cors-allow-all.headers.accessControlMaxAge=100"
     depends_on:
       - petal-server
     networks:
