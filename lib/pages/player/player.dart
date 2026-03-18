@@ -43,6 +43,8 @@ class _StreamPlayerState extends State<StreamPlayer> {
   void initState() {
     super.initState();
 
+    print(widget.catalogItem.id);
+
     _currentEpisode = ValueNotifier(widget.episode!);
     _showSeasons = TraktApi.fetchShowSeasons(widget.catalogItem.id);
 
@@ -378,7 +380,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
                                               overview: '',
                                               thumbnail: '',
                                             );
-                                            final streams = await StreamApi.fetchStreams(widget.catalogItem, addons, episode: stremioEpisode);
+                                            final streams = await StreamApi.fetchStreams(widget.catalogItem, addons!, episode: stremioEpisode);
                                             final best = StreamApi.autoSelectStream(streams);
 
                                             if (mounted) setState(() => _currentEpisode.value = stremioEpisode);

@@ -9,6 +9,7 @@ class TraktShow {
   TraktShow({required this.plays, required this.lastWatchedAt, required this.lastUpdatedAt, required this.show});
 
   factory TraktShow.fromJson(Map<String, dynamic> json) {
+    print(json);
     return TraktShow(plays: json['plays'], lastWatchedAt: json['last_watched_at'], lastUpdatedAt: json['last_updated_at'], show: Show.fromJson(json['show']));
   }
 
@@ -21,7 +22,7 @@ class Show {
   final String title;
   final int year;
   final Ids ids;
-  final String overview;
+  final String? overview;
   final String? tagline;
   final String? trailer;
   final String? homepage;
@@ -490,4 +491,74 @@ class TraktSeasonImages {
   }
 
   Map<String, dynamic> toJson() => {'thumb': thumb, 'poster': poster};
+}
+
+class Search {
+  final String type;
+  final double? score;
+  final Movie? movie;
+  final Show? show;
+
+  Search({required this.type, required this.score, this.movie, this.show});
+
+  factory Search.fromJson(Map<String, dynamic> json) {
+    print(json);
+    return Search(
+      type: json['type'],
+      score: (json['score'] as num?)?.toDouble(),
+      movie: json['movie'] != null ? Movie.fromJson(json['movie']) : null,
+      show: json['show'] != null ? Show.fromJson(json['show']) : null,
+    );
+  }
+}
+
+class Movie {
+  final String title;
+  final int year;
+  final Ids ids;
+  final int? runtime; // runtime in minutes
+  final double? rating; // rating, e.g., 8.5
+  final String? overview; // description/summary
+  final List<String>? genres; // list of genres
+  final String? certification; // e.g., PG-13, R
+  final MovieImages? images; // posters/screenshots
+
+  Movie({required this.title, required this.year, required this.ids, this.runtime, this.rating, this.overview, this.genres, this.certification, this.images});
+
+  factory Movie.fromJson(Map<String, dynamic> json) {
+    print(json);
+    return Movie(
+      title: json['title'] ?? '',
+      year: json['year'] ?? 0,
+      ids: Ids.fromJson(json['ids']),
+      runtime: json['runtime'],
+      rating: (json['rating'] != null) ? (json['rating'] as num).toDouble() : null,
+      overview: json['overview'],
+      genres: (json['genres'] != null) ? List<String>.from(json['genres']) : null,
+      certification: json['certification'],
+      images: json['images'] != null ? MovieImages.fromJson(json['images']) : null,
+    );
+  }
+}
+
+class MovieImages {
+  final List<String>? logo;
+  final List<String>? poster;
+  final List<String>? banner;
+  final List<String>? fanart;
+  final List<String>? thumb;
+  final List<String>? clearart;
+
+  MovieImages({this.logo, this.poster, this.banner, this.fanart, this.thumb, this.clearart});
+
+  factory MovieImages.fromJson(Map<String, dynamic> json) {
+    return MovieImages(
+      logo: json['logo'] != null ? List<String>.from(json['logo']) : null,
+      poster: json['poster'] != null ? List<String>.from(json['poster']) : null,
+      banner: json['banner'] != null ? List<String>.from(json['banner']) : null,
+      fanart: json['fanart'] != null ? List<String>.from(json['fanart']) : null,
+      thumb: json['thumb'] != null ? List<String>.from(json['thumb']) : null,
+      clearart: json['clearart'] != null ? List<String>.from(json['clearart']) : null,
+    );
+  }
 }

@@ -11,7 +11,7 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
-  bool traktConnected = TraktApi.accessToken.value != null;
+  bool traktConnected = TraktApi.validSession.value != null;
   String selectedPlayer = "Disabled";
 
   void _launchUrl(String url) async {

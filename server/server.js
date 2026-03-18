@@ -92,38 +92,6 @@ function setupDb() {
   );
 }
 
-// const userAddons = {
-//   mia: [
-//     // {
-//     //   id: "torrentio",
-//     //   name: "Torrentio",
-//     //   manifestUrl:
-//     //     "https://torrentio.strem.fun/torbox=1b52e4c1-64cf-47bb-bd51-9924b18eb88f/manifest.json",
-//     //   icon: "https://torrentio.strem.fun/images/logo_v1.png",
-//     //   enabledResources: ["stream"],
-//     //   config: {},
-//     // },
-
-//     {
-//       id: "comet",
-//       name: "Comet",
-//       manifestUrl:
-//         "https://comet.elfhosted.com/eyJtYXhSZXN1bHRzUGVyUmVzb2x1dGlvbiI6MCwibWF4U2l6ZSI6MCwiY2FjaGVkT25seSI6ZmFsc2UsInNvcnRDYWNoZWRVbmNhY2hlZFRvZ2V0aGVyIjpmYWxzZSwicmVtb3ZlVHJhc2giOnRydWUsInJlc3VsdEZvcm1hdCI6WyJhbGwiXSwiZGVicmlkU2VydmljZSI6InRvcmJveCIsImRlYnJpZEFwaUtleSI6IjFiNTJlNGMxLTY0Y2YtNDdiYi1iZDUxLTk5MjRiMThlYjg4ZiIsImRlYnJpZFN0cmVhbVByb3h5UGFzc3dvcmQiOiIiLCJsYW5ndWFnZXMiOnsiZXhjbHVkZSI6W10sInByZWZlcnJlZCI6WyJlbiJdfSwicmVzb2x1dGlvbnMiOnt9LCJvcHRpb25zIjp7InJlbW92ZV9yYW5rc191bmRlciI6LTEwMDAwMDAwMDAwLCJhbGxvd19lbmdsaXNoX2luX2xhbmd1YWdlcyI6ZmFsc2UsInJlbW92ZV91bmtub3duX2xhbmd1YWdlcyI6ZmFsc2V9fQ==/manifest.json",
-//       icon: "https://i.imgur.com/jmVoVMu.jpeg",
-//       enabledResources: ["stream"],
-//       config: {},
-//     },
-
-//     {
-//       id: "com.linvo.cinemeta",
-//       name: "Cinemeta",
-//       manifestUrl: "https://v3-cinemeta.strem.io/manifest.json",
-//       enabledResources: ["catalog"],
-//       config: {},
-//     },
-//   ],
-// };
-
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
@@ -152,17 +120,7 @@ app.get("/img", async (req, res) => {
       return res.send(cached.buffer);
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000); // 20s
-
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-      },
-    });
-
-    clearTimeout(timeout);
+    const response = await fetch(url);
     if (!response.ok) return res.status(response.status).send("Upstream error");
 
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -273,49 +231,6 @@ import path from "path";
 const streamsDir = "/tmp/petal-streams";
 fs.mkdirSync(streamsDir, { recursive: true });
 
-app.get("/hls/:segment", (req, res) => {
-  const raw = req.query.url;
-  if (!raw) return res.status(400).send("Missing url");
-
-  const id = crypto.createHash("md5").update(raw).digest("hex");
-
-  const dir = path.join(streamsDir, id);
-
-  const segment = req.query.segment; // e.g., "master10.ts"
-  const start = parseInt(segment.replace("master", "")) * 4; // 4s segments
-
-
-
-  const filePath = `${dir}/${segment}`;
-  console.log(`Request for ${filePath}`);
-  if (fs.existsSync(filePath)) {
-    console.log(`${filePath} already exists.`)
-    return res.json({ streamUrl: `/streams/${id}/${segment}` });
-  }
-
-  fs.mkdirSync(dir, { recursive: true });
-
-  // Spawn FFmpeg to generate only this segment
-  const ffmpeg = spawn("ffmpeg", [
-    "-ss",
-    start.toString(),
-    "-i",
-    raw,
-    "-t",
-    "4",
-    "-c:v",
-    "libx264",
-    "-c:a",
-    "aac",
-    filePath,
-  ]);
-
-  ffmpeg.on("close", (code) => {
-    // res.sendFile(filePath);
-    res.json({ streamUrl: `/streams/${id}/${segment}` });
-  });
-});
-
 // HLS transcoding endpoint
 app.get("/transcode", async (req, res) => {
   const raw = req.query.url;
@@ -325,18 +240,18 @@ app.get("/transcode", async (req, res) => {
 
   const dir = path.join(streamsDir, id);
 
-  // if (fs.existsSync(dir)) {
-  //   db.prepare(
-  //     `
-  //   UPDATE streams SET last_access = ?
-  //   WHERE id = ?
-  //   `,
-  //   ).run(Date.now(), id);
+  if (fs.existsSync(dir)) {
+    db.prepare(
+      `
+    UPDATE streams SET last_access = ?
+    WHERE id = ?
+    `,
+    ).run(Date.now(), id);
 
-  //   console.log("Stream already exists");
-  //   res.json({ streamUrl: `/streams/${id}/master.m3u8` });
-  //   return;
-  // }
+    console.log("Stream already exists");
+    res.json({ streamUrl: `/streams/${id}/master.m3u8` });
+    return;
+  }
 
   db.prepare(
     `
@@ -346,53 +261,33 @@ app.get("/transcode", async (req, res) => {
   `,
   ).run(id, raw, dir, Date.now(), Date.now());
 
-  // if (fs.existsSync(dir)) {
-  //   fs.rmSync(dir, { recursive: true });
-  // }
-
   fs.mkdirSync(dir, { recursive: true });
-
   const masterPlaylist = path.join(dir, "master.m3u8");
 
-  const args = [
-    "-i",
-    raw,
-    "-f",
-    "hls",
-    "-hls_playlist_type",
-    "event",
-    "-hls_list_size",
-    "0",
-    masterPlaylist,
-  ];
+  const spawnFfmpeg = (mode = "copy") => {
+    const args = [
+      "-loglevel", "warning", "-i", raw];
 
-  const probeargs = [
-    "-select_streams", "v:0",
-    "-show_entries",
-    "stream=index,codec_name,codec_type,width,height",
-    "-of", "json",
-    raw
-  ];
+    if (mode === "copy") {
+      args.push("-c:v", "copy");
+    } else {
+      console.log("Falling back to full video transcode…");
+      args.push("-c:v", "libx264", "-preset", "medium", "-crf", "23");
+    }
 
-  console.log(masterPlaylist);
+    args.push("-c:a", "aac", "-b:a", "128k", "-tag:v", "hvc1", masterPlaylist);
 
-  // const ffprobe = spawn("ffprobe", probeargs);
-  // ffprobe.stderr.on("data", (d) => console.log("ffprobe:", d.toString()));
-  // ffprobe.on("error", console.error);
+    const proc = spawn("ffmpeg", args);
+    proc.stderr.on("data", (d) => console.log("ffmpeg:", d.toString()));
+    proc.on("error", console.error);
+    proc.on("exit", (code) => {
+      if (code !== 0 && mode === "copy") spawnFfmpeg("transcode");
+    });
+    return proc;
+  };
 
-  const proc = spawn("ffmpeg", args);
-  proc.stderr.on("data", (d) => console.log("ffmpeg:", d.toString()));
-  proc.on("error", console.error);
+  const ffmpeg = spawnFfmpeg("copy");
 
-  await new Promise((resolve, reject) => {
-    const check = () => {
-      if (fs.existsSync(masterPlaylist)) return resolve();
-
-      setTimeout(check, 200);
-    };
-
-    check();
-  });
   res.json({ streamUrl: `/streams/${id}/master.m3u8` });
 });
 

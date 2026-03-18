@@ -16,7 +16,7 @@
           buildInputs = with pkgs; [
             nodejs
             ffmpeg
-            better-sqlite3
+            # better-sqlite3
           ];
 
           shellHook = ''

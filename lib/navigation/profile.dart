@@ -1,3 +1,4 @@
+import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:flutter/material.dart';
 
@@ -15,7 +16,7 @@ class Profile extends StatelessWidget {
         if (snapshot.hasData) {
           final profile = snapshot.data!;
           tooltip = profile.name;
-          avatarChild = ClipRRect(borderRadius: BorderRadius.circular(25), child: Image.network(profile.images.avatar.full));
+          avatarChild = ClipRRect(borderRadius: BorderRadius.circular(25), child: Image.network(Api.proxyImage( profile.images.avatar.full)));
         }
 
         return PopupMenuButton(

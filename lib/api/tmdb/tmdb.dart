@@ -18,6 +18,7 @@ class TMDB {
 
   static Future<Uint8List> poster(MediaType mediaType, String id) {
     if (imageData.containsKey("poster_$id")) {
+      print("Loading poster from cache");
       return imageData["poster_$id"]!;
     } else {
       return imageData["poster_$id"] = _poster(mediaType, id);

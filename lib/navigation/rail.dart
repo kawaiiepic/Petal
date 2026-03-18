@@ -49,7 +49,10 @@ class _RailState extends State<Rail> {
 
   Widget page() {
     return Expanded(
-      child: Padding(padding: EdgeInsetsGeometry.all(8), child: [Dashboard(), Addons(), Settings()][_selectedIndex]),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: IndexedStack(index: _selectedIndex, children: const [Dashboard(), Addons(), Settings()]),
+      ),
     );
   }
 }

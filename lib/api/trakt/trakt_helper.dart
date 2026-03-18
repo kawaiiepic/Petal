@@ -1,64 +1,67 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/trakt/activity.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/api/trakt/trakt_cache.dart';
 import 'package:blssmpetal/api/trakt/trakt_class.dart';
 import 'package:blssmpetal/api/trakt/trakt_sync.dart';
+import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:blssmpetal/models/trakt/profile/extended_profile.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/browser_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 class TraktApi {
-  static const String baseUrl = 'https://api.trakt.tv';
-  static const clientId = '0a4b47986a50894f19f24aad11101514993592db3c9a63e12e2d573504e1adbb';
-  static const clientSecret = '4640a2e220cc5e8a0eebf692389d28cd542b92e893850d0e737456835c85a4b5';
+  static BrowserClient client = BrowserClient()..withCredentials = true;
 
-  static final ValueNotifier<String?> accessToken = ValueNotifier(null);
+  static Future<List<TraktWatchedShowWithProgress>>? _cachedWatchedShowWithProgress;
 
-  static List<TraktWatchedShowWithProgress>? _cachedWatchedShowWithProgress;
+  static final ValueNotifier<bool> validSession = ValueNotifier(false);
 
-  static Future<bool> loadAccessCode() async {
-    if (kIsWeb) {
-      print("Running on Web!");
-      return false;
-    } else {
-      final directory = await getApplicationCacheDirectory();
-      var file = File('${directory.path}/trakt.json');
+  static final Map<String, Future<Search>> _searchCache = {};
 
-      if (await file.exists()) {
-        final json = jsonDecode(await file.readAsString());
+  static Future<void> verifySession() async {
+    try {
+      final response = await client.get(Uri.parse("${Api.ServerUrl}/trakt/verify_session"));
 
-        if (json["access_token"] != null) {
-          accessToken.value = json["access_token"];
-        }
-
-        await TraktSync.syncUpdates();
-
-        return true;
-      } else {
-        print("Missing Trakt API Code");
-        return false;
+      if (response.statusCode == 200) {
+        print('Session verified');
+        validSession.value = true;
       }
+    } catch (err) {
+      print('Failed to verify session');
     }
   }
 
-  static Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ${accessToken.value}',
-    'trakt-api-version': '2',
-    'trakt-api-key': clientId,
-  };
+  static Future<List<Addon>> fetchUserAddons() async {
+    print("Fetching user addons");
+    final url = '${Api.ServerUrl}/addons/get'; // your server URL
+    final response = await client.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final addonsJson = data['addons'] as List;
+
+      // map to list of futures
+      final futures = addonsJson.map((json) async {
+        var addon = Addon.fromJson(json);
+        await addon.fetchManifest(); // now allowed
+        return addon;
+      }).toList();
+
+      // wait for all futures to complete
+      final addons = await Future.wait(futures);
+      return addons;
+    } else {
+      throw Exception('Failed to fetch addons');
+    }
+  }
 
   static Future<ExtendedProfile> userProfile() async {
-    final cacheProfile = await TraktCache.get(TraktCache.userProfile);
-
-    if (cacheProfile != null) return ExtendedProfile.fromJson(cacheProfile);
-
-    var url = Uri.https('api.trakt.tv', '/users/me', {'extended': 'full'});
-    var response = await http.get(url, headers: _headers);
+    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/user_profile'));
 
     if (response.statusCode == 200) {
       final profile = ExtendedProfile.fromJson(jsonDecode(response.body));
@@ -71,8 +74,7 @@ class TraktApi {
   }
 
   static Future<TraktLastActivities> lastActivity() async {
-    var url = Uri.https('api.trakt.tv', '/sync/last_activities');
-    var response = await http.get(url, headers: _headers);
+    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/last_activities'));
 
     if (response.statusCode == 200) {
       return TraktLastActivities.fromJson(jsonDecode(response.body));
@@ -82,29 +84,22 @@ class TraktApi {
   }
 
   static Future<void> startWatching(MediaType mediaType, Object object) async {
-    var url = Uri.https('api.trakt.tv', '/scrobble/start');
-    await http.post(url, headers: _headers, body: jsonEncode(object));
+    var url = Uri.parse('${Api.ServerUrl}/trakt/start_watching');
+    await client.post(url, body: jsonEncode(object));
   }
 
   static Future<List<TraktShow>> fetchWatched(MediaType mediaType) async {
     final name = mediaType == MediaType.show ? "shows" : "movies";
-    final cacheKey = "${TraktCache.syncWatched}/$name";
 
-    final cached = await TraktCache.get(cacheKey);
-    if (cached != null) {
-      return (jsonDecode(cached) as List).map((e) => TraktShow.fromJson(e)).toList();
-    }
+    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/sync_watched/$name'));
 
-    final url = Uri.parse('$baseUrl/sync/watched/$name?extended=full');
-    final res = await http.get(url, headers: _headers);
-
-    if (res.statusCode != 200) return Future.error(Exception('Failed to fetch watched $name'));
+    if (response.statusCode != 200) return Future.error(Exception('Failed to fetch watched $name'));
 
     // final list = (res.body as List).map((e) => TraktShow.fromJson(e)).toList();
 
     print("Fetching watched.");
 
-    final list = (jsonDecode(res.body) as List).map((e) {
+    final list = (jsonDecode(response.body) as List).map((e) {
       try {
         return TraktShow.fromJson(e as Map<String, dynamic>);
       } catch (err, stack) {
@@ -114,50 +109,67 @@ class TraktApi {
         rethrow;
       }
     }).toList();
-    await TraktCache.set(cacheKey, jsonEncode(list));
     return list;
   }
 
-  static Future<TraktShow> fetchShow(String id) async {
-    final url = Uri.parse('$baseUrl/shows/$id?extended=full');
-    final res = await http.get(url, headers: _headers);
+  static Future<Show> fetchShow(String traktId) async {
+    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/shows/$traktId'));
 
-    if (res.statusCode == 200) {
-      return TraktShow.fromJson(jsonDecode(res.body));
+    if (response.statusCode == 200) {
+      return Show.fromJson(jsonDecode(response.body));
+    }
+    return Future.error(Exception());
+  }
+
+    static Future<Movie> fetchMovie(String traktId) async {
+    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/movies/$traktId'));
+
+    if (response.statusCode == 200) {
+      return Movie.fromJson(jsonDecode(response.body));
+    }
+    return Future.error(Exception());
+  }
+
+  static Future<Search> search(String id_type, String id, String type) {
+    return TraktApi._searchCache.putIfAbsent(id, () => TraktApi._search(id_type, id, type));
+  }
+
+  static Future<Search> _search(String id_type, String id, String type) async {
+    final typeFixed = switch (type) {
+      "series" => "show",
+      String() => type,
+    };
+    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/search/$id_type/$id/$typeFixed'));
+
+    print('${Api.ServerUrl}/trakt/search/$id_type/$id/$typeFixed');
+    print(response.body);
+
+    if (response.statusCode == 200) {
+      try {
+        final search = Search.fromJson(jsonDecode(response.body)[0]);
+        return search;
+      } catch (err) {
+        print(err);
+      }
     }
     return Future.error(Exception());
   }
 
   static Future<List<TraktSeason>> fetchShowSeasons(String traktId) async {
-    final url = Uri.parse('$baseUrl/shows/$traktId/seasons?extended=episodes,full');
-    final res = await http.get(url, headers: _headers);
+    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/seasons/$traktId'));
 
-    if (res.statusCode == 200) {
-      final List data = json.decode(res.body);
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
       return data.map((e) => TraktSeason.fromJson(e)).toList();
     }
     return Future.error(Exception());
   }
 
-  static Future<TraktShowProgress> fetchShowProgress(int traktId) async {
-    final key = TraktCache.showProgress.replaceAll("%s", traktId.toString());
-    final cacheProgress = await TraktCache.get(key);
+  static Future<TraktShowProgress> fetchShowProgress(String traktId) async {
+    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/show_progress/$traktId'));
 
-    if (cacheProgress != null) {
-      try {
-        return TraktShowProgress.fromJson(cacheProgress);
-      } catch (e) {
-        print('cache parse error: $e');
-        // fall through to API call
-      }
-    }
-
-    final url = Uri.parse('$baseUrl/shows/$traktId/progress/watched?last_activity=watched');
-    final res = await http.get(url, headers: _headers);
-
-    if (res.statusCode == 200) {
-      final result = TraktShowProgress.fromJson(jsonDecode(res.body));
-      TraktCache.set(key, result);
+    if (response.statusCode == 200) {
+      final result = TraktShowProgress.fromJson(jsonDecode(response.body));
       return result;
     }
 
@@ -174,15 +186,30 @@ class TraktApi {
     final result = <TraktWatchedShowWithProgress>[];
 
     for (final w in watched) {
-      if (result.length >= 10) break;
-      final progress = await fetchShowProgress(w.show.ids.trakt);
+      if (result.length >= 20) break;
+      final progress = await fetchShowProgress(w.show.ids.trakt.toString());
       final season = await fetchShowSeasons(w.show.ids.trakt.toString());
       if (progress.nextEpisode != null) {
-        result.add(TraktWatchedShowWithProgress(watchedShow: w, showProgress: progress, seasons: season));
+        result.add(TraktWatchedShowWithProgress(watchedShow: w, show: null, showProgress: progress, seasons: season));
       }
     }
 
-    _cachedWatchedShowWithProgress = result;
+    _cachedWatchedShowWithProgress = Future.value(result);
     return _cachedWatchedShowWithProgress!;
+  }
+
+  /// Fetch a single show's watched progress and seasons by Trakt ID
+  static Future<TraktWatchedShowWithProgress?> fetchShowWithProgress(int traktId) async {
+    // Fetch show metadata
+    final watchedShow = await fetchShow(traktId.toString());
+
+    // Fetch progress
+    final progress = await fetchShowProgress(traktId.toString());
+    if (progress.nextEpisode == null) return null;
+
+    // Fetch seasons
+    final seasons = await fetchShowSeasons(traktId.toString());
+
+    return TraktWatchedShowWithProgress(watchedShow: null, show: watchedShow, showProgress: progress, seasons: seasons);
   }
 }

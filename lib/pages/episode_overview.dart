@@ -19,14 +19,12 @@ class EpisodeOverview extends StatefulWidget {
 
 class _EpisodeOverviewState extends State<EpisodeOverview> {
   late Map<int, bool> _expandedSeasons;
-  late Future<List<TraktSeason>> _seasonsFuture;
 
   @override
   void initState() {
     super.initState();
     final currentSeason = widget.selectedEpisode?.season ?? widget.item.showProgress.nextEpisode?.season ?? 1;
     _expandedSeasons = {for (final s in widget.item.showProgress.seasons) s.number: s.number == currentSeason};
-    _seasonsFuture = TraktApi.fetchShowSeasons(widget.item.watchedShow.show.ids.trakt.toString());
   }
 
   String _formatDate(DateTime date) {
@@ -57,7 +55,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
   @override
   Widget build(BuildContext context) {
     final next = widget.selectedEpisode ?? widget.item.showProgress.nextEpisode!;
-    final show = widget.item.watchedShow.show;
+    final show = widget.item.show ?? widget.item.watchedShow!.show;
 
     return Scaffold(
       body: CustomScrollView(
@@ -179,10 +177,10 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                 ],
 
                 // Show overview
-                if (show.overview.isNotEmpty) ...[
+                if (show.overview != null) ...[
                   Text('About ${show.title}', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Text(show.overview, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5)),
+                  Text(show.overview!, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5)),
                   const SizedBox(height: 8),
                   // Show meta
                   Wrap(
@@ -231,198 +229,186 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                 Text('Episodes', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
 
-                FutureBuilder<List<TraktSeason>>(
-                  future: _seasonsFuture,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
+                Column(
+                  children: widget.item.seasons.map((season) {
+                    if (season.episodes.isEmpty) return const SizedBox();
+                    final isExpanded = _expandedSeasons[season.number] ?? false;
+                    final progressSeason = widget.item.showProgress.seasons.where((s) => s.number == season.number).firstOrNull;
+                    final watchedCount = progressSeason?.completed ?? 0;
 
                     return Column(
-                      children: snapshot.data!.map((season) {
-                        if (season.episodes.isEmpty) return const SizedBox();
-                        final isExpanded = _expandedSeasons[season.number] ?? false;
-                        final progressSeason = widget.item.showProgress.seasons.where((s) => s.number == season.number).firstOrNull;
-                        final watchedCount = progressSeason?.completed ?? 0;
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 16),
+                        // Season header
+                        InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => setState(() => _expandedSeasons[season.number] = !isExpanded),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(season.title ?? 'Season ${season.number}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                                      if (season.firstAired != null)
+                                        Text(
+                                          DateTime.parse(season.firstAired!).year.toString(),
+                                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '$watchedCount/${season.airedEpisodes ?? season.episodes.length}',
+                                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                ),
+                                const SizedBox(width: 4),
+                                AnimatedRotation(
+                                  turns: isExpanded ? 0.5 : 0,
+                                  duration: const Duration(milliseconds: 200),
+                                  child: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
 
-                            // Season header
-                            InkWell(
-                              borderRadius: BorderRadius.circular(8),
-                              onTap: () => setState(() => _expandedSeasons[season.number] = !isExpanded),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(season.title ?? 'Season ${season.number}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                                          if (season.firstAired != null)
-                                            Text(
-                                              DateTime.parse(season.firstAired!).year.toString(),
-                                              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                            ),
-                                        ],
+                        AnimatedCrossFade(
+                          firstChild: Column(
+                            children: season.episodes.map((ep) {
+                              final watchedEp = _watchedEp(season.number, ep.number);
+                              final isWatched = watchedEp != null;
+                              final isNext = ep.number == next.number && season.number == next.season;
+
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+                                leading: Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: SizedBox(
+                                          width: 100,
+                                          height: 56,
+                                          child: FutureBuilder(
+                                            future: TMDB.still(show.ids.tmdb.toString(), season.number, ep.number),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.hasData) {
+                                                return ColorFiltered(
+                                                  colorFilter: isWatched
+                                                      ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
+                                                      : const ColorFilter.mode(Colors.black45, BlendMode.darken),
+                                                  child: Image.memory(snapshot.data!, fit: BoxFit.cover),
+                                                );
+                                              } else {
+                                                return Container(color: Theme.of(context).colorScheme.surfaceContainerHighest);
+                                              }
+                                            },
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      '$watchedCount/${season.airedEpisodes ?? season.episodes.length}',
-                                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    AnimatedRotation(
-                                      turns: isExpanded ? 0.5 : 0,
-                                      duration: const Duration(milliseconds: 200),
-                                      child: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+                                      if (isNext)
+                                        Positioned(
+                                          bottom: 4,
+                                          right: 4,
+                                          child: Icon(Icons.play_circle_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
+                                        ),
+                                      if (!isNext && isWatched)
+                                        Positioned(
+                                          bottom: 4,
+                                          right: 4,
+                                          child: Icon(Icons.check_circle_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                title: Text(
+                                  'E${ep.number}  ·  ${ep.title ?? 'Episode ${ep.number}'}${isNext ? '  · Up next' : ''}',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isNext ? Theme.of(context).colorScheme.primary : null),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (ep.overview != null && ep.overview!.isNotEmpty)
+                                      Text(
+                                        ep.overview!,
+                                        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        if (ep.runtime != null)
+                                          Text(
+                                            _formatRuntime(ep.runtime),
+                                            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                          ),
+                                        if (ep.runtime != null && ep.rating != null && ep.rating! > 0)
+                                          Text('  ·  ', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                        if (ep.rating != null && ep.rating! > 0)
+                                          Text(
+                                            '★ ${ep.rating!.toStringAsFixed(1)}',
+                                            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                          ),
+                                        if (ep.firstAired != null) ...[
+                                          if (ep.runtime != null || (ep.rating != null && ep.rating! > 0))
+                                            Text('  ·  ', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                          Builder(
+                                            builder: (context) {
+                                              final d = DateTime.parse(ep.firstAired!).toLocal();
+                                              final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                              final formatted = '${months[d.month - 1]} ${d.day}, ${d.year}';
+                                              final isUnreleased = d.isAfter(DateTime.now());
+                                              return Text(
+                                                formatted,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: isUnreleased ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                        if (isWatched && watchedEp?.lastWatchedAt != null) ...[
+                                          Text('  ·  ', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                          Text(
+                                            'Watched ${_formatDate(watchedEp!.lastWatchedAt!)}',
+                                            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
-
-                            AnimatedCrossFade(
-                              firstChild: Column(
-                                children: season.episodes.map((ep) {
-                                  final watchedEp = _watchedEp(season.number, ep.number);
-                                  final isWatched = watchedEp != null;
-                                  final isNext = ep.number == next.number && season.number == next.season;
-
-                                  return ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                                    leading: Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: Stack(
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(6),
-                                            child: SizedBox(
-                                              width: 100,
-                                              height: 56,
-                                              child: FutureBuilder(
-                                                future: TMDB.still(widget.item.watchedShow.show.ids.tmdb.toString(), season.number, ep.number),
-                                                builder: (context, snapshot) {
-                                                  if (snapshot.hasData) {
-                                                    return ColorFiltered(
-                                                      colorFilter: isWatched
-                                                          ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
-                                                          : const ColorFilter.mode(Colors.black45, BlendMode.darken),
-                                                      child: Image.memory(snapshot.data!, fit: BoxFit.cover),
-                                                    );
-                                                  } else {
-                                                    return Container(color: Theme.of(context).colorScheme.surfaceContainerHighest);
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                          if (isNext)
-                                            Positioned(
-                                              bottom: 4,
-                                              right: 4,
-                                              child: Icon(Icons.play_circle_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
-                                            ),
-                                          if (!isNext && isWatched)
-                                            Positioned(
-                                              bottom: 4,
-                                              right: 4,
-                                              child: Icon(Icons.check_circle_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
-                                            ),
-                                        ],
-                                      ),
+                                trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                                onTap: () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => EpisodeOverview(item: widget.item, selectedEpisode: ep),
                                     ),
-                                    title: Text(
-                                      'E${ep.number}  ·  ${ep.title ?? 'Episode ${ep.number}'}${isNext ? '  · Up next' : ''}',
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isNext ? Theme.of(context).colorScheme.primary : null),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        if (ep.overview != null && ep.overview!.isNotEmpty)
-                                          Text(
-                                            ep.overview!,
-                                            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        const SizedBox(height: 2),
-                                        Row(
-                                          children: [
-                                            if (ep.runtime != null)
-                                              Text(
-                                                _formatRuntime(ep.runtime),
-                                                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                              ),
-                                            if (ep.runtime != null && ep.rating != null && ep.rating! > 0)
-                                              Text('  ·  ', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                                            if (ep.rating != null && ep.rating! > 0)
-                                              Text(
-                                                '★ ${ep.rating!.toStringAsFixed(1)}',
-                                                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                              ),
-                                            if (ep.firstAired != null) ...[
-                                              if (ep.runtime != null || (ep.rating != null && ep.rating! > 0))
-                                                Text('  ·  ', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                                              Builder(
-                                                builder: (context) {
-                                                  final d = DateTime.parse(ep.firstAired!).toLocal();
-                                                  final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                                  final formatted = '${months[d.month - 1]} ${d.day}, ${d.year}';
-                                                  final isUnreleased = d.isAfter(DateTime.now());
-                                                  return Text(
-                                                    formatted,
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: isUnreleased ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ],
-                                            if (isWatched && watchedEp?.lastWatchedAt != null) ...[
-                                              Text('  ·  ', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                                              Text(
-                                                'Watched ${_formatDate(watchedEp!.lastWatchedAt!)}',
-                                                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    trailing: const Icon(Icons.chevron_right_rounded, size: 18),
-                                    onTap: () {
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => EpisodeOverview(item: widget.item, selectedEpisode: ep),
-                                        ),
-                                      );
-                                    },
                                   );
-                                }).toList(),
-                              ),
-                              secondChild: const SizedBox(),
-                              crossFadeState: isExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-                              duration: const Duration(milliseconds: 200),
-                            ),
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          secondChild: const SizedBox(),
+                          crossFadeState: isExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+                          duration: const Duration(milliseconds: 200),
+                        ),
 
-                            Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
-                          ],
-                        );
-                      }).toList(),
+                        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                      ],
                     );
-                  },
+                  }).toList(),
                 ),
 
                 const SizedBox(height: 32),

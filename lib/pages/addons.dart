@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/api/api.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:http/browser_client.dart';
 import 'package:http/http.dart' as http;
 
 class Addons extends StatefulWidget {
@@ -26,7 +28,7 @@ class _AddonsState extends State<Addons> {
   Widget addonsWidget() {
     toggleAddon(Addon addon) async {}
 
-    return FutureBuilder<List<Addon>>(
+    return FutureBuilder(
       future: Api.addonsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -140,17 +142,18 @@ class _AddonsState extends State<Addons> {
                               "config": {}
                             };
 
-                            await http.post(
-                              Uri.parse("${Api.ServerUrl}/addons"),
+
+
+                            await TraktApi.client.post(
+                              Uri.parse("${Api.ServerUrl}/addons/set"),
                               headers: {"Content-Type": "application/json"},
                               body: jsonEncode({
-                                "userId": "mia",
                                 "addons": [addon]
                               }),
                             );
 
                             setState(() {
-                              Api.addonsFuture = Api.fetchUserAddons("mia");
+                              Api.addonsFuture = TraktApi.fetchUserAddons();
                             });
 
                             _textController.clear();

@@ -32,7 +32,7 @@ class _StreamsPageState extends State<StreamsPage> {
 
   Future<List<StreamItem>> _loadStreams() async {
     final addons = await Api.addonsFuture;
-    return StreamApi.fetchStreams(widget.item, addons, episode: widget.episode);
+    return StreamApi.fetchStreams(widget.item, addons!, episode: widget.episode);
   }
 
   @override

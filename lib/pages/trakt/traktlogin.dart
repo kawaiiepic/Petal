@@ -33,9 +33,7 @@ class _TraktLoginPageState extends State<TraktLoginPage> {
       await launchUrl(Uri.parse(_verificationUrl!));
     }
 
-    final token = await TraktAuth.pollForAccessToken(data['device_code'], data['interval'], data['expires_in']);
-
-    TraktApi.accessToken.value = token;
+    await TraktAuth.pollForAccessToken(data['device_code'], data['interval'], data['expires_in']);
     Api.traktLoggedIn = true;
     if (mounted) Navigator.of(context).pushReplacementNamed('/');
   }

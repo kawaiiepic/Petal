@@ -3,10 +3,15 @@ import 'dart:ui';
 
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/catalog_helper.dart';
+import 'package:blssmpetal/api/tmdb/tmdb.dart';
+import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
+import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:blssmpetal/pages/dashboard/search_widget.dart';
 import 'package:blssmpetal/pages/dashboard/trakt_widget.dart';
+import 'package:blssmpetal/pages/episode_overview.dart';
+import 'package:blssmpetal/pages/movie_overview.dart';
 import 'package:blssmpetal/pages/overview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -39,26 +44,27 @@ class _DashboardState extends State<Dashboard> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final addons = snapshot.data!.where((element) => element.enabledResources.contains("catalog")).toList();
-          return
-          SingleChildScrollView(child:
-          Column(
-            children: [
-              Search(addons: snapshot.data!),
-              NextUpRow(selectedItem: selectedItem, onItemHover: setSelectedItem),
+          return SingleChildScrollView(
+            child: Column(
+              spacing: 20,
+              children: [
+                Search(addons: snapshot.data!),
+                NextUpRow(selectedItem: selectedItem, onItemHover: setSelectedItem),
 
-              ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: addons.length,
-                itemBuilder: (context, index) {
-                  final addon = addons[index];
-                  print("Loading Catalog");
-                  final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
-                  return loadCatalog(catalogs);
-                },
-              ),
-            ],
-          ));
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: addons.length,
+                  itemBuilder: (context, index) {
+                    final addon = addons[index];
+                    print("Loading Catalog");
+                    final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
+                    return loadCatalog(catalogs);
+                  },
+                ),
+              ],
+            ),
+          );
         }
         return Container();
       },
@@ -165,6 +171,7 @@ class _DashboardState extends State<Dashboard> {
 
   Widget loadCatalog(List<Catalog> catalogs) {
     return Column(
+      spacing: 20,
       children: catalogs.map((catalog) {
         final future = CatalogApi.fetchCatalogItems(catalog);
 
@@ -200,7 +207,7 @@ class _CatalogPageState extends State<CatalogPage> {
       future: widget.itemsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Text("Waiting");
+          return Container();
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
@@ -208,6 +215,7 @@ class _CatalogPageState extends State<CatalogPage> {
         final items = snapshot.data!;
 
         return Column(
+          spacing: 8,
           children: [
             Text('${widget.catalog.name} - ${widget.catalog.type[0].toUpperCase() + widget.catalog.type.substring(1)}'),
             CatalogRow(items: items, onItemHover: widget.onItemHover),
@@ -234,6 +242,7 @@ class _CatalogRowState extends State<CatalogRow> {
   bool _canScrollLeft = false;
   bool _canScrollRight = true;
   bool _isHovering = false;
+  int _hoverIndex = 0;
 
   @override
   void initState() {
@@ -252,7 +261,7 @@ class _CatalogRowState extends State<CatalogRow> {
       onExit: (_) => setState(() => _isHovering = false),
       cursor: SystemMouseCursors.click,
       child: SizedBox(
-        height: 200,
+        height: 180,
         child: Stack(
           children: [
             ListView.builder(
@@ -261,35 +270,118 @@ class _CatalogRowState extends State<CatalogRow> {
               itemCount: widget.items.length,
               itemBuilder: (context, index) {
                 final item = widget.items[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4), // space between posters
-                  child: SizedBox(
-                    width: 120,
-                    child: Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: AspectRatio(
-                            aspectRatio: 2 / 3,
-                            child: Tooltip(
-                              message: item.name,
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: item)));
-                                },
-                                child: NetworkPoster(
-                                  poster: item.poster,
-                                  onHover: () {
-                                    widget.onItemHover(item.background);
-                                  },
+                final loadingInk = SizedBox(
+                  width: 120,
+                  child: AspectRatio(
+                    aspectRatio: 2 / 3,
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.black.withOpacity(0.3), // fixed: use withOpacity, not withValues
+                      ),
+                    ),
+                  ),
+                );
+
+                return FutureBuilder(
+                  future: TraktApi.search("imdb", item.id, item.type),
+                  builder: (context, searchSnapshot) {
+                    if (!searchSnapshot.hasData) {
+                      return loadingInk;
+                    }
+                    if (searchSnapshot.hasError) {
+                      return loadingInk;
+                    } else {
+                      return MouseRegion(
+                        onEnter: (_) => setState(() => _hoverIndex = index),
+                        onExit: (_) => setState(() => _hoverIndex = -1),
+                        cursor: SystemMouseCursors.click,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4), // space between posters
+                          child: SizedBox(
+                            width: 120,
+                            child: Column(
+                              children: [
+                                AspectRatio(
+                                  aspectRatio: 2 / 3,
+                                  child: Tooltip(
+                                    message: item.name,
+                                    child: InkWell(
+                                      onTap: () async {
+                                        if (item.type == "series") {
+
+                                          if (mounted) {
+                                            final show = await TraktApi.fetchShowWithProgress(searchSnapshot.data!.show!.ids.trakt);
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                return Dialog(
+                                                  insetPadding: const EdgeInsets.all(16), // padding from screen edges
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                  child: ClipRRect(
+                                                    borderRadius: BorderRadiusGeometry.circular(8),
+                                                    child: EpisodeOverview(item: show!, selectedEpisode: null),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          }
+                                          // Navigator.push(context, MaterialPageRoute(builder: (_) => EpisodeOverview(item: show!, selectedEpisode: null)));
+                                        } else {
+                                          if (mounted) {
+                                            final movie = await TraktApi.fetchMovie(searchSnapshot.data!.movie!.ids.trakt.toString());
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                return Dialog(
+                                                  insetPadding: const EdgeInsets.all(16), // padding from screen edges
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                  child: ClipRRect(
+                                                    borderRadius: BorderRadiusGeometry.circular(8),
+                                                    child: MovieOverview(item: movie),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          }
+                                        }
+                                      },
+                                      child: FutureBuilder(
+                                        future: TMDB.poster(
+                                          item.type == "series" ? MediaType.show : MediaType.movie,
+                                          item.type == "series"
+                                              ? searchSnapshot.data!.show!.ids.tmdb.toString()
+                                              : searchSnapshot.data!.movie!.ids.tmdb.toString(),
+                                        ),
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) return loadingInk;
+                                          if (snapshot.hasError) {
+                                            return Text('Error');
+                                          }
+                                          return Ink(
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(8),
+                                              image: DecorationImage(image: Image.memory(snapshot.data!).image, fit: BoxFit.cover),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // child: NetworkPoster(
+                                      //   poster: Api.proxyImage(item.poster),
+                                      //   onHover: () {
+                                      //     widget.onItemHover(item.background);
+                                      //   },
+                                      // ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      );
+                    }
+                  },
                 );
               },
             ),
@@ -357,7 +449,7 @@ class _NetworkPosterState extends State<NetworkPoster> {
   void initState() {
     super.initState();
     _image = CachedNetworkImage(
-      imageUrl: Api.proxyImage(widget.poster),
+      imageUrl: widget.poster,
       progressIndicatorBuilder: (context, url, downloadProgress) => Container(color: Colors.black.withOpacity(0.05)),
       errorWidget: (context, url, error) => Icon(Icons.error),
     );

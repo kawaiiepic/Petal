@@ -1,17 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
+import 'package:blssmpetal/api/api.dart';
+import 'package:http/browser_client.dart';
 
 class TraktAuth {
-  static const deviceCodeUrl = 'https://api.trakt.tv/oauth/device/code';
-  static const tokenUrl = 'https://api.trakt.tv/oauth/device/token';
+  static BrowserClient client = BrowserClient()..withCredentials = true;
 
   /// Step 1: Request device code
   static Future<Map<String, dynamic>> requestDeviceCode() async {
-    final response = await http.post(Uri.parse(deviceCodeUrl), body: {'client_id': TraktApi.clientId});
+    final response = await client.get(
+      Uri.parse("${Api.ServerUrl}/trakt/device_code"),
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -21,38 +19,43 @@ class TraktAuth {
     }
   }
 
-  static Future<String> pollForAccessToken(String deviceCode, int interval, int expiresIn) async {
-    final url = Uri.parse(tokenUrl);
+  static Future<void> pollForAccessToken(
+    String deviceCode,
+    int interval,
+    int expiresIn,
+  ) async {
+    final url = Uri.parse("${Api.ServerUrl}/trakt/check_auth");
     final endTime = DateTime.now().add(Duration(seconds: expiresIn));
 
     while (DateTime.now().isBefore(endTime)) {
       await Future.delayed(Duration(seconds: interval));
 
-      final res = await http.post(
+      final res = await client.post(
         url,
-        headers: {'Content-Type': 'application/json', 'trakt-api-version': '2', 'trakt-api-key': TraktApi.clientId},
-        body: jsonEncode({'code': deviceCode, 'client_id': TraktApi.clientId, 'client_secret': TraktApi.clientSecret}),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'code': deviceCode}),
       );
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
 
+        print(data);
+
         //Save
-        if (kIsWeb) {
-          print("Running on Web!");
-        } else {
-          final directory = await getApplicationCacheDirectory();
-          var file = File('${directory.path}/trakt.json');
+        // if (kIsWeb) {
+        //   print("Running on Web!");
+        // } else {
+        //   final directory = await getApplicationCacheDirectory();
+        //   var file = File('${directory.path}/trakt.json');
 
-          file.writeAsString(jsonEncode(data));
-        }
-
-        return data['access_token']; // Success!
+        //   file.writeAsString(jsonEncode(data));
+        // }
+        //
       } else if (res.statusCode == 400) {
         // Authorization pending, keep polling
         continue;
       } else {
-        throw Exception('Polling failed: ${res.statusCode}');
+        throw Exception('Polling failed: ${res.body}');
       }
     }
 
