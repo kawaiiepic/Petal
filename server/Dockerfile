@@ -1,24 +1,23 @@
-FROM node:20-alpine
+# Use an official Node.js runtime as the base image
+FROM node:18-alpine
 
-# Install ffmpeg
-RUN apk add --no-cache ffmpeg bash
-
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy package.json and package-lock.json (or yarn.lock) first to leverage Docker caching
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy all source files
+# Copy the rest of the application files
 COPY . .
 
-# Build TypeScript
-RUN ./node_modules/typescript/bin/tsc -p ./tsconfig.json
+# Compile TypeScript to JavaScript
+RUN npm run build
 
-# Expose port
+# Expose the application's port
 EXPOSE 3000
 
-# Run the compiled JS
-CMD ["npm", "run", "start"]
+# Command to start the application
+CMD ["npm", "start"]
