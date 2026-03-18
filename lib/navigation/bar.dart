@@ -22,6 +22,7 @@ class _BarState extends State<Bar> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       body: IndexedStack(index: _selectedIndex, children: const [Dashboard(), Addons(), Settings()]),
       bottomNavigationBar: BottomNavigationBar(
         items: [BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_filled), label: 'Home'),
