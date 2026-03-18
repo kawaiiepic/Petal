@@ -1,19 +1,17 @@
-# Use Node Alpine
 FROM node:20-alpine
 
-# Install ffmpeg (if needed)
+# Install ffmpeg
 RUN apk add --no-cache ffmpeg bash
 
-# Set working directory
 WORKDIR /app
 
-# Copy package.json & package-lock.json first (for caching)
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the source code
+# Copy all source files
 COPY . .
 
 # Build TypeScript
@@ -22,5 +20,5 @@ RUN npm run build
 # Expose port
 EXPOSE 3000
 
-# Run compiled JavaScript
+# Run the compiled JS
 CMD ["npm", "run", "start"]
