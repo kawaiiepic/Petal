@@ -4,13 +4,13 @@
   "type": "module",
   "description": "",
   "main": "/server.js",
-  "scripts": {
-    "build": "yarn run build && node dist/server.js",
-    "start": "node dist/server.js",
-    "dev": "ts-node src/server.ts"
-  },
   "keywords": [],
   "author": "",
+    "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "tsx src/main.js"
+  },
   "license": "ISC",
   "dependencies": {
     "better-sqlite3": "^12.6.2",

@@ -1,23 +1,14 @@
-# Use an official Node.js runtime as the base image
-FROM node:18-alpine
+FROM node:22-bookworm
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json (or yarn.lock) first to leverage Docker caching
-COPY package*.json ./
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --ignore-scripts
 
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application files
+# Copy the rest of the application
 COPY . .
 
-# Compile TypeScript to JavaScript
-RUN npm run build
+# build the code
+RUN yarn build
 
-# Expose the application's port
-EXPOSE 3000
-
-# Command to start the application
-CMD ["npm", "start"]
+CMD [ "npm", "start" ]

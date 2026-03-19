@@ -6,8 +6,8 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 
-import { Trakt } from "./trakt.ts";
-import { DB } from "./db.ts";
+import { Trakt } from "./trakt.js";
+import { DB } from "./db.js";
 
 const app = express();
 const port = 3000;

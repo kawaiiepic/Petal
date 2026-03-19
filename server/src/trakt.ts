@@ -1,6 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import { DB } from "./db.ts";
+import { DB } from "./db.js";
 
 export abstract class Trakt {
   static CLIENT_ID =

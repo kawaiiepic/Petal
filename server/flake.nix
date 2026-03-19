@@ -16,6 +16,8 @@
           buildInputs = with pkgs; [
             nodejs
             ffmpeg
+            yarn
+            typescript
             # better-sqlite3
           ];
 
