@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:blssmpetal/api/api_cache.dart';
 import 'package:blssmpetal/api/stream_helper.dart';
 import 'package:blssmpetal/api/tmdb/tmdb.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
@@ -371,7 +372,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
                                           tween: Tween(begin: 1.0, end: 0.0),
                                           duration: const Duration(seconds: 10),
                                           onEnd: () async {
-                                            final addons = await Api.addonsFuture;
+                                            final addons = await ApiCache.getAddons();
 
                                             final stremioEpisode = StremioEpisode(
                                               season: season.number,

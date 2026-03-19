@@ -1,12 +1,11 @@
 import 'dart:async';
-
+import 'package:blssmpetal/api/api_cache.dart';
 import 'package:blssmpetal/api/stream_helper.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/pages/overview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 enum SearchType { seriesAndMovies, series, movies, actors }
 
@@ -42,8 +41,7 @@ class SearchControllerModel extends ChangeNotifier {
 }
 
 class Search extends StatefulWidget {
-  const Search({super.key, required this.addons});
-  final List<Addon> addons;
+  const Search({super.key});
 
   @override
   State<Search> createState() => _SearchState();
@@ -59,21 +57,21 @@ class _SearchState extends State<Search> {
     searchModel = SearchControllerModel();
   }
 
+  String label(SearchType type) {
+    switch (type) {
+      case SearchType.series:
+        return "Shows";
+      case SearchType.movies:
+        return "Movies";
+      case SearchType.seriesAndMovies:
+        return "Shows & Movies";
+      case SearchType.actors:
+        return "Actors";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    String label(SearchType type) {
-      switch (type) {
-        case SearchType.series:
-          return "Shows";
-        case SearchType.movies:
-          return "Movies";
-        case SearchType.seriesAndMovies:
-          return "Shows & Movies";
-        case SearchType.actors:
-          return "Actors";
-      }
-    }
-
     return Padding(
       padding: EdgeInsets.all(8),
       child: SearchAnchor(
@@ -101,79 +99,89 @@ class _SearchState extends State<Search> {
         },
 
         suggestionsBuilder: (context, controller) {
-          searchModel.search(controller.text, widget.addons);
           return [
-            ValueListenableBuilder<SearchType>(
-              valueListenable: searchTypeNotifier,
-              builder: (context, searchType, _) {
-                return ListenableBuilder(
-                  listenable: searchModel,
-                  builder: (context, _) {
-                    return Column(
-                      children: searchModel.results
-                          .where((item) {
-                            switch (searchTypeNotifier.value) {
-                              case SearchType.series:
-                                return item.type == "series";
+            FutureBuilder(
+              future: ApiCache.getAddons(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return SizedBox();
+                }
 
-                              case SearchType.movies:
-                                return item.type == "movie";
+                searchModel.search(controller.text, snapshot.data!);
 
-                              case SearchType.seriesAndMovies:
-                                return item.type == "series" || item.type == "movie";
+                return ValueListenableBuilder<SearchType>(
+                  valueListenable: searchTypeNotifier,
+                  builder: (context, searchType, _) {
+                    return ListenableBuilder(
+                      listenable: searchModel,
+                      builder: (context, _) {
+                        return Column(
+                          children: searchModel.results
+                              .where((item) {
+                                switch (searchTypeNotifier.value) {
+                                  case SearchType.series:
+                                    return item.type == "series";
 
-                              case SearchType.actors:
-                                return item.type == "actor";
-                            }
-                          })
-                          .map((item) {
-                            return Container(
-                              padding: EdgeInsets.all(8),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(10),
-                                onTap: () async {
-                                  if (mounted) {
-                                    final catalogItem = await StreamApi.fetchCatalogItem(item);
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem!)));
-                                  }
-                                },
-                                child: Tooltip(
-                                  message: item.name,
-                                  child: Row(
-                                    children: [
-                                      Ink(
-                                        height: 100,
-                                        width: 60,
-                                        decoration: BoxDecoration(
-                                          image: DecorationImage(image: CachedNetworkImageProvider(item.poster), fit: BoxFit.cover),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                      ),
+                                  case SearchType.movies:
+                                    return item.type == "movie";
 
-                                      Container(width: 20),
+                                  case SearchType.seriesAndMovies:
+                                    return item.type == "series" || item.type == "movie";
 
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        spacing: 8,
+                                  case SearchType.actors:
+                                    return item.type == "actor";
+                                }
+                              })
+                              .map((item) {
+                                return Container(
+                                  padding: EdgeInsets.all(8),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(10),
+                                    onTap: () async {
+                                      if (mounted) {
+                                        final catalogItem = await StreamApi.fetchCatalogItem(item);
+                                        Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem!)));
+                                      }
+                                    },
+                                    child: Tooltip(
+                                      message: item.name,
+                                      child: Row(
                                         children: [
-                                          Text(item.name),
-                                          Row(
+                                          Ink(
+                                            height: 100,
+                                            width: 60,
+                                            decoration: BoxDecoration(
+                                              image: DecorationImage(image: CachedNetworkImageProvider(item.poster), fit: BoxFit.cover),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+
+                                          Container(width: 20),
+
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             spacing: 8,
                                             children: [
-                                              Chip(label: Text(item.type)),
-                                              Chip(label: Text(item.releaseInfo)),
+                                              Text(item.name),
+                                              Row(
+                                                spacing: 8,
+                                                children: [
+                                                  Chip(label: Text(item.type)),
+                                                  Chip(label: Text(item.releaseInfo)),
+                                                ],
+                                              ),
+                                              Text(item.genres.join(', ')),
                                             ],
                                           ),
-                                          Text(item.genres.join(', ')),
                                         ],
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                            );
-                          })
-                          .toList(),
+                                );
+                              })
+                              .toList(),
+                        );
+                      },
                     );
                   },
                 );

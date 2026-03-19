@@ -1,4 +1,5 @@
 import 'package:blssmpetal/api/api.dart';
+import 'package:blssmpetal/api/api_cache.dart';
 import 'package:blssmpetal/api/stream_helper.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
@@ -31,8 +32,8 @@ class _StreamsPageState extends State<StreamsPage> {
   }
 
   Future<List<StreamItem>> _loadStreams() async {
-    final addons = await Api.addonsFuture;
-    return StreamApi.fetchStreams(widget.item, addons!, episode: widget.episode);
+    final addons = await ApiCache.getAddons();
+    return StreamApi.fetchStreams(widget.item, addons, episode: widget.episode);
   }
 
   @override
@@ -105,7 +106,13 @@ class StreamTile extends StatelessWidget {
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StreamPlayer(stream: stream, catalogItem: item, episode: episode, traktShow: traktShow),
+                          ),
+                        );
+                        // Navigator.pop(context);
                       },
                       child: const Text("Open Stream"),
                     ),

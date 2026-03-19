@@ -1,18 +1,17 @@
 import 'dart:async';
-import 'dart:ui';
-
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/catalog_helper.dart';
 import 'package:blssmpetal/api/tmdb/tmdb.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
+import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
+import 'package:blssmpetal/pages/catalog_widget.dart';
 import 'package:blssmpetal/pages/dashboard/search_widget.dart';
 import 'package:blssmpetal/pages/dashboard/trakt_widget.dart';
 import 'package:blssmpetal/pages/episode_overview.dart';
 import 'package:blssmpetal/pages/movie_overview.dart';
-import 'package:blssmpetal/pages/overview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -24,169 +23,47 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  final ValueNotifier<String?> backgroundImage = ValueNotifier(null);
-
-  final ValueNotifier<CatalogItem?> selectedItem = ValueNotifier(null);
-
-  void setSelectedItem(CatalogItem? item, String? poster) {
-    selectedItem.value = item;
-    backgroundImage.value = poster;
-  }
-
-  void _setBackground(String? image) {
-    backgroundImage.value = image;
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: Api.addonsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          final addons = snapshot.data!.where((element) => element.enabledResources.contains("catalog")).toList();
-          return SingleChildScrollView(
-            child: Column(
-              spacing: 20,
-              children: [
-                Search(addons: snapshot.data!),
-                NextUpRow(selectedItem: selectedItem, onItemHover: setSelectedItem),
+  Widget build(BuildContext context) => CustomScrollView(
+    slivers: [CatalogWidget()],
+    // child: Column(
+    //   spacing: 20,
+    //   children: [
+    //     Search(),
+    //     NextUpRow(),
+    //     CatalogWidget()
 
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: addons.length,
-                  itemBuilder: (context, index) {
-                    final addon = addons[index];
-                    print("Loading Catalog");
-                    final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
-                    return loadCatalog(catalogs);
-                  },
-                ),
-              ],
-            ),
-          );
-        }
-        return Container();
-      },
-    );
+    //     // ListView.builder(
+    //     //   shrinkWrap: true,
+    //     //   physics: NeverScrollableScrollPhysics(),
+    //     //   itemCount: addons.length,
+    //     //   itemBuilder: (context, index) {
+    //     //     final addon = addons[index];
+    //     //     final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
+    //     //     return loadCatalog(catalogs);
+    //     //   },
+    //     // ),
+    //   ],
+    // ),
+  );
 
-    return FutureBuilder(
-      future: Api.addonsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else {
-          final addons = snapshot.data!.where((e) => e.enabledResources.contains('catalog')).toList();
+  // Widget loadCatalog(List<Catalog> catalogs) {
+  //   return Column(
+  //     spacing: 20,
+  //     children: catalogs.map((catalog) {
+  //       final future = CatalogApi.fetchCatalogItems(catalog);
 
-          return SizedBox.expand(
-            child: Stack(
-              children: [
-                ValueListenableBuilder<String?>(
-                  valueListenable: backgroundImage,
-                  builder: (context, image, _) {
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 600),
-                      child: image != null
-                          ? ClipRect(
-                              child: SizedBox(
-                                key: ValueKey(image), // force AnimatedSwitcher to recognize new images
-                                width: double.infinity,
-                                height: 400, // only top portion
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(12), // rounded corners at the bottom
-                                  ),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      Image.network(Api.proxyImage(image), fit: BoxFit.cover),
-                                      // Blur only the background
-                                      BackdropFilter(
-                                        filter: ImageFilter.blur(sigmaX: 0.2, sigmaY: 0.2),
-                                        child: Container(color: Colors.black.withValues(alpha: 0.65)),
-                                      ),
-                                      // Gradient overlay for readability
-                                      Container(
-                                        decoration: const BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: [Colors.transparent, Colors.black],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Container(height: 350, color: Colors.black),
-                    );
-                  },
-                ),
-
-                // Container(color: Colors.black.withOpacity(0.65)),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Search(addons: addons),
-
-                      // NextUpRow(selectedItem: selectedItem, onItemHover: setSelectedItem),
-                      // Expanded(
-                      //   child: ListView.builder(
-                      //     itemCount: addons.length + 2,
-                      //     itemBuilder: (context, index) {
-                      //       switch (index) {
-                      //         case 0:
-                      //           if (TraktApi.accessToken.isNotEmpty) {
-                      //             final future = TraktFuture.fetchHistory();
-                      //             return TraktPage(selectedItem: selectedItem, itemsFuture: future, onItemHover: setSelectedItem);
-                      //           } else {
-                      //             return SizedBox();
-                      //           }
-                      //         case 1:
-                      //           return SizedBox();
-                      //         default:
-                      //           {
-                      //             final addon = addons[index - 2];
-                      //             final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
-                      //             return loadCatalog(catalogs);
-                      //           }
-                      //       }
-                      //     },
-                      //   ),
-                      // ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-      },
-    );
-  }
-
-  Widget loadCatalog(List<Catalog> catalogs) {
-    return Column(
-      spacing: 20,
-      children: catalogs.map((catalog) {
-        final future = CatalogApi.fetchCatalogItems(catalog);
-
-        return CatalogPage(catalog: catalog, itemsFuture: future, onItemHover: _setBackground);
-      }).toList(),
-    );
-  }
+  //       return CatalogPage(catalog: catalog, itemsFuture: future);
+  //     }).toList(),
+  //   );
+  // }
 }
 
 class CatalogPage extends StatefulWidget {
   final Catalog catalog;
   final Future<List<CatalogItem>> itemsFuture;
-  final ValueChanged<String?> onItemHover;
 
-  const CatalogPage({super.key, required this.catalog, required this.itemsFuture, required this.onItemHover});
+  const CatalogPage({super.key, required this.catalog, required this.itemsFuture});
 
   @override
   State<CatalogPage> createState() => _CatalogPageState();
@@ -218,7 +95,7 @@ class _CatalogPageState extends State<CatalogPage> {
           spacing: 8,
           children: [
             Text('${widget.catalog.name} - ${widget.catalog.type[0].toUpperCase() + widget.catalog.type.substring(1)}'),
-            CatalogRow(items: items, onItemHover: widget.onItemHover),
+            CatalogRow(items: items),
           ],
         );
       },
@@ -228,9 +105,8 @@ class _CatalogPageState extends State<CatalogPage> {
 
 class CatalogRow extends StatefulWidget {
   final List<CatalogItem> items;
-  final ValueChanged<String?> onItemHover;
 
-  const CatalogRow({super.key, required this.items, required this.onItemHover});
+  const CatalogRow({super.key, required this.items});
 
   @override
   State<CatalogRow> createState() => _CatalogRowState();
@@ -242,7 +118,6 @@ class _CatalogRowState extends State<CatalogRow> {
   bool _canScrollLeft = false;
   bool _canScrollRight = true;
   bool _isHovering = false;
-  int _hoverIndex = 0;
 
   @override
   void initState() {
@@ -292,91 +167,85 @@ class _CatalogRowState extends State<CatalogRow> {
                     if (searchSnapshot.hasError) {
                       return loadingInk;
                     } else {
-                      return MouseRegion(
-                        onEnter: (_) => setState(() => _hoverIndex = index),
-                        onExit: (_) => setState(() => _hoverIndex = -1),
-                        cursor: SystemMouseCursors.click,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4), // space between posters
-                          child: SizedBox(
-                            width: 120,
-                            child: Column(
-                              children: [
-                                AspectRatio(
-                                  aspectRatio: 2 / 3,
-                                  child: Tooltip(
-                                    message: item.name,
-                                    child: InkWell(
-                                      onTap: () async {
-                                        if (item.type == "series") {
-
-                                          if (mounted) {
-                                            final show = await TraktApi.fetchShowWithProgress(searchSnapshot.data!.show!.ids.trakt);
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) {
-                                                return Dialog(
-                                                  insetPadding: const EdgeInsets.all(16), // padding from screen edges
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                  child: ClipRRect(
-                                                    borderRadius: BorderRadiusGeometry.circular(8),
-                                                    child: EpisodeOverview(item: show!, selectedEpisode: null),
-                                                  ),
-                                                );
-                                              },
-                                            );
-                                          }
-                                          // Navigator.push(context, MaterialPageRoute(builder: (_) => EpisodeOverview(item: show!, selectedEpisode: null)));
-                                        } else {
-                                          if (mounted) {
-                                            final movie = await TraktApi.fetchMovie(searchSnapshot.data!.movie!.ids.trakt.toString());
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) {
-                                                return Dialog(
-                                                  insetPadding: const EdgeInsets.all(16), // padding from screen edges
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                  child: ClipRRect(
-                                                    borderRadius: BorderRadiusGeometry.circular(8),
-                                                    child: MovieOverview(item: movie),
-                                                  ),
-                                                );
-                                              },
-                                            );
-                                          }
-                                        }
-                                      },
-                                      child: FutureBuilder(
-                                        future: TMDB.poster(
-                                          item.type == "series" ? MediaType.show : MediaType.movie,
-                                          item.type == "series"
-                                              ? searchSnapshot.data!.show!.ids.tmdb.toString()
-                                              : searchSnapshot.data!.movie!.ids.tmdb.toString(),
-                                        ),
-                                        builder: (context, snapshot) {
-                                          if (!snapshot.hasData) return loadingInk;
-                                          if (snapshot.hasError) {
-                                            return Text('Error');
-                                          }
-                                          return Ink(
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(8),
-                                              image: DecorationImage(image: Image.memory(snapshot.data!).image, fit: BoxFit.cover),
-                                            ),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4), // space between posters
+                        child: SizedBox(
+                          width: 120,
+                          child: Column(
+                            children: [
+                              AspectRatio(
+                                aspectRatio: 2 / 3,
+                                child: Tooltip(
+                                  message: item.name,
+                                  child: InkWell(
+                                    onTap: () async {
+                                      if (item.type == "series") {
+                                        if (mounted) {
+                                          final show = await TraktApi.fetchShowWithProgress(searchSnapshot.data!.show!.ids.trakt);
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              return Dialog(
+                                                insetPadding: const EdgeInsets.all(16), // padding from screen edges
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadiusGeometry.circular(8),
+                                                  child: EpisodeOverview(item: show!, selectedEpisode: null),
+                                                ),
+                                              );
+                                            },
                                           );
-                                        },
+                                        }
+                                        // Navigator.push(context, MaterialPageRoute(builder: (_) => EpisodeOverview(item: show!, selectedEpisode: null)));
+                                      } else {
+                                        if (mounted) {
+                                          final movie = await TraktApi.fetchMovie(searchSnapshot.data!.movie!.ids.trakt.toString());
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              return Dialog(
+                                                insetPadding: const EdgeInsets.all(16), // padding from screen edges
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadiusGeometry.circular(8),
+                                                  child: MovieOverview(item: movie),
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        }
+                                      }
+                                    },
+                                    child: FutureBuilder(
+                                      future: TMDB.poster(
+                                        item.type == "series" ? MediaType.show : MediaType.movie,
+                                        item.type == "series"
+                                            ? searchSnapshot.data!.show!.ids.tmdb.toString()
+                                            : searchSnapshot.data!.movie!.ids.tmdb.toString(),
                                       ),
-                                      // child: NetworkPoster(
-                                      //   poster: Api.proxyImage(item.poster),
-                                      //   onHover: () {
-                                      //     widget.onItemHover(item.background);
-                                      //   },
-                                      // ),
+                                      builder: (context, snapshot) {
+                                        if (!snapshot.hasData) return loadingInk;
+                                        if (snapshot.hasError) {
+                                          return Text('Error');
+                                        }
+                                        return Ink(
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(8),
+                                            image: DecorationImage(image: Image.memory(snapshot.data!).image, fit: BoxFit.cover),
+                                          ),
+                                        );
+                                      },
                                     ),
+                                    // child: NetworkPoster(
+                                    //   poster: Api.proxyImage(item.poster),
+                                    //   onHover: () {
+                                    //     widget.onItemHover(item.background);
+                                    //   },
+                                    // ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       );

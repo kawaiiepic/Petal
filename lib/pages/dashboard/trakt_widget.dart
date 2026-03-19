@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:blssmpetal/api/tmdb/tmdb.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:blssmpetal/pages/dashboard/dashboard.dart';
+import 'package:blssmpetal/pages/dashboard/trakt/still.dart';
 import 'package:blssmpetal/pages/episode_overview.dart';
 import 'package:blssmpetal/pages/overview.dart';
 import 'package:flutter/material.dart';
@@ -11,10 +14,8 @@ import 'package:flutter/widgets.dart';
 typedef ItemHoverCallback = void Function(CatalogItem? item, String? background);
 
 class NextUpRow extends StatefulWidget {
-  final ValueNotifier<CatalogItem?> selectedItem;
-  final ItemHoverCallback onItemHover;
 
-  const NextUpRow({super.key, required this.selectedItem, required this.onItemHover});
+  const NextUpRow({super.key});
 
   @override
   State<NextUpRow> createState() => _NextUpRowState();
@@ -29,9 +30,11 @@ class _NextUpRowState extends State<NextUpRow> {
   bool _canScrollRight = true;
   bool _isHovering = false;
   int _hoverIndex = 0;
+  late final Future _nextUpFuture;
 
   @override
   void initState() {
+    _nextUpFuture = TraktApi.fetchWatchedShowWithProgress();
     super.initState();
     // _loadPosters();
     _controller.addListener(_updateArrows);
@@ -43,12 +46,13 @@ class _NextUpRowState extends State<NextUpRow> {
 
   @override
   Widget build(BuildContext context) {
+    print("Rebuilding Next Up");
     return Column(
       spacing: 8,
       children: [
         Text('Next Up'),
         FutureBuilder(
-          future: TraktApi.fetchWatchedShowWithProgress(),
+          future: _nextUpFuture,
           builder: (context, snapshot) {
             final data = snapshot.data ?? [];
             final itemCount = snapshot.hasData ? data.length : 30;
@@ -59,16 +63,18 @@ class _NextUpRowState extends State<NextUpRow> {
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.black.withValues(alpha: 0.3)),
             );
 
+            print("Rebuilding Next Up inside");
+
             return MouseRegion(
               onEnter: (_) => setState(() => _isHovering = true),
               onExit: (_) => setState(() => _isHovering = false),
               cursor: SystemMouseCursors.click,
               child: SizedBox(
-                height: 220,
+                height: 180,
                 child: Stack(
                   children: [
                     ListView.builder(
-                      shrinkWrap: true,
+                      shrinkWrap: false,
                       // physics: NeverScrollableScrollPhysics(),
                       scrollDirection: Axis.horizontal,
                       controller: _controller,
@@ -76,57 +82,50 @@ class _NextUpRowState extends State<NextUpRow> {
                       itemBuilder: (context, index) {
                         final isLoading = !snapshot.hasData;
                         final show = !isLoading ? snapshot.data![index] : null;
-                        return MouseRegion(
-                          onEnter: (_) => setState(() => _hoverIndex = index),
-                          onExit: (_) => setState(() => _hoverIndex = -1),
-                          cursor: SystemMouseCursors.click,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: SizedBox(
-                              width: 120,
-                              child: Column(
-                                children: [
-                                  AspectRatio(
-                                    aspectRatio: 2 / 3,
-                                    child: isLoading
-                                        ? InkWell(borderRadius: BorderRadius.circular(8), onTap: () {}, child: loadingInk)
-                                        : Tooltip(
-                                            message: show!.watchedShow!.show.title,
-                                            child: InkWell(
-                                              onTap: () {
-                                                Navigator.push(context, MaterialPageRoute(builder: (_) => EpisodeOverview(item: show, selectedEpisode: null)));
-                                              },
-                                              child: FutureBuilder(
-                                                future: TMDB.poster(MediaType.show, show.watchedShow!.show.ids.tmdb!.toString()),
-                                                builder: (context, snapshot) {
-                                                  if (!snapshot.hasData) return loadingInk;
-                                                  return Ink(
-                                                    decoration: BoxDecoration(
-                                                      borderRadius: BorderRadius.circular(8),
-                                                      image: DecorationImage(image: Image.memory(snapshot.data!).image, fit: BoxFit.cover),
-                                                    ),
-                                                  );
-                                                },
+
+                        print("Rebuilding ListView");
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: SizedBox(
+                            width: 200,
+                            child: Column(
+                              children: [
+                                AspectRatio(
+                                  aspectRatio: 16 / 9,
+                                  child: isLoading
+                                      ? InkWell(borderRadius: BorderRadius.circular(8), onTap: () {}, child: loadingInk)
+                                      : Tooltip(
+                                          message: show!.watchedShow!.show.title,
+                                          child: InkWell(
+                                            onTap: () {
+                                              Navigator.push(context, MaterialPageRoute(builder: (_) => EpisodeOverview(item: show, selectedEpisode: null)));
+                                            },
+                                            child: StillPoster(
+                                              key: ValueKey(
+                                                "${show.watchedShow!.show.ids.tmdb}_${show.showProgress.nextEpisode!.season}_${show.showProgress.nextEpisode!.number}",
                                               ),
+                                              tmdb: show.watchedShow!.show.ids.tmdb.toString(),
+                                              season: show.showProgress.nextEpisode!.season,
+                                              episode: show.showProgress.nextEpisode!.number,
                                             ),
                                           ),
-                                  ),
+                                        ),
+                                ),
 
-                                  !isLoading
-                                      ? Column(
-                                          children: [
-                                            Text(
-                                              "${show!.showProgress.nextEpisode!.season}x${show.showProgress.nextEpisode!.number} ${show.showProgress.nextEpisode!.title}",
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
+                                !isLoading
+                                    ? Column(
+                                        children: [
+                                          Text(
+                                            "${show!.showProgress.nextEpisode!.season}x${show.showProgress.nextEpisode!.number} ${show.showProgress.nextEpisode!.title}",
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
 
-                                            Text(show.watchedShow!.show.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                          ],
-                                        )
-                                      : Container(),
-                                ],
-                              ),
+                                          Text(show.watchedShow!.show.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        ],
+                                      )
+                                    : Container(),
+                              ],
                             ),
                           ),
                         );

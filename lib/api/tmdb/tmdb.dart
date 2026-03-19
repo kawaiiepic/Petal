@@ -5,12 +5,12 @@ import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 class TMDB {
   static Map<String, Future<Uint8List>> imageData = {};
+
   static String accessToken =
       'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4OTA3MDBmYWY5ZDZmYzMwMWMxM2Y0MWUzMTIxZDU1YSIsIm5iZiI6MTU5OTIxMDQ4My41NTIsInN1YiI6IjVmNTIwM2YzYjIzNGI5MDAzNzE4YjMzNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.RHJTrJPzXmpf0GM6FB8gdipG46lSo-XFY3FQ_Ljjy2c';
 

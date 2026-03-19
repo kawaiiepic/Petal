@@ -43,7 +43,7 @@
           shellHook = ''
             echo "Flutter dev shell ready"
 
-            export CHROME_EXECUTABLE=${pkgs.google-chrome}/bin/google-chrome-stable
+            export CHROME_EXECUTABLE=zen-beta
             export LD_LIBRARY_PATH=${
               pkgs.lib.makeLibraryPath [
                 pkgs.libmpv

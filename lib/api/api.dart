@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class Api {
-  static bool dev = false;
+  static bool dev = true;
   static bool traktLoggedIn = false;
 
   static String proxyImage(String url) {
@@ -22,15 +22,12 @@ class Api {
   static final ValueNotifier<bool> healthy = ValueNotifier(true);
   static Timer? _healthPoller;
 
-  static Future<List<Addon>?> addonsFuture = Future.value(null);
-
   static Future<void> initApi() async {
     await TraktApi.verifySession();
 
     _healthPoller?.cancel();
 
     if (TraktApi.validSession.value) {
-
       _onBackendRecovered();
     }
 
@@ -52,7 +49,6 @@ class Api {
   }
 
   static void _onBackendRecovered() {
-    addonsFuture = TraktApi.fetchUserAddons();
     CatalogApi.clearCache();
   }
 
@@ -66,16 +62,14 @@ class Api {
     }
   }
 
-  // Other
-  //
-  static var _generatedCatalogs = {};
-
-  static List<Catalog> generateCatalogs(String baseUrl, String slug, Map<String, dynamic> manifest) {
-    if (_generatedCatalogs[baseUrl + slug] != null) return _generatedCatalogs[baseUrl + slug]!;
+  static List<Catalog> generateCatalogs(Addon addon) {
     print("Generating Catalogs");
     final List<Catalog> catalogs = [];
+    final manifest = addon.manifest!;
 
     if (manifest['catalogs'] == null) return catalogs;
+
+    final baseUrl = addon.id == 'com.linvo.cinemeta' ? 'https://cinemeta-catalogs.strem.io' : addon.baseUrl;
 
     const allowed = {'top', 'year', 'imdbRating'};
 
@@ -95,8 +89,6 @@ class Api {
 
       catalogs.add(Catalog(name: cat['name'], type: type, id: id, extra: extras, url: '$baseUrl/$id/catalog/$type/$id.json'));
     }
-
-    _generatedCatalogs[baseUrl + slug] = catalogs;
 
     return catalogs;
   }

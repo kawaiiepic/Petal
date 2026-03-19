@@ -5,53 +5,67 @@ import 'package:blssmpetal/pages/settings.dart';
 import 'package:flutter/material.dart';
 
 class Rail extends StatefulWidget {
-  const Rail({super.key});
+  final ValueNotifier<int> selectedIndex;
+
+  const Rail({super.key, required this.selectedIndex});
 
   @override
   State<Rail> createState() => _RailState();
 }
 
 class _RailState extends State<Rail> {
-  int _selectedIndex = 0;
+  late final Widget _dashboard;
+  late final Widget _addons;
+  late final Widget _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboard = Dashboard();
+    _addons = Addons();
+    _settings = Settings();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return navigationRail();
-  }
-
-  Widget navigationRail() {
     return Scaffold(
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          NavigationRail(
-            labelType: NavigationRailLabelType.all,
-            groupAlignment: 0,
-            onDestinationSelected: (int index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            destinations: [
-              NavigationRailDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_filled), label: Text('Dashboard')),
-              NavigationRailDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_filled), label: Text('Addons')),
-              NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Settings')),
-            ],
-            leading: Profile(),
-            selectedIndex: _selectedIndex,
-          ),
-          const VerticalDivider(thickness: 1, width: 1),
-          page(),
-        ],
+      body: SafeArea(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            NavigationRail(
+              labelType: NavigationRailLabelType.all,
+              groupAlignment: -1,
+              onDestinationSelected: (int index) {
+                setState(() {
+                  widget.selectedIndex.value = index;
+                });
+              },
+              destinations: const [
+                NavigationRailDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_filled), label: Text('Dashboard')),
+                NavigationRailDestination(icon: Icon(Icons.extension_outlined), selectedIcon: Icon(Icons.extension), label: Text('Addons')),
+                NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Settings')),
+              ],
+              leading: const Profile(),
+              selectedIndex: widget.selectedIndex.value,
+            ),
+            const VerticalDivider(thickness: 1, width: 1),
+            _animatedPage(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget page() {
+  Widget _animatedPage() {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: IndexedStack(index: _selectedIndex, children: const [Dashboard(), Addons(), Settings()]),
+        child: Stack(
+          children: [
+            IndexedStack(index: widget.selectedIndex.value, children: [_dashboard, _addons, _settings]),
+          ],
+        ),
       ),
     );
   }
