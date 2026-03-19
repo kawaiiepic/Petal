@@ -33,7 +33,7 @@
             # flutter linux deps
             gtk3
             libepoxy
-            libmpv
+            mpv
 
             # runtime
             wayland
@@ -46,7 +46,7 @@
             export CHROME_EXECUTABLE=zen-beta
             export LD_LIBRARY_PATH=${
               pkgs.lib.makeLibraryPath [
-                pkgs.libmpv
+                pkgs.mpv
                 pkgs.gtk3
                 pkgs.libepoxy
               ]

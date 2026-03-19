@@ -21,8 +21,6 @@ class TraktApi {
 
   static final ValueNotifier<bool> validSession = ValueNotifier(false);
 
-  static final Map<String, Future<Search>> _searchCache = {};
-
   static Future<void> verifySession() async {
     try {
       final response = await client.get(Uri.parse("${Api.ServerUrl}/trakt/verify_session"));
@@ -130,11 +128,7 @@ class TraktApi {
     return Future.error(Exception());
   }
 
-  static Future<Search> search(String id_type, String id, String type) {
-    return TraktApi._searchCache.putIfAbsent(id, () => TraktApi._search(id_type, id, type));
-  }
-
-  static Future<Search> _search(String id_type, String id, String type) async {
+  static Future<Search> search(String id_type, String id, String type) async {
     final typeFixed = switch (type) {
       "series" => "show",
       String() => type,

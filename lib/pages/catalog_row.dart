@@ -24,19 +24,20 @@ class _CatalogRowState extends State<CatalogRow> {
       children: [
         Row(children: [Text(catalog.name), Text('-'), Text(catalog.type[0].toUpperCase() + catalog.type.substring(1))]),
         SizedBox(
-          height: 120,
-          child: ScrollableWidget(
-            controller: _controller,
-            child: ListView(
-              controller: _controller,
-              scrollDirection: Axis.horizontal,
-              children: [
-                ...catalogItems.map((catalogItem) {
-                  return CatalogItemWidget(catalogItem: catalogItem);
-                }),
-              ],
-            ),
-          ),
+          height: 300,
+          child: Text('Boop'),
+          // child: ScrollableWidget(
+          //   controller: _controller,
+          //   child: ListView(
+          //     controller: _controller,
+          //     scrollDirection: Axis.horizontal,
+          //     children: [
+          //       ...catalogItems.take(10).map((catalogItem) {
+          //         return CatalogItemWidget(catalogItem: catalogItem);
+          //       }),
+          //     ],
+          //   ),
+          // ),
         ),
       ],
     );

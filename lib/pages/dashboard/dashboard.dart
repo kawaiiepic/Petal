@@ -25,7 +25,9 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) => CustomScrollView(
-    slivers: [CatalogWidget()],
+    slivers: [
+      CatalogWidget(),
+      ],
     // child: Column(
     //   spacing: 20,
     //   children: [
@@ -236,12 +238,6 @@ class _CatalogRowState extends State<CatalogRow> {
                                         );
                                       },
                                     ),
-                                    // child: NetworkPoster(
-                                    //   poster: Api.proxyImage(item.poster),
-                                    //   onHover: () {
-                                    //     widget.onItemHover(item.background);
-                                    //   },
-                                    // ),
                                   ),
                                 ),
                               ),
