@@ -46,6 +46,7 @@ dependencies:
   path_provider: ^2.1.5
   package_info_plus: ^9.0.0
   fuzzywuzzy: ^1.2.0
+  webview_flutter: ^4.13.1
 
 dev_dependencies:
   flutter_test:

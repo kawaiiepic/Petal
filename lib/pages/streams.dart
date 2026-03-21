@@ -7,6 +7,7 @@ import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/stream.dart';
 import 'package:blssmpetal/models/stremio/stremio_episode.dart';
 import 'package:blssmpetal/pages/player/player.dart';
+import 'package:blssmpetal/pages/test_video.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -88,7 +89,13 @@ class StreamTile extends StatelessWidget {
         if (stream.external) {
           launchUrl(Uri.parse(stream.url));
         } else if (MediaQuery.of(context).orientation == Orientation.portrait) {
-          launchUrl(Uri.parse('outplayer://${stream.url}'));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TestVideo(streamUrl: stream.url),
+            ),
+          );
+          // launchUrl(Uri.parse('outplayer://${stream.url}'));
         } else {
           if (kIsWeb) {
             showDialog(
