@@ -35,12 +35,12 @@ app.get("/img", async (req, res) => {
             return res.status(400).send("Missing url");
         const url = decodeURIComponent(raw);
         // serve cached
-        if (imageCache.has(url)) {
-            const cached = imageCache.get(url);
-            res.set("Content-Type", cached.type);
-            res.set("Cache-Control", "public, max-age=86400");
-            return res.send(cached.buffer);
-        }
+        // if (imageCache.has(url)) {
+        //   const cached = imageCache.get(url);
+        //   res.set("Content-Type", cached.type);
+        //   res.set("Cache-Control", "public, max-age=86400");
+        //   return res.send(cached.buffer);
+        // }
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 20000); // 20s
         const response = await fetch(url, {
