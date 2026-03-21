@@ -51,29 +51,29 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
     _startStream(widget.stream.url);
 
-    player.stream.position.listen((pos) {
-      if (player.state.duration.inSeconds > 0 && (player.state.duration - player.state.position).inMinutes < 2) {
-        if (!showNextUp) {
-          setState(() {
-            showNextUp = true;
-          });
-        }
-      } else if (showNextUp) {
-        setState(() {
-          showNextUp = false;
-        });
-      }
-    });
+    // player.stream.position.listen((pos) {
+    //   if (player.state.duration.inSeconds > 0 && (player.state.duration - player.state.position).inMinutes < 2) {
+    //     if (!showNextUp) {
+    //       setState(() {
+    //         showNextUp = true;
+    //       });
+    //     }
+    //   } else if (showNextUp) {
+    //     setState(() {
+    //       showNextUp = false;
+    //     });
+    //   }
+    // });
   }
 
   Future<void> _startStream(String url) async {
-    final trakt = (await _showSeasons)![_currentEpisode.value.season - 1].episodes[_currentEpisode.value.episode - 1].ids!.trakt;
-    TraktApi.startWatching(MediaType.show, {
-      "episode": {
-        "ids": {"trakt": trakt},
-      },
-      "progress": 0,
-    });
+    // final trakt = (await _showSeasons)![_currentEpisode.value.season - 1].episodes[_currentEpisode.value.episode - 1].ids!.trakt;
+    // TraktApi.startWatching(MediaType.show, {
+    //   "episode": {
+    //     "ids": {"trakt": trakt},
+    //   },
+    //   "progress": 0,
+    // });
 
     print(url);
 
@@ -88,10 +88,11 @@ class _StreamPlayerState extends State<StreamPlayer> {
           final streamUrl = Api.ServerUrl + data["streamUrl"];
 
           print("Using HLS stream: $streamUrl");
+          print(data);
 
           await Future.delayed(Duration(seconds: 5));
 
-          player.open(Media(streamUrl, httpHeaders: {"User-Agent": "PetalPlayer"}));
+          player.open(Media(streamUrl));
         } else {
           throw Exception("Transcode request failed");
         }
@@ -273,8 +274,11 @@ class _StreamPlayerState extends State<StreamPlayer> {
                     child: Visibility(
                       visible: showNextUp && !disableNextUp,
                       child: FutureBuilder(
-                        future: _showSeasons,
+                        future: TraktApi.fetchShowSeasons(widget.catalogItem.id),
                         builder: (context, snapshot) {
+                          if (_showSeasons == null) {
+                            print('Is Null');
+                          }
                           if (!snapshot.hasData || _showSeasons == null) {
                             return Container();
                           }
@@ -293,6 +297,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
                                 FutureBuilder(
                                   future: TMDB.still(widget.traktShow!.show.ids.tmdb.toString(), episode.season!, episode.number),
                                   builder: (context, snapshot) {
+                                    print(widget.traktShow!.show.ids.tmdb.toString());
                                     if (snapshot.hasData) {
                                       return Image.memory(snapshot.data!, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
                                     }

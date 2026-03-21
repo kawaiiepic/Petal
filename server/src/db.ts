@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import fs from "fs";
 
 export abstract class DB {
   static db = new Database("test.db");
@@ -68,6 +69,37 @@ export abstract class DB {
 `,
       )
       .run();
+
+    // stream sessions
+    this.db
+      .prepare(
+        `
+  CREATE TABLE IF NOT EXISTS streams (
+    id TEXT PRIMARY KEY,
+    source_url TEXT,
+    directory TEXT,
+    created_at INTEGER,
+    last_access INTEGER
+  )
+  `,
+      )
+      .run();
+
+    setInterval(
+      () => {
+        const cutoff = Date.now() - 1000 * 60 * 60 * 6; // 6 hours
+
+        const old: StreamRecord[] = this.db
+          .prepare(`SELECT * FROM streams WHERE last_access < ?`)
+          .all(cutoff) as StreamRecord[];
+
+        for (const stream of old) {
+          fs.rmSync(stream.directory, { recursive: true, force: true });
+          this.db.prepare("DELETE FROM streams WHERE id = ?").run(stream.id);
+        }
+      },
+      1000 * 60 * 60,
+    ); // run every hour
   }
 
   public static addUser(data: any) {
@@ -149,4 +181,12 @@ export abstract class DB {
       )
       .run(key, username ?? null, JSON.stringify(value), expiresAt);
   }
+}
+
+interface StreamRecord {
+  id: string;
+  source_url: string;
+  directory: string;
+  created_at: number;
+  last_access: number;
 }

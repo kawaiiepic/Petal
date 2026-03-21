@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import fs from "fs";
 export class DB {
     static init() {
         this.db.pragma("journal_mode = WAL");
@@ -53,6 +54,28 @@ export class DB {
 )
 `)
             .run();
+        // stream sessions
+        this.db
+            .prepare(`
+  CREATE TABLE IF NOT EXISTS streams (
+    id TEXT PRIMARY KEY,
+    source_url TEXT,
+    directory TEXT,
+    created_at INTEGER,
+    last_access INTEGER
+  )
+  `)
+            .run();
+        setInterval(() => {
+            const cutoff = Date.now() - 1000 * 60 * 60 * 6; // 6 hours
+            const old = this.db
+                .prepare(`SELECT * FROM streams WHERE last_access < ?`)
+                .all(cutoff);
+            for (const stream of old) {
+                fs.rmSync(stream.directory, { recursive: true, force: true });
+                this.db.prepare("DELETE FROM streams WHERE id = ?").run(stream.id);
+            }
+        }, 1000 * 60 * 60); // run every hour
     }
     static addUser(data) {
         console.log(data);

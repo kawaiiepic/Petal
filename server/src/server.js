@@ -19,9 +19,9 @@ const CLIENT_ID =
   "0a4b47986a50894f19f24aad11101514993592db3c9a63e12e2d573504e1adbb";
 const CLIENT_SECRET =
   "4640a2e220cc5e8a0eebf692389d28cd542b92e893850d0e737456835c85a4b5";
-  const _header = {
-    "Content-Type": "application/json",
-  };
+const _header = {
+  "Content-Type": "application/json",
+};
 
 setupDb();
 
@@ -295,51 +295,12 @@ import path from "path";
 const streamsDir = "/tmp/petal-streams";
 fs.mkdirSync(streamsDir, { recursive: true });
 
-app.get("/hls/:segment", (req, res) => {
-  const raw = req.query.url;
-  if (!raw) return res.status(400).send("Missing url");
-
-  const id = crypto.createHash("md5").update(raw).digest("hex");
-
-  const dir = path.join(streamsDir, id);
-
-  const segment = req.query.segment; // e.g., "master10.ts"
-  const start = parseInt(segment.replace("master", "")) * 4; // 4s segments
-
-  const filePath = `${dir}/${segment}`;
-  console.log(`Request for ${filePath}`);
-  if (fs.existsSync(filePath)) {
-    console.log(`${filePath} already exists.`);
-    return res.json({ streamUrl: `/streams/${id}/${segment}` });
-  }
-
-  fs.mkdirSync(dir, { recursive: true });
-
-  // Spawn FFmpeg to generate only this segment
-  const ffmpeg = spawn("ffmpeg", [
-    "-ss",
-    start.toString(),
-    "-i",
-    raw,
-    "-t",
-    "4",
-    "-c:v",
-    "libx264",
-    "-c:a",
-    "aac",
-    filePath,
-  ]);
-
-  ffmpeg.on("close", (code) => {
-    // res.sendFile(filePath);
-    res.json({ streamUrl: `/streams/${id}/${segment}` });
-  });
-});
-
 // HLS transcoding endpoint
 app.get("/transcode", async (req, res) => {
   const raw = req.query.url;
   if (!raw) return res.status(400).send("Missing url");
+
+  console.log("transcoding");
 
   const id = crypto.createHash("md5").update(raw).digest("hex");
 
@@ -377,12 +338,24 @@ app.get("/transcode", async (req, res) => {
   const args = [
     "-i",
     raw,
+    "-c:v",
+    "copy",
+    "-c:a",
+    "aac", // only transcode audio
+    "-b:a",
+    "128k",
+
     "-f",
     "hls",
-    "-hls_playlist_type",
-    "event",
+    "-hls_time",
+    "6",
     "-hls_list_size",
     "0",
+    "-hls_playlist_type",
+    "event",
+    "-hls_segment_filename",
+    path.join(dir, "segment_%03d.ts"),
+
     masterPlaylist,
   ];
 

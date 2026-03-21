@@ -6,7 +6,7 @@ import 'package:blssmpetal/models/catalog_item.dart';
 
 import 'package:blssmpetal/models/stream.dart';
 import 'package:blssmpetal/models/stremio/stremio_episode.dart';
-import 'package:blssmpetal/pages/player/player.dart';
+import 'package:blssmpetal/pages/player/player_old.dart';
 import 'package:blssmpetal/pages/test_video.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -61,7 +61,7 @@ class _StreamsPageState extends State<StreamsPage> {
             itemCount: streams.length,
             itemBuilder: (context, index) {
               final stream = streams[index];
-              return StreamTile(stream: stream, item: widget.item, episode: widget.episode, traktShow: widget.traktShow,);
+              return StreamTile(stream: stream, item: widget.item, episode: widget.episode, traktShow: widget.traktShow);
             },
           );
         },
@@ -88,55 +88,35 @@ class StreamTile extends StatelessWidget {
       onTap: () {
         if (stream.external) {
           launchUrl(Uri.parse(stream.url));
-        } else if (MediaQuery.of(context).orientation == Orientation.portrait) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TestVideo(streamUrl: stream.url),
-            ),
-          );
-          // launchUrl(Uri.parse('outplayer://${stream.url}'));
-        } else {
-          if (kIsWeb) {
-            showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: const Text("Playback not supported"),
-                  content: SelectableText("This stream can't be played in the built-in player. Open it externally.\n\n${stream.url}"),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Cancel"),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => StreamPlayer(stream: stream, catalogItem: item, episode: episode, traktShow: traktShow),
-                          ),
-                        );
-                        // Navigator.pop(context);
-                      },
-                      child: const Text("Open Stream"),
-                    ),
-                  ],
-                );
-              },
-            );
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => StreamPlayer(stream: stream, catalogItem: item, episode: episode, traktShow: traktShow,),
-              ),
-            );
-          }
         }
-        debugPrint(stream.url);
+        if (kIsWeb) {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text("Playback not supported"),
+                content: SelectableText("This stream can't be played in the built-in player. Open it externally.\n\n${stream.url}"),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Cancel"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => StreamPlayer(stream: stream)));
+                      // Navigator.pop(context);
+                    },
+                    child: const Text("Open Stream"),
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => StreamPlayer(stream: stream)));
+        }
       },
     );
   }

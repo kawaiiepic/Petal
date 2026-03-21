@@ -5,14 +5,25 @@ import cors from "cors";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
+import { spawn } from "child_process";
+import fs from "fs";
+import path from "path";
 
 import { Trakt } from "./trakt.js";
 import { DB } from "./db.js";
 
+const streamsDir = "/tmp/petal-streams";
+fs.mkdirSync(streamsDir, { recursive: true });
+
 const app = express();
 const port = 3000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+  }),
+);
 app.use(bodyParser.json());
 app.use(cookieParser());
 
@@ -170,6 +181,134 @@ app.get("/addons/get", (req, res) => {
 
   res.json({ addons });
 });
+
+app.get("/transcode", async (req, res) => {
+  const raw = req.query.url;
+  if (!raw) return res.status(400).send("Missing url");
+
+  console.log("transcoding");
+
+  const id = crypto.createHash("md5").update(raw as string).digest("hex");
+
+  const dir = path.join(streamsDir, id);
+
+  // if (fs.existsSync(dir)) {
+  //   db.prepare(
+  //     `
+  //   UPDATE streams SET last_access = ?
+  //   WHERE id = ?
+  //   `,
+  //   ).run(Date.now(), id);
+
+  //   console.log("Stream already exists");
+  //   res.json({ streamUrl: `/streams/${id}/master.m3u8` });
+  //   return;
+  // }
+
+  DB.db.prepare(
+    `
+  INSERT OR REPLACE INTO streams
+  (id, source_url, directory, created_at, last_access)
+  VALUES (?, ?, ?, ?, ?)
+  `,
+  ).run(id, raw, dir, Date.now(), Date.now());
+
+  // if (fs.existsSync(dir)) {
+  //   fs.rmSync(dir, { recursive: true });
+  // }
+
+  fs.mkdirSync(dir, { recursive: true });
+
+  const masterPlaylist = path.join(dir, "master.m3u8");
+
+const args = [
+  "-i",
+  raw,
+  "-map",
+  "0:v:0",
+  "-map",
+  "0:a?",
+  "-c:v",
+  "libx264",
+  "-preset",
+  "fast",
+  "-profile:v",
+  "baseline", // iOS Safari requires baseline or main
+  "-level",
+  "4.0", // widely compatible level
+  "-crf",
+  "23",
+  "-c:a",
+  "aac",
+  "-vf",
+  "scale=-2:1080,format=yuv420p",
+  "-ar",
+  "44100",
+  "-ac",
+  "2",
+  "-b:a",
+  "128k",
+  "-movflags",
+  "+faststart",
+  "-f",
+  "hls",
+  "-hls_time",
+  "6",
+  "-hls_list_size",
+  "0",
+  "-hls_playlist_type",
+  "event",
+  "-hls_flags",
+  "independent_segments+append_list",
+  "-hls_segment_filename",
+  path.join(dir, "segment_%03d.ts"),
+  masterPlaylist,
+];
+
+  const probeargs = [
+    "-select_streams",
+    "v:0",
+    "-show_entries",
+    "stream=index,codec_name,codec_type,width,height",
+    "-of",
+    "json",
+    raw,
+  ];
+
+  console.log(masterPlaylist);
+
+  // const ffprobe = spawn("ffprobe", probeargs);
+  // ffprobe.stderr.on("data", (d) => console.log("ffprobe:", d.toString()));
+  // ffprobe.on("error", console.error);
+
+  const proc = spawn("ffmpeg", args as string[]);
+  proc.stderr.on("data", (d) => console.log("ffmpeg:", d.toString()));
+  proc.on("error", console.error);
+
+  const firstSegment = path.join(dir, "segment_000.ts");
+  await new Promise<void>((resolve) => {
+    const check = () => {
+      if (fs.existsSync(firstSegment)) return resolve();
+      setTimeout(check, 200);
+    };
+    check();
+  });
+
+  res.json({ streamUrl: `/streams/${id}/master.m3u8` });
+});
+
+app.use(
+  "/streams",
+  express.static(streamsDir, {
+    setHeaders: (res, path) => {
+      if (path.endsWith(".m3u8")) {
+        res.setHeader("Content-Type", "application/x-mpegURL");
+      } else if (path.endsWith(".ts")) {
+        res.setHeader("Content-Type", "video/MP2T");
+      }
+    },
+  }),
+);
 
 app.listen(port, () => {
   console.log(`Backend server running at 0.0.0.0:${port}`);

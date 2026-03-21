@@ -4,8 +4,14 @@ import 'package:blssmpetal/navigation/navigation.dart';
 import 'package:blssmpetal/pages/offline.dart';
 import 'package:blssmpetal/pages/trakt/traktlogin.dart';
 import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize media_kit backend
+  MediaKit.ensureInitialized();
+  
   runApp(PetalApp());
 }
 
