@@ -7,7 +7,7 @@ services:
       - traefik.http.routers.petal-api.rule=Host(`petal.blossomvale.dev`) && PathPrefix(`/api`)
       - traefik.http.routers.petal-api.entrypoints=websecure
       - traefik.http.routers.petal-api.tls=true
-      - traefik.http.routers.petal-api.middlewares=anubis,petal-api-strip
+      - traefik.http.routers.petal-api.middlewares=anubis,petal-api-strip,cors@docker
       - traefik.http.middlewares.petal-api-strip.stripprefix.prefixes=/api
       - traefik.http.services.petal-api.loadbalancer.server.port=3000
     networks:
