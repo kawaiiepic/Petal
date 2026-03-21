@@ -168,17 +168,17 @@ class AddonTile extends StatefulWidget {
 }
 
 class _AddonTileState extends State<AddonTile> {
-  late final CachedNetworkImage _image;
+  late final CachedNetworkImage? _image;
 
   @override
   void initState() {
     super.initState();
-    _image = CachedNetworkImage(
-      imageUrl: Api.proxyImage(widget.addon.manifest?['logo'] ?? ''),
+    _image = widget.addon.manifest?['logo'] != null ? CachedNetworkImage(
+      imageUrl: Api.proxyImage(widget.addon.manifest?['logo']),
       imageBuilder: (context, imageProvider) => CircleAvatar(foregroundImage: imageProvider, backgroundColor: Colors.transparent),
       progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
       errorWidget: (context, url, error) => CircleAvatar(child: Icon(Icons.extension)),
-    );
+    ) : null;
   }
 
   @override
@@ -195,7 +195,7 @@ class _AddonTileState extends State<AddonTile> {
           child: ExpansionTile(
             leading: ReorderableDragStartListener(
               index: 0, // ignored when using builder
-              child: _image,
+              child: _image ?? CircleAvatar(child: Icon(Icons.extension)),
             ),
             title: Text(widget.addon.name),
             subtitle: Wrap(

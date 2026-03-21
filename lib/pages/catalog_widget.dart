@@ -1,6 +1,6 @@
 import 'package:blssmpetal/api/api_cache.dart';
-import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/pages/catalog_row.dart';
+import 'package:blssmpetal/pages/empty_sliver.dart';
 import 'package:flutter/material.dart';
 
 class CatalogWidget extends StatefulWidget {
@@ -20,47 +20,33 @@ class _CatalogWidget extends State<CatalogWidget> {
         case ConnectionState.done:
           {
             final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
-            print("Reloading Catalog Widget");
-            return SliverFixedExtentList(
-              itemExtent: 50,
-              delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-                final addon = addons.elementAt(index);
-                return Text('${addon.name}');
-              }, childCount: addons.length),
-            );
-            // return Column(
-            //   children: [
-            //     ...addons.map((addon) {
-            //       return Column(
-            //         children: [
-            //           ...ApiCache.getCatalogs(addon).map((catalog) {
-            //             return FutureBuilder(
-            //               future: ApiCache.getCatalogItems(catalog),
-            //               builder: (context, catalogItemsSnapshot) {
-            //                 switch (catalogItemsSnapshot.connectionState) {
-            //                   case ConnectionState.active:
-            //                   case ConnectionState.done:
-            //                     {
-            //                       final catalogItems = catalogItemsSnapshot.data!;
 
-            //                       return CatalogRow(catalog: catalog, catalogItems: catalogItems);
-            //                     }
-            //                   case _:
-            //                     return SizedBox();
-            //                 }
-            //               },
-            //             );
-            //           }),
-            //         ],
-            //       );
-            //     }),
-            //   ],
-            // );
+            final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
+
+            return SliverFixedExtentList(
+              itemExtent: 300,
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final catalog = catalogs[index];
+
+                return FutureBuilder(
+                  future: ApiCache.getCatalogItems(catalog),
+                  builder: (context, snapshot) {
+                    switch (snapshot.connectionState) {
+                      case ConnectionState.active:
+                      case ConnectionState.done:
+                        {
+                          return CatalogRow(key: ValueKey(catalog.id), catalog: catalog, catalogItems: snapshot.data!);
+                        }
+                      case _:
+                        return SizedBox();
+                    }
+                  },
+                );
+              }, childCount: catalogs.length),
+            );
           }
         case _:
-          return SliverToBoxAdapter(
-      child: SizedBox(height: 50.0), // Adjust height for desired gap size
-    );
+          return EmptySliver();
       }
     },
   );

@@ -9,7 +9,6 @@ class TraktShow {
   TraktShow({required this.plays, required this.lastWatchedAt, required this.lastUpdatedAt, required this.show});
 
   factory TraktShow.fromJson(Map<String, dynamic> json) {
-    print(json);
     return TraktShow(plays: json['plays'], lastWatchedAt: json['last_watched_at'], lastUpdatedAt: json['last_updated_at'], show: Show.fromJson(json['show']));
   }
 
@@ -502,7 +501,6 @@ class Search {
   Search({required this.type, required this.score, this.movie, this.show});
 
   factory Search.fromJson(Map<String, dynamic> json) {
-    print(json);
     return Search(
       type: json['type'],
       score: (json['score'] as num?)?.toDouble(),
@@ -526,7 +524,6 @@ class Movie {
   Movie({required this.title, required this.year, required this.ids, this.runtime, this.rating, this.overview, this.genres, this.certification, this.images});
 
   factory Movie.fromJson(Map<String, dynamic> json) {
-    print(json);
     return Movie(
       title: json['title'] ?? '',
       year: json['year'] ?? 0,

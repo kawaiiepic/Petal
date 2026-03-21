@@ -15,29 +15,45 @@ class CatalogRow extends StatefulWidget {
 }
 
 class _CatalogRowState extends State<CatalogRow> {
-  final _controller = ScrollController();
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+  }
+
   @override
   Widget build(BuildContext context) {
     final Catalog catalog = widget.catalog;
-    final List<CatalogItem> catalogItems = widget.catalogItems;
+    final List<CatalogItem> catalogItems = widget.catalogItems.take(10).toList();
+    final style = TextStyle(fontSize: 18);
+
     return Column(
+      spacing: 8,
       children: [
-        Row(children: [Text(catalog.name), Text('-'), Text(catalog.type[0].toUpperCase() + catalog.type.substring(1))]),
+        Row(
+          spacing: 8,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(catalog.name, style: style),
+            Text('―', style: style),
+            Text(catalog.type[0].toUpperCase() + catalog.type.substring(1), style: style),
+          ],
+        ),
         SizedBox(
-          height: 300,
-          child: Text('Boop'),
-          // child: ScrollableWidget(
-          //   controller: _controller,
-          //   child: ListView(
-          //     controller: _controller,
-          //     scrollDirection: Axis.horizontal,
-          //     children: [
-          //       ...catalogItems.take(10).map((catalogItem) {
-          //         return CatalogItemWidget(catalogItem: catalogItem);
-          //       }),
-          //     ],
-          //   ),
-          // ),
+          height: 250,
+          child: ScrollableWidget(
+            controller: _controller,
+            child: ListView.builder(
+              controller: _controller,
+              scrollDirection: Axis.horizontal,
+              itemCount: catalogItems.length,
+              itemBuilder: (context, index) {
+                return CatalogItemWidget(key: ValueKey(catalog.id), catalogItem: catalogItems[index]);
+              },
+            ),
+          ),
         ),
       ],
     );

@@ -1,28 +1,41 @@
 import 'dart:async';
 import 'package:blssmpetal/api/api_cache.dart';
 import 'package:blssmpetal/api/stream_helper.dart';
+import 'package:blssmpetal/api/trakt/models.dart';
+import 'package:blssmpetal/api/trakt/trakt_class.dart';
+import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
+import 'package:blssmpetal/pages/episode_overview.dart';
+import 'package:blssmpetal/pages/movie_overview.dart';
 import 'package:blssmpetal/pages/overview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:fuzzywuzzy/algorithms/token_sort.dart';
+import 'package:fuzzywuzzy/applicable.dart';
+import 'package:fuzzywuzzy/fuzzywuzzy.dart';
+import 'package:fuzzywuzzy/ratios/partial_ratio.dart';
 
 enum SearchType { seriesAndMovies, series, movies, actors }
 
 class SearchControllerModel extends ChangeNotifier {
   Timer? _debounce;
+  String _currentQuery = "";
 
   List<CatalogItem> results = [];
   bool loading = false;
 
   Future<void> search(String query, List<Addon> addons) async {
+    if (_currentQuery.trim() == query.trim()) return;
     if (_debounce?.isActive ?? false) {
       _debounce!.cancel();
     }
 
     _debounce = Timer(const Duration(milliseconds: 400), () async {
-      if (query.length < 3) {
+      _currentQuery = query;
+      if (query.isEmpty) {
         results = [];
+
         notifyListeners();
         return;
       }
@@ -72,6 +85,7 @@ class _SearchState extends State<Search> {
 
   @override
   Widget build(BuildContext context) {
+    Widget? _cacheWidget;
     return Padding(
       padding: EdgeInsets.all(8),
       child: SearchAnchor(
@@ -107,75 +121,63 @@ class _SearchState extends State<Search> {
                   return SizedBox();
                 }
 
+
+
                 searchModel.search(controller.text, snapshot.data!);
 
-                return ValueListenableBuilder<SearchType>(
+                if (_cacheWidget != null && searchModel._debounce != null && searchModel._debounce!.isActive) return _cacheWidget!;
+
+                _cacheWidget = ValueListenableBuilder<SearchType>(
                   valueListenable: searchTypeNotifier,
                   builder: (context, searchType, _) {
                     return ListenableBuilder(
                       listenable: searchModel,
                       builder: (context, _) {
                         return Column(
-                          children: searchModel.results
+                          children: extractTop(query: searchModel._currentQuery, choices: searchModel.results, limit: 10, cutoff: 80, getter: (x) => x.name)
                               .where((item) {
+                                final choice = item.choice;
+
+                                print("Text: ${searchModel._currentQuery}, Show: ${choice.name}, Score: ${item.score}");
                                 switch (searchTypeNotifier.value) {
                                   case SearchType.series:
-                                    return item.type == "series";
+                                    return choice.type == "series";
 
                                   case SearchType.movies:
-                                    return item.type == "movie";
+                                    return choice.type == "movie";
 
                                   case SearchType.seriesAndMovies:
-                                    return item.type == "series" || item.type == "movie";
+                                    return choice.type == "series" || choice.type == "movie";
 
                                   case SearchType.actors:
-                                    return item.type == "actor";
+                                    return choice.type == "actor";
                                 }
                               })
                               .map((item) {
-                                return Container(
-                                  padding: EdgeInsets.all(8),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(10),
-                                    onTap: () async {
-                                      if (mounted) {
-                                        final catalogItem = await StreamApi.fetchCatalogItem(item);
-                                        Navigator.push(context, MaterialPageRoute(builder: (_) => OverviewPage(item: catalogItem!)));
-                                      }
-                                    },
-                                    child: Tooltip(
-                                      message: item.name,
-                                      child: Row(
-                                        children: [
-                                          Ink(
-                                            height: 100,
-                                            width: 60,
-                                            decoration: BoxDecoration(
-                                              image: DecorationImage(image: CachedNetworkImageProvider(item.poster), fit: BoxFit.cover),
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                          ),
+                                final choice = item.choice;
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () async {
+                                    if (mounted) {
+                                      final searchSnapshot = await ApiCache.getSearch("imdb", choice.id, choice.type);
+                                      final show = choice.type == "series";
+                                      final item = show
+                                          ? await TraktApi.fetchShowWithProgress(searchSnapshot.show!.ids.trakt)
+                                          : await TraktApi.fetchMovie(searchSnapshot.movie!.ids.trakt.toString());
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => show
+                                              ? EpisodeOverview(item: item! as TraktWatchedShowWithProgress, selectedEpisode: null)
+                                              : MovieOverview(item: item! as Movie),
+                                        ),
+                                      );
+                                    }
+                                  },
 
-                                          Container(width: 20),
-
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            spacing: 8,
-                                            children: [
-                                              Text(item.name),
-                                              Row(
-                                                spacing: 8,
-                                                children: [
-                                                  Chip(label: Text(item.type)),
-                                                  Chip(label: Text(item.releaseInfo)),
-                                                ],
-                                              ),
-                                              Text(item.genres.join(', ')),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                  child: Container(
+                                    padding: EdgeInsets.all(8),
+                                    child: Row(children: [Text(choice.name), Text("(${choice.type})")]),
                                   ),
                                 );
                               })
@@ -185,6 +187,8 @@ class _SearchState extends State<Search> {
                     );
                   },
                 );
+
+                return _cacheWidget!;
               },
             ),
           ];

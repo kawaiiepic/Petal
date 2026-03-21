@@ -26,27 +26,22 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) => CustomScrollView(
     slivers: [
+      // Search(),
+      SliverAppBar(
+        pinned: true,
+        floating: true,
+        primary: false,
+        expandedHeight: 100.0,
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        foregroundColor: Colors.transparent,
+        forceMaterialTransparency: false,
+        surfaceTintColor: Colors.transparent,
+        flexibleSpace: const Center(child: Search())
+      ),
+      NextUpRow(),
       CatalogWidget(),
-      ],
-    // child: Column(
-    //   spacing: 20,
-    //   children: [
-    //     Search(),
-    //     NextUpRow(),
-    //     CatalogWidget()
-
-    //     // ListView.builder(
-    //     //   shrinkWrap: true,
-    //     //   physics: NeverScrollableScrollPhysics(),
-    //     //   itemCount: addons.length,
-    //     //   itemBuilder: (context, index) {
-    //     //     final addon = addons[index];
-    //     //     final catalogs = Api.generateCatalogs('https://cinemeta-catalogs.strem.io', 'top', addon.manifest!);
-    //     //     return loadCatalog(catalogs);
-    //     //   },
-    //     // ),
-    //   ],
-    // ),
+    ],
   );
 
   // Widget loadCatalog(List<Catalog> catalogs) {

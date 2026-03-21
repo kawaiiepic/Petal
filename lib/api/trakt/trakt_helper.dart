@@ -135,9 +135,6 @@ class TraktApi {
     };
     final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/search/$id_type/$id/$typeFixed'));
 
-    print('${Api.ServerUrl}/trakt/search/$id_type/$id/$typeFixed');
-    print(response.body);
-
     if (response.statusCode == 200) {
       try {
         final search = Search.fromJson(jsonDecode(response.body)[0]);

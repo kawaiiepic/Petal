@@ -70,8 +70,8 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                   FutureBuilder(
                     future: TMDB.still(show.ids.tmdb.toString(), next.season, next.number),
                     builder: (context, snapshot) {
-                      if (snapshot.hasData) return Image.memory(snapshot.data!, fit: BoxFit.cover);
-                      return Container(color: Theme.of(context).colorScheme.surfaceContainerHighest);
+                      if (snapshot.hasData) return Image.memory(snapshot.data!, fit: BoxFit.cover, alignment: AlignmentGeometry.center);
+                      return Stack(children: [Container(color: Theme.of(context).colorScheme.surfaceContainerHighest), Center(child: Icon(Icons.photo_library, size: 100,),)]);
                     },
                   ),
                   Container(

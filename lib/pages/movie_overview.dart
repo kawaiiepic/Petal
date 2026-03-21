@@ -40,9 +40,9 @@ class MovieOverview extends StatelessWidget {
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: FutureBuilder<Uint8List>(
-                future: TMDB.poster(MediaType.movie, movie.ids.tmdb.toString()),
+                future: TMDB.backdrop(movie.ids.tmdb.toString()),
                 builder: (context, snapshot) {
-                  if (snapshot.hasData) return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                  if (snapshot.hasData) return Image.memory(snapshot.data!, fit: BoxFit.cover, alignment: AlignmentGeometry.center,);
                   return Container(color: Theme.of(context).colorScheme.surfaceContainerHighest);
                 },
               ),
@@ -53,7 +53,6 @@ class MovieOverview extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Movie title
                 Text(movie.title, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 8),
 

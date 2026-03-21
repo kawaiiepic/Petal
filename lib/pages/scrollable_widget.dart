@@ -23,6 +23,8 @@ class _ScrollableWidget extends State<ScrollableWidget> {
     _controller = widget.controller;
 
     _controller.addListener(_updateArrows);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrows);
   }
 
   void _updateArrows() {
@@ -48,6 +50,7 @@ class _ScrollableWidget extends State<ScrollableWidget> {
 
   @override
   Widget build(BuildContext context) {
+    print("Scrollable widiget rebuild");
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
@@ -96,11 +99,11 @@ class _ArrowButtonState extends State<ArrowButton> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: IgnorePointer(
-        ignoring: !widget.visible,
+    return IgnorePointer(
+      ignoring: !widget.visible,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
         child: AnimatedOpacity(
           opacity: widget.visible ? 1 : 0,
           duration: const Duration(milliseconds: 150),

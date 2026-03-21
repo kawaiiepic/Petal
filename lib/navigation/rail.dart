@@ -50,14 +50,14 @@ class _RailState extends State<Rail> {
               selectedIndex: widget.selectedIndex.value,
             ),
             const VerticalDivider(thickness: 1, width: 1),
-            _animatedPage(),
+            _page(),
           ],
         ),
       ),
     );
   }
 
-  Widget _animatedPage() {
+  Widget _page() {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(8),
