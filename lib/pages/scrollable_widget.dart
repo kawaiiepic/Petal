@@ -50,7 +50,6 @@ class _ScrollableWidget extends State<ScrollableWidget> {
 
   @override
   Widget build(BuildContext context) {
-    print("Scrollable widiget rebuild");
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),

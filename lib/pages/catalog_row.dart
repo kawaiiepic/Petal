@@ -2,7 +2,7 @@ import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/pages/catalog_item.dart';
 import 'package:blssmpetal/pages/scrollable_widget.dart';
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class CatalogRow extends StatefulWidget {
   final Catalog catalog;
@@ -26,8 +26,10 @@ class _CatalogRowState extends State<CatalogRow> {
   @override
   Widget build(BuildContext context) {
     final Catalog catalog = widget.catalog;
-    final List<CatalogItem> catalogItems = widget.catalogItems.take(10).toList();
+    final List<CatalogItem> catalogItems = widget.catalogItems.toList();
     final style = TextStyle(fontSize: 18);
+
+    print("${catalog.name} & ${catalogItems.length}");
 
     return Column(
       spacing: 8,

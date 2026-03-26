@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/catalog_helper.dart';
 import 'package:blssmpetal/api/tmdb/tmdb.dart';
+import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/api/trakt/trakt_class.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
@@ -17,6 +18,7 @@ class ApiCache {
   static final Map<String, Future<Search>> _searchFuture = {};
   static final Map<String, Future<Uint8List>> _tmdbPosterFuture = {};
   static final Map<String, Future<Uint8List>> _tmdbStillFuture = {};
+  static final Map<String, Future<TmdbSearchResult>> _tmdbSearchResult = {};
   static Future<List<TraktWatchedShowWithProgress>>? _watchedShowWithProgressFuture;
 
   static final Map<String, List<Catalog>> _catalogs = {};
@@ -48,6 +50,10 @@ class ApiCache {
 
   static Future<Uint8List> getTmdbStill(String tmdbId, TraktEpisode episode) {
     return _tmdbStillFuture.putIfAbsent(tmdbId + episode.title!, () => TMDB.still(tmdbId, episode.season, episode.number));
+  }
+
+  static Future<TmdbSearchResult> getTmdbSearch(String imdbId) {
+    return _tmdbSearchResult.putIfAbsent(imdbId , () => TMDB.search(imdbId));
   }
 
   static Future<List<TraktWatchedShowWithProgress>> getTraktWatched() {

@@ -8,7 +8,6 @@ import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/pages/episode_overview.dart';
 import 'package:blssmpetal/pages/movie_overview.dart';
-import 'package:blssmpetal/pages/overview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:fuzzywuzzy/algorithms/token_sort.dart';
@@ -121,8 +120,6 @@ class _SearchState extends State<Search> {
                   return SizedBox();
                 }
 
-
-
                 searchModel.search(controller.text, snapshot.data!);
 
                 if (_cacheWidget != null && searchModel._debounce != null && searchModel._debounce!.isActive) return _cacheWidget!;
@@ -164,14 +161,14 @@ class _SearchState extends State<Search> {
                                       final item = show
                                           ? await TraktApi.fetchShowWithProgress(searchSnapshot.show!.ids.trakt)
                                           : await TraktApi.fetchMovie(searchSnapshot.movie!.ids.trakt.toString());
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => show
-                                              ? EpisodeOverview(item: item! as TraktWatchedShowWithProgress, selectedEpisode: null)
-                                              : MovieOverview(item: item! as Movie),
-                                        ),
-                                      );
+                                      // Navigator.push(
+                                      //   context,
+                                      //   MaterialPageRoute(
+                                      //     builder: (_) => show
+                                      //         ? EpisodeOverview(item: item! as TraktWatchedShowWithProgress, selectedEpisode: null)
+                                      //         : MovieOverview(item: item! as Movie),
+                                      //   ),
+                                      // );
                                     }
                                   },
 

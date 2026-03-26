@@ -11,21 +11,15 @@ class StreamItem {
   final int? season;
   final int? episode;
 
-  StreamItem({
-    required this.name,
-    required this.title,
-    required this.url,
-    required this.external,
-    required this.addon,
-    this.season,
-    this.episode,
-  });
+  StreamItem({required this.name, required this.title, required this.url, required this.external, required this.addon, this.season, this.episode});
 
   factory StreamItem.fromJson(Map<String, dynamic> json, Addon addon) {
     final name = json['name'] ?? '';
     final title = json['title'] ?? json['description'] ?? '';
     final url = json['url'] ?? json['externalUrl'] ?? '';
     final external = json['externalUrl'] != null;
+
+    // print(json);
 
     int? season;
     int? episode;
@@ -41,14 +35,6 @@ class StreamItem {
       episode = int.tryParse(match.group(2)!);
     }
 
-    return StreamItem(
-      name: name,
-      title: title,
-      url: url,
-      external: external,
-      addon: addon,
-      season: season,
-      episode: episode,
-    );
+    return StreamItem(name: name, title: title, url: url, external: external, addon: addon, season: season, episode: episode);
   }
 }

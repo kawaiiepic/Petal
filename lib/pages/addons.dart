@@ -121,13 +121,13 @@ class _AddonsState extends State<Addons> {
                                   "config": {},
                                 };
 
-                                await TraktApi.client.post(
-                                  Uri.parse("${Api.ServerUrl}/addons/set"),
-                                  headers: {"Content-Type": "application/json"},
-                                  body: jsonEncode({
-                                    "addons": [addon],
-                                  }),
-                                );
+                                // await TraktApi.dio.post(
+                                //   "${Api.ServerUrl}/addons/set",
+                                //   headers: {"Content-Type": "application/json"},
+                                //   body: jsonEncode({
+                                //     "addons": [addon],
+                                //   }),
+                                // );
 
                                 ApiCache.refreshAddons();
 

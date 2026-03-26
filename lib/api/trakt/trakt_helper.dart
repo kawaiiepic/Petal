@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:blssmpetal/api/api.dart';
+import 'package:blssmpetal/api/authstate.dart';
 import 'package:blssmpetal/api/trakt/activity.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/api/trakt/trakt_cache.dart';
@@ -9,44 +10,77 @@ import 'package:blssmpetal/api/trakt/trakt_sync.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:blssmpetal/models/trakt/profile/extended_profile.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/browser_client.dart';
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 class TraktApi {
-  static BrowserClient client = BrowserClient()..withCredentials = true;
+  // static BrowserClient client = BrowserClient()..withCredentials = true;
+  static late final Dio dio;
+  static late final PersistCookieJar cookieJar;
+  static final String secretKey = "";
+  static final AuthState authState = AuthState();
 
   static Future<List<TraktWatchedShowWithProgress>>? _cachedWatchedShowWithProgress;
 
   static final ValueNotifier<bool> validSession = ValueNotifier(false);
 
-  static Future<void> verifySession() async {
-    try {
-      final response = await client.get(Uri.parse("${Api.ServerUrl}/trakt/verify_session"));
+  static Future<void> init() async {
+    prepareCookieManager();
+  }
 
-      if (response.statusCode == 200) {
-        print('Session verified');
-        validSession.value = true;
+  static Future<void> prepareCookieManager() async {
+    dio = Dio();
+    final directory = await getApplicationCacheDirectory();
+    cookieJar = PersistCookieJar(ignoreExpires: true, storage: FileStorage("${directory.path}/.cookies/"));
+    dio.interceptors.add(CookieManager(cookieJar));
+  }
+
+  static Future<void> verifySession() async {
+    if (kIsWeb) {
+      try {
+        final response = await dio.get("${Api.ServerUrl}/trakt/verify_session");
+
+        if (response.statusCode == 200) {
+          print('Session verified');
+          validSession.value = true;
+        }
+      } catch (err) {
+        print('Failed to verify session');
       }
-    } catch (err) {
-      print('Failed to verify session');
+    } else {
+      print('Checking Session');
+
+      final cookies = await cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/login/verify"));
+
+      print("cookies: $cookies");
+
+      print(await dio.get("${Api.ServerUrl}/login/verify"));
+
+      authState.setLoggedIn(true);
+      // Print cookies
+
+      // // Second request with the cookies
+      // await dio.get("${Api.ServerUrl}/login/verify");
     }
   }
 
   static Future<List<Addon>> fetchUserAddons() async {
     print("Fetching user addons");
-    final url = '${Api.ServerUrl}/addons/get'; // your server URL
-    final response = await client.get(Uri.parse(url));
+    final url = '${Api.ServerUrl}/addons/get';
+    final response = await dio.get(url);
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      print(response.data);
+      final data = response.data;
       final addonsJson = data['addons'] as List;
 
       // map to list of futures
       final futures = addonsJson.map((json) async {
         var addon = Addon.fromJson(json);
-        await addon.fetchManifest(); // now allowed
+        await addon.fetchManifest();
         return addon;
       }).toList();
 
@@ -59,10 +93,10 @@ class TraktApi {
   }
 
   static Future<ExtendedProfile> userProfile() async {
-    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/user_profile'));
+    final response = await dio.get('${Api.ServerUrl}/trakt/user_profile');
 
     if (response.statusCode == 200) {
-      final profile = ExtendedProfile.fromJson(jsonDecode(response.body));
+      final profile = ExtendedProfile.fromJson(jsonDecode(response.data));
       TraktCache.set(TraktCache.userProfile, profile.toJson());
 
       return profile;
@@ -72,24 +106,24 @@ class TraktApi {
   }
 
   static Future<TraktLastActivities> lastActivity() async {
-    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/last_activities'));
+    final response = await dio.get('${Api.ServerUrl}/trakt/last_activities');
 
     if (response.statusCode == 200) {
-      return TraktLastActivities.fromJson(jsonDecode(response.body));
+      return TraktLastActivities.fromJson(jsonDecode(response.data));
     } else {
       throw Exception();
     }
   }
 
   static Future<void> startWatching(MediaType mediaType, Object object) async {
-    var url = Uri.parse('${Api.ServerUrl}/trakt/start_watching');
-    await client.post(url, body: jsonEncode(object));
+    var url = '${Api.ServerUrl}/trakt/start_watching';
+    await dio.post(url, data: jsonEncode(object));
   }
 
   static Future<List<TraktShow>> fetchWatched(MediaType mediaType) async {
     final name = mediaType == MediaType.show ? "shows" : "movies";
 
-    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/sync_watched/$name'));
+    final response = await dio.get('${Api.ServerUrl}/trakt/sync_watched/$name');
 
     if (response.statusCode != 200) return Future.error(Exception('Failed to fetch watched $name'));
 
@@ -97,7 +131,7 @@ class TraktApi {
 
     print("Fetching watched.");
 
-    final list = (jsonDecode(response.body) as List).map((e) {
+    final list = (jsonDecode(response.data) as List).map((e) {
       try {
         return TraktShow.fromJson(e as Map<String, dynamic>);
       } catch (err, stack) {
@@ -111,19 +145,19 @@ class TraktApi {
   }
 
   static Future<Show> fetchShow(String traktId) async {
-    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/shows/$traktId'));
+    final response = await dio.get('${Api.ServerUrl}/trakt/shows/$traktId');
 
     if (response.statusCode == 200) {
-      return Show.fromJson(jsonDecode(response.body));
+      return Show.fromJson(jsonDecode(response.data));
     }
     return Future.error(Exception());
   }
 
-    static Future<Movie> fetchMovie(String traktId) async {
-    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/movies/$traktId'));
+  static Future<Movie> fetchMovie(String traktId) async {
+    final response = await dio.get('${Api.ServerUrl}/trakt/movies/$traktId');
 
     if (response.statusCode == 200) {
-      return Movie.fromJson(jsonDecode(response.body));
+      return Movie.fromJson(jsonDecode(response.data));
     }
     return Future.error(Exception());
   }
@@ -133,11 +167,11 @@ class TraktApi {
       "series" => "show",
       String() => type,
     };
-    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/search/$id_type/$id/$typeFixed'));
+    final response = await dio.get('${Api.ServerUrl}/trakt/search/$id_type/$id/$typeFixed');
 
     if (response.statusCode == 200) {
       try {
-        final search = Search.fromJson(jsonDecode(response.body)[0]);
+        final search = Search.fromJson(jsonDecode(response.data)[0]);
         return search;
       } catch (err) {
         print(err);
@@ -147,20 +181,20 @@ class TraktApi {
   }
 
   static Future<List<TraktSeason>> fetchShowSeasons(String traktId) async {
-    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/seasons/$traktId'));
+    final response = await dio.get('${Api.ServerUrl}/trakt/seasons/$traktId');
 
     if (response.statusCode == 200) {
-      final List data = json.decode(response.body);
+      final List data = json.decode(response.data);
       return data.map((e) => TraktSeason.fromJson(e)).toList();
     }
     return Future.error(Exception());
   }
 
   static Future<TraktShowProgress> fetchShowProgress(String traktId) async {
-    final response = await client.get(Uri.parse('${Api.ServerUrl}/trakt/show_progress/$traktId'));
+    final response = await dio.get('${Api.ServerUrl}/trakt/show_progress/$traktId');
 
     if (response.statusCode == 200) {
-      final result = TraktShowProgress.fromJson(jsonDecode(response.body));
+      final result = TraktShowProgress.fromJson(jsonDecode(response.data));
       return result;
     }
 

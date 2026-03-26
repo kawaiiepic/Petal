@@ -3,19 +3,19 @@ import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 
 class TraktSync {
   static Future<void> syncUpdates() async {
-    final activity = await TraktApi.lastActivity();
+    // final activity = await TraktApi.lastActivity();
 
     // check each activity timestamp against our last sync
     // final episodesWatched = DateTime.parse(activity.episodes.watchedAt);
     // final showsWatched = DateTime.parse(activities['shows']['watched_at']);
 
-    final settingsCacheAt = await TraktCache.cachedAt(TraktCache.userProfile);
+    // final settingsCacheAt = await TraktCache.cachedAt(TraktCache.userProfile);
 
     // activity,shows.watchedAt.isAfter(lastSync);
 
-    if (settingsCacheAt != null && activity.account.settingsAt.isAfter(settingsCacheAt)) {
-      await TraktCache.invalidate(TraktCache.userProfile);
-    }
+    // if (settingsCacheAt != null && activity.account.settingsAt.isAfter(settingsCacheAt)) {
+    //   await TraktCache.invalidate(TraktCache.userProfile);
+    // }
 
     // if (activity.episodes.watchedAt.isAfter(lastSync)) {
     //   // invalidate watched/progress caches

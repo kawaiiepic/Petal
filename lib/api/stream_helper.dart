@@ -1,56 +1,69 @@
 import 'dart:convert';
+import 'package:blssmpetal/api/api.dart';
+import 'package:blssmpetal/api/api_cache.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
+import 'package:blssmpetal/models/custom_model.dart';
 import 'package:blssmpetal/models/stremio/stremio_episode.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:blssmpetal/models/stream.dart';
 
 class StreamApi {
-  static Future<List<StreamItem>> fetchStreams(CatalogItem item, List<Addon> addons, {StremioEpisode? episode}) async {
-    final List<StreamItem> allStreams = [];
+  static Future<List<StreamItem>> fetchStreams(String imdbId, Episode? episode) async {
+    final addons = await ApiCache.getAddons();
+    final streamAddons = addons.where((a) => a.enabledResources.contains('stream')).toList();
 
-    for (final addon in addons) {
-      if (!addon.enabledResources.contains('stream')) continue;
-      final baseUrl = addon.baseUrl;
-      final url = episode != null
-          ? '$baseUrl/stream/${item.type}/${item.id}:${episode.season}:${episode.episode}.json'
-          : '$baseUrl/stream/${item.type}/${item.id}.json';
+    final type = episode != null ? 'series' : 'movie';
+    final id = episode != null ? '$imdbId:${episode.seasonNumber}:${episode.episodeNumber}' : imdbId;
 
-      try {
-        final res = await http.get(Uri.parse(url));
-        if (res.statusCode != 200) continue;
+    print("Fetching stream");
 
-        final data = jsonDecode(res.body);
+    // Fetch all addons in parallel
+    final results = await Future.wait(streamAddons.map((addon) => _fetchFromAddon(addon, type, id, episode)));
 
-        final streams = data['streams'] as List? ?? [];
 
-        final mappedStreams = streams.map((s) {
-          var si = StreamItem.fromJson(s, addon);
-          return si;
-        }).toList();
 
-        if (episode != null) {
-          final tag = "S${episode.season.toString().padLeft(2, '0')}E${episode.episode.toString().padLeft(2, '0')}";
-          allStreams.addAll(
-            mappedStreams.where((s) => s.season == episode.season && s.episode == episode.episode || s.name.toUpperCase().contains(tag) || s.external),
-          );
-        } else {
-          allStreams.addAll(mappedStreams);
-        }
-      } catch (_) {}
+    final expanded = results.expand((s) => s).toList();
+
+    if (expanded.isEmpty) {
+      print("No Streams found");
     }
 
-    return allStreams;
+    return expanded;
+  }
+
+  static Future<List<StreamItem>> _fetchFromAddon(Addon addon, String type, String id, Episode? episode) async {
+    try {
+      final url = '${addon.baseUrl}/stream/$type/$id.json';
+      final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+
+      if (res.statusCode != 200) return [];
+
+      final streams = (jsonDecode(res.body)['streams'] as List? ?? []).map((s) => StreamItem.fromJson(s, addon)).toList();
+
+      if (episode == null) return streams;
+
+      final tag = 'S${episode.seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')}';
+      return streams
+          .where((s) => s.season == episode.seasonNumber && s.episode == episode.episodeNumber || s.name.toUpperCase().contains(tag) || s.external)
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   static StreamItem? autoSelectStream(List<StreamItem> streams) {
     if (streams.isEmpty) return null;
 
+    print("Auto selecting stream");
+
     // sort by score descending, pick the top one
     final sorted = [...streams]..sort((a, b) => _score(b).compareTo(_score(a)));
+
+    print("Selected: ${sorted.first.title}");
     return sorted.first;
   }
 
@@ -79,14 +92,20 @@ class StreamApi {
     else if (name.contains('HDRIP'))
       score += 8;
 
+    if (name.contains("WEB")) score += 20;
+
     // HDR
     if (name.contains('HDR') || name.contains('DOLBY')) score += 5;
 
     // Penalize CAM/TS
     if (name.contains('CAM') || name.contains('.TS')) score -= 30;
 
+    if (name.contains('⚡')) score += 30;
+
     // Prefer non-external (direct play)
     if (!s.external) score += 5;
+
+    print("${s.title} has score $score");
 
     return score;
   }

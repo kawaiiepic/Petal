@@ -9,11 +9,53 @@ import 'package:path_provider/path_provider.dart';
 
 class TMDB {
   static Map<String, Future<Uint8List>> imageData = {};
+  static const apiUrl = 'api.themoviedb.org';
+  static const imageUrl = 'https://image.tmdb.org/t/p/w500';
 
   static String accessToken =
       'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4OTA3MDBmYWY5ZDZmYzMwMWMxM2Y0MWUzMTIxZDU1YSIsIm5iZiI6MTU5OTIxMDQ4My41NTIsInN1YiI6IjVmNTIwM2YzYjIzNGI5MDAzNzE4YjMzNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.RHJTrJPzXmpf0GM6FB8gdipG46lSo-XFY3FQ_Ljjy2c';
 
   static Map<String, String> get _headers => {'accept': 'application/json', 'Authorization': 'Bearer $accessToken'};
+
+  static Uri apiCall(String url) {
+    return Uri.parse("${Api.ServerUrl}/tmdb?url=$url");
+  }
+
+  static Future<TmdbSearchResult> search(String searchedId) async {
+    print("Searching $searchedId");
+    final response = await http.get(apiCall('/find/$searchedId?external_source=imdb_id'), headers: _headers);
+
+    if (response.statusCode != 200) throw Exception('Search failed');
+
+    return TmdbSearchResult.fromJson(jsonDecode(response.body));
+  }
+
+  static Future<TmdbEpisode> tvEpisode(int tmdbId, int seasonNumber, int episodeNumber) async {
+    final response = await http.get(apiCall('/tv/$tmdbId/season/$seasonNumber/episode/$episodeNumber'), headers: _headers);
+
+    if (response.statusCode != 200) throw Exception('Search failed');
+
+    return TmdbEpisode.fromJson(jsonDecode(response.body));
+  }
+
+  static Future<TmdbShow> tvShow(int tmdbId) async {
+    final response = await http.get(apiCall('/tv/$tmdbId?append_to_response=images,external_ids'), headers: _headers);
+
+    if (response.statusCode != 200) throw Exception('Search failed');
+
+    return TmdbShow.fromJson(jsonDecode(response.body));
+  }
+
+  static Future<TmdbMovie> movie(int tmdbId) async {
+    final response = await http.get(apiCall('/movie/$tmdbId?append_to_response=images,external_ids'), headers: _headers);
+
+    if (response.statusCode != 200) throw Exception('Search failed');
+
+    return TmdbMovie.fromJson(jsonDecode(response.body));
+
+  }
+
+  // Old Functions...
 
   static Future<Uint8List> poster(MediaType mediaType, String id) {
     if (imageData.containsKey("poster_$id")) {
@@ -32,7 +74,7 @@ class TMDB {
     }
   }
 
-    static Future<Uint8List> backdrop(String tmdbId) {
+  static Future<Uint8List> backdrop(String tmdbId) {
     if (imageData.containsKey("backdrop$tmdbId")) {
       print("Loading backdrop from cache");
       return imageData["backdrop$tmdbId"]!;
@@ -98,7 +140,7 @@ class TMDB {
     return art.bodyBytes;
   }
 
-  static Future<Uint8List> _movieBackdrop(String tmdbId) async{
+  static Future<Uint8List> _movieBackdrop(String tmdbId) async {
     File? file;
 
     if (kIsWeb) {
@@ -130,7 +172,6 @@ class TMDB {
     }
 
     return art.bodyBytes;
-
   }
 
   static Future<Uint8List> _episode_still(String tmdb, int season, int episode) async {

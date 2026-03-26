@@ -13,10 +13,8 @@ export abstract class DB {
       .prepare(
         `
     CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
-      access_token TEXT,
-      expires_in INTEGER,
-      refresh_token TEXT,
+      email TEXT PRIMARY KEY,
+      password TEXT,
       created_at INTEGER
     )
     `,
@@ -28,7 +26,7 @@ export abstract class DB {
       .prepare(
         `
     CREATE TABLE IF NOT EXISTS addons (
-      username TEXT,
+      email TEXT,
       id TEXT,
       name TEXT,
       manifest_url TEXT,
@@ -36,8 +34,8 @@ export abstract class DB {
       enabled_resources TEXT,
       forced INTEGER,
       config TEXT,
-      PRIMARY KEY (username, id),
-      FOREIGN KEY(username) REFERENCES users(username)
+      PRIMARY KEY (email, id),
+      FOREIGN KEY(email) REFERENCES users(username)
     )
   `,
       )
@@ -107,12 +105,12 @@ export abstract class DB {
     this.db
       .prepare(
         `
-    INSERT INTO users (username, access_token, expires_in, refresh_token, created_at)
+    INSERT INTO users (email, created_at)
     VALUES (?, ?, ?, ?, ?)
     `,
       )
       .run(
-        data.username,
+        data.email,
         data.access_token,
         data.expires_in,
         data.refresh_token,
@@ -120,14 +118,14 @@ export abstract class DB {
       );
   }
 
-  public static getUser(username: string) {
+  public static getUser(email: string) {
     return this.db
       .prepare(
         `
-    SELECT * FROM users WHERE username = ?
+    SELECT * FROM users WHERE email = ?
     `,
       )
-      .get(username);
+      .get(email);
   }
 
   public static updateUser(username: string, data: any) {

@@ -46,6 +46,13 @@ dependencies:
   path_provider: ^2.1.5
   package_info_plus: ^9.0.0
   fuzzywuzzy: ^1.2.0
+  shadcn_flutter: ^0.0.52
+  flutter_native_splash: ^2.4.7
+  go_router: ^17.1.0
+  dio: ^5.9.2
+  cookie_jar: ^4.0.9
+  dio_cookie_manager: ^3.4.0
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:

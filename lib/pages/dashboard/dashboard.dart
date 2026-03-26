@@ -7,9 +7,9 @@ import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
-import 'package:blssmpetal/pages/catalog_widget.dart';
+import 'package:blssmpetal/router/routes/catalog_widget.dart';
 import 'package:blssmpetal/pages/dashboard/search_widget.dart';
-import 'package:blssmpetal/pages/dashboard/trakt_widget.dart';
+import 'package:blssmpetal/pages/trakt_widget.dart';
 import 'package:blssmpetal/pages/episode_overview.dart';
 import 'package:blssmpetal/pages/movie_overview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -24,25 +24,28 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
   @override
-  Widget build(BuildContext context) => CustomScrollView(
-    slivers: [
-      // Search(),
-      SliverAppBar(
-        pinned: true,
-        floating: true,
-        primary: false,
-        expandedHeight: 100.0,
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        foregroundColor: Colors.transparent,
-        forceMaterialTransparency: false,
-        surfaceTintColor: Colors.transparent,
-        flexibleSpace: const Center(child: Search())
-      ),
-      NextUpRow(),
-      CatalogWidget(),
-    ],
-  );
+  Widget build(BuildContext context) {
+    return Text('Boop');
+    return CustomScrollView(
+      slivers: [
+        // Search(),
+        SliverAppBar(
+          pinned: true,
+          floating: true,
+          primary: false,
+          expandedHeight: 100.0,
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.transparent,
+          forceMaterialTransparency: false,
+          surfaceTintColor: Colors.transparent,
+          flexibleSpace: const Center(child: Search()),
+        ),
+        NextUpRow(),
+        CatalogWidget(),
+      ],
+    );
+  }
 
   // Widget loadCatalog(List<Catalog> catalogs) {
   //   return Column(
@@ -164,6 +167,8 @@ class _CatalogRowState extends State<CatalogRow> {
                     if (searchSnapshot.hasError) {
                       return loadingInk;
                     } else {
+
+                      final search = searchSnapshot.data!;
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4), // space between posters
                         child: SizedBox(
@@ -175,44 +180,44 @@ class _CatalogRowState extends State<CatalogRow> {
                                 child: Tooltip(
                                   message: item.name,
                                   child: InkWell(
-                                    onTap: () async {
-                                      if (item.type == "series") {
-                                        if (mounted) {
-                                          final show = await TraktApi.fetchShowWithProgress(searchSnapshot.data!.show!.ids.trakt);
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) {
-                                              return Dialog(
-                                                insetPadding: const EdgeInsets.all(16), // padding from screen edges
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                child: ClipRRect(
-                                                  borderRadius: BorderRadiusGeometry.circular(8),
-                                                  child: EpisodeOverview(item: show!, selectedEpisode: null),
-                                                ),
-                                              );
-                                            },
-                                          );
-                                        }
-                                        // Navigator.push(context, MaterialPageRoute(builder: (_) => EpisodeOverview(item: show!, selectedEpisode: null)));
-                                      } else {
-                                        if (mounted) {
-                                          final movie = await TraktApi.fetchMovie(searchSnapshot.data!.movie!.ids.trakt.toString());
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) {
-                                              return Dialog(
-                                                insetPadding: const EdgeInsets.all(16), // padding from screen edges
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                child: ClipRRect(
-                                                  borderRadius: BorderRadiusGeometry.circular(8),
-                                                  child: MovieOverview(item: movie),
-                                                ),
-                                              );
-                                            },
-                                          );
-                                        }
-                                      }
-                                    },
+                                    // onTap: () async {
+                                    //   if (item.type == "series") {
+                                    //     if (mounted) {
+                                    //       final show = await TraktApi.fetchShowWithProgress(searchSnapshot.data!.show!.ids.trakt);
+                                    //       showDialog(
+                                    //         context: context,
+                                    //         builder: (context) {
+                                    //           return Dialog(
+                                    //             insetPadding: const EdgeInsets.all(16), // padding from screen edges
+                                    //             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    //             child: ClipRRect(
+                                    //               borderRadius: BorderRadiusGeometry.circular(8),
+                                    //               child: EpisodeOverview(media: search.,),
+                                    //             ),
+                                    //           );
+                                    //         },
+                                    //       );
+                                    //     }
+                                    //     // Navigator.push(context, MaterialPageRoute(builder: (_) => EpisodeOverview(item: show!, selectedEpisode: null)));
+                                    //   } else {
+                                    //     if (mounted) {
+                                    //       final movie = await TraktApi.fetchMovie(searchSnapshot.data!.movie!.ids.trakt.toString());
+                                    //       showDialog(
+                                    //         context: context,
+                                    //         builder: (context) {
+                                    //           return Dialog(
+                                    //             insetPadding: const EdgeInsets.all(16), // padding from screen edges
+                                    //             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    //             child: ClipRRect(
+                                    //               borderRadius: BorderRadiusGeometry.circular(8),
+                                    //               child: MovieOverview(item: movie),
+                                    //             ),
+                                    //           );
+                                    //         },
+                                    //       );
+                                    //     }
+                                    //   }
+                                    // },
                                     child: FutureBuilder(
                                       future: TMDB.poster(
                                         item.type == "series" ? MediaType.show : MediaType.movie,

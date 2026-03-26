@@ -22,8 +22,6 @@ export abstract class Trakt {
         body: JSON.stringify({ client_id: this.CLIENT_ID }),
       });
 
-      res.cookie("test", "test");
-
       const data = await response.json();
 
       res.json(data);

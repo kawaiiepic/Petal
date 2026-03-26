@@ -93,14 +93,14 @@ class _TraktNextUpItem extends State<TraktNextUpItem> {
                 _isHovering = false;
               }),
               child: GestureDetector(
-                onTap: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EpisodeOverview(item: widget.show, selectedEpisode: widget.show.showProgress.nextEpisode),
-                    ),
-                  );
-                },
+                // onTap: () async {
+                //   Navigator.push(
+                //     context,
+                //     MaterialPageRoute(
+                //       builder: (_) => EpisodeOverview(item: widget.show, selectedEpisode: widget.show.showProgress.nextEpisode),
+                //     ),
+                //   );
+                // },
 
                 child: Column(
                   spacing: 8,

@@ -1,21 +1,21 @@
-import 'dart:typed_data';
-
-import 'package:blssmpetal/api/stream_helper.dart';
+import 'dart:ui';
 import 'package:blssmpetal/api/tmdb/tmdb.dart';
-import 'package:blssmpetal/api/trakt/models.dart';
-import 'package:blssmpetal/models/trakt/enum/media_type.dart';
-import 'package:blssmpetal/pages/streams.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-class MovieOverview extends StatelessWidget {
-  final Movie item;
+class MovieOverview extends StatefulWidget {
+  final int tmdbId;
 
-  const MovieOverview({super.key, required this.item});
+  const MovieOverview({super.key, required this.tmdbId});
 
-  String _formatRuntime(int? minutes) {
-    if (minutes == null) return '';
-    if (minutes < 60) return '${minutes}m';
-    return '${minutes ~/ 60}h ${minutes % 60}m';
+  @override
+  State<MovieOverview> createState() => _MovieOverviewState();
+}
+
+class _MovieOverviewState extends State<MovieOverview> {
+  @override
+  void initState() {
+    super.initState();
   }
 
   String _formatDate(DateTime date) {
@@ -27,85 +27,313 @@ class MovieOverview extends StatelessWidget {
     return '${(diff.inDays / 365).floor()}y ago';
   }
 
+  String _formatRuntime(int? minutes) {
+    if (minutes == null) return '';
+    if (minutes < 60) return '${minutes}m';
+    return '${minutes ~/ 60}h ${minutes % 60}m';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final movie = item;
+    return FutureBuilder(
+      future: TMDB.movie(widget.tmdbId),
+      builder: (context, movieSnapshot) {
+        if (movieSnapshot.hasData && !movieSnapshot.hasError) {
+          final movie = movieSnapshot.data!;
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Movie banner/poster
-          SliverAppBar(
-            expandedHeight: 360,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: FutureBuilder<Uint8List>(
-                future: TMDB.backdrop(movie.ids.tmdb.toString()),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) return Image.memory(snapshot.data!, fit: BoxFit.cover, alignment: AlignmentGeometry.center,);
-                  return Container(color: Theme.of(context).colorScheme.surfaceContainerHighest);
-                },
-              ),
-            ),
-          ),
+          return Container(
+            color: Colors.transparent, // ← background here
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 500,
+                  pinned: true,
+                  forceMaterialTransparency: true,
+                  backgroundColor: Colors.pink,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Backdrop
+                        Image.network(
+                          'https://image.tmdb.org/t/p/original${movie.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                        ),
 
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                Text(movie.title, style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 8),
+                        // Bottom gradient so logo + button are readable
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                              stops: const [0.0, 0.5],
+                            ),
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Theme.of(context).scaffoldBackgroundColor,
+                                Theme.of(context).scaffoldBackgroundColor.withOpacity(0.6),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.3, 0.7],
+                            ),
+                          ),
+                        ),
 
-                // Metadata row
-                Wrap(
-                  spacing: 12,
-                  children: [
-                    if (movie.year != null) Text('${movie.year}', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                    if (movie.runtime != null)
-                      Text(_formatRuntime(movie.runtime), style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                    if (movie.rating != null && movie.rating! > 0)
-                      Text('★ ${movie.rating!.toStringAsFixed(1)}', style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                    ...?movie.genres?.take(3).map((g) => _Chip(g)),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                        // Logo — bottom left
+                        Positioned(
+                          bottom: 80,
+                          left: 24,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 200, maxHeight: 80),
+                            child: Image.network(
+                              'https://image.tmdb.org/t/p/original${movie.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
 
-                // Play button
-                SizedBox(
-                  height: 48,
-                  child: FilledButton.icon(
-                    onPressed: () async {
-                      final catalogItem = await StreamApi.fetchCatalogItemById(movie.ids.imdb.toString(), "movie");
-                      if (catalogItem != null && context.mounted) {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => StreamsPage(item: catalogItem, episode: null, traktShow: null)));
-                      }
-                    },
-                    icon: const Icon(Icons.play_arrow_rounded, size: 22),
-                    label: const Text('Play', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        Positioned(
+                          bottom: 24,
+                          left: 24,
+                          child: Row(
+                            spacing: 8,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () => context.push('/player?movie=${movie.id}'),
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                label: const Text('Play now'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                                ),
+                              ),
+                              _IconBtn(icon: Icons.check_rounded, onTap: () {}),
+                              _IconBtn(icon: Icons.bookmark_outline_rounded, onTap: () {}),
+                              _IconBtn(icon: Icons.thumb_up_outlined, onTap: () {}),
+                            ],
+                          ),
+                        ),
+
+                        Positioned(
+                          bottom: 0, // ← negative value makes it bleed into content below
+                          left: 0,
+                          right: 0,
+                          height: 10,
+                          child: ClipRect(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [Colors.transparent, Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5)],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                SliverToBoxAdapter(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipRect(
+                          child: ImageFiltered(
+                            imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Image.network(
+                              'https://image.tmdb.org/t/p/original${movie.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+                              fit: BoxFit.cover,
+                              alignment: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                      ),
 
-                // Movie overview
-                if (movie.overview != null && movie.overview!.isNotEmpty) ...[
-                  Text('Overview', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(movie.overview!, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5)),
-                  const SizedBox(height: 24),
-                ],
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter, // ← swapped
+                              end: Alignment.bottomCenter, // ← swapped
+                              colors: [
+                                Colors.black, // solid at top
+                                Colors.black.withOpacity(0.9), // semi at middle
+                                Colors.black.withOpacity(0.8),
+                              ],
+                              stops: const [0.0, 0.3, 0.7],
+                            ),
+                          ),
+                        ),
+                      ),
 
-                // Additional info (rating, certification, runtime)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [if (movie.certification != null) _Chip(movie.certification!), if (movie.runtime != null) _Chip('${movie.runtime}m')],
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              spacing: 8,
+                              children: [
+                                Text(
+                                  '${(movie.voteAverage * 10).toStringAsFixed(0)}% Match',
+                                  style: TextStyle(color: Colors.green[400], fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                Text(movie.releaseDate.split('-')[0], style: TextStyle(color: Colors.white70, fontSize: 13)),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Show overview
+                            ...[
+                              Text('About ${movie.title}', style: Theme.of(context).textTheme.titleMedium),
+                              const SizedBox(height: 8),
+                              Text(movie.overview, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5)),
+                              const SizedBox(height: 8),
+                              // Show meta
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _Chip(movie.status),
+                                  // if (show.certification != null) _Chip(show.certification!),
+                                  _Chip('★ ${movie.voteAverage.toStringAsFixed(1)}'),
+                                  ...movie.genres.take(3).map((g) => _Chip(g.name)),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ]),
+
+                // SliverPadding(
+                //   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                //   sliver: SliverList(
+                //     delegate: SliverChildListDelegate([
+                //       Row(
+                //         spacing: 8,
+                //         children: [
+                //           Text(
+                //             '${(show.voteAverage * 10).toStringAsFixed(0)}% Match',
+                //             style: TextStyle(color: Colors.green[400], fontWeight: FontWeight.w600, fontSize: 13),
+                //           ),
+                //           Text(show.firstAirDate.split('-')[0], style: TextStyle(color: Colors.white70, fontSize: 13)),
+                //           Text(
+                //             "${show.seasons.length} ${show.seasons.length > 1 ? "Seasons" : "Season"}",
+                //             style: TextStyle(color: Colors.white70, fontSize: 13),
+                //           ),
+                //           if (show.episodeRunTime.isNotEmpty)
+                //             Text(show.episodeRunTime[0].toString(), style: TextStyle(color: Colors.white70, fontSize: 13)),
+                //           if (show.episodeRunTime.isEmpty && show.lastEpisodeToAir != null)
+                //             Text(_formatRuntime(show.lastEpisodeToAir!.runtime), style: TextStyle(color: Colors.white70, fontSize: 13)),
+                //         ],
+                //       ),
+                //       const SizedBox(height: 20),
+
+                //       // Show overview
+                //       ...[
+                //         Text('About ${show.name}', style: Theme.of(context).textTheme.titleMedium),
+                //         const SizedBox(height: 8),
+                //         Text(show.overview, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5)),
+                //         const SizedBox(height: 8),
+                //         // Show meta
+                //         Wrap(
+                //           spacing: 8,
+                //           runSpacing: 8,
+                //           children: [
+                //             _Chip(show.networks[0].name),
+                //             _Chip(show.status),
+                //             // if (show.certification != null) _Chip(show.certification!),
+                //             _Chip('★ ${show.voteAverage.toStringAsFixed(1)}'),
+                //             ...show.genres.take(3).map((g) => _Chip(g.name)),
+                //           ],
+                //         ),
+                //         const SizedBox(height: 24),
+                //       ],
+
+                //       const SizedBox(height: 24),
+
+                //       Row(
+                //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //         children: [
+                //           Row(
+                //             children: [
+                //               Container(
+                //                 width: 4,
+                //                 height: 20,
+                //                 decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(40)),
+                //               ),
+                //               const SizedBox(width: 8),
+                //               Text('Episodes', style: Theme.of(context).textTheme.titleMedium),
+                //             ],
+                //           ),
+
+                //           Container(
+                //             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                //             decoration: BoxDecoration(
+                //               border: Border.all(color: Colors.white24),
+                //               borderRadius: BorderRadius.circular(40),
+                //             ),
+                //             child: DropdownButtonHideUnderline(
+                //               child: Theme(
+                //                 data: Theme.of(context).copyWith(
+                //                   primaryColor: Colors.transparent,
+                //                   hoverColor: Colors.transparent,
+                //                   highlightColor: Colors.transparent,
+                //                   splashColor: Colors.transparent,
+                //                 ),
+                //                 child: DropdownButton<int>(
+                //                   value: _selectedSeason,
+                //                   isDense: true,
+                //                   borderRadius: BorderRadius.circular(8),
+                //                   focusColor: Colors.transparent,
+                //                   dropdownColor: Colors.transparent,
+                //                   icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                //                   items: show.mainSeasons.map((s) {
+                //                     return DropdownMenuItem(value: s.seasonNumber, child: Text('Season ${s.seasonNumber}'));
+                //                   }).toList(),
+                //                   onChanged: (val) {
+                //                     setState(() => _selectedSeason = val!);
+                //                   },
+                //                 ),
+                //               ),
+                //             ),
+                //           ),
+                //         ],
+                //       ),
+                //       Text('Episodes', style: Theme.of(context).textTheme.titleMedium),
+                //       const SizedBox(height: 8),
+                //     ]),
+                //   ),
+                // ),
+              ],
             ),
-          ),
-        ],
-      ),
+          );
+        } else {
+          return SizedBox();
+        }
+      },
     );
   }
 }
@@ -120,6 +348,36 @@ class _Chip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(99)),
       child: Text(text, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+    );
+  }
+}
+
+class _IconBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _IconBtn({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(50),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: OutlinedButton(
+            onPressed: onTap,
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.zero,
+              backgroundColor: Colors.white.withOpacity(0.05),
+              side: BorderSide(color: Colors.white.withAlpha(50), width: 0.2),
+            ),
+            child: Icon(icon, size: 20),
+          ),
+        ),
+      ),
     );
   }
 }

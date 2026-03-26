@@ -9,10 +9,17 @@ import fs from "fs";
 import path from "path";
 import { Trakt } from "./trakt.js";
 import { DB } from "./db.js";
+import { Login } from "./login.js";
 const streamsDir = "/tmp/petal-streams";
 fs.mkdirSync(streamsDir, { recursive: true });
+const ffmpegProcs = new Map();
 const app = express();
 const port = 3000;
+const accessToken = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4OTA3MDBmYWY5ZDZmYzMwMWMxM2Y0MWUzMTIxZDU1YSIsIm5iZiI6MTU5OTIxMDQ4My41NTIsInN1YiI6IjVmNTIwM2YzYjIzNGI5MDAzNzE4YjMzNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.RHJTrJPzXmpf0GM6FB8gdipG46lSo-XFY3FQ_Ljjy2c";
+const _header = {
+    accept: "application/json",
+    Authorization: `Bearer ${accessToken}`,
+};
 app.use(cors({
     origin: "*",
     methods: ["GET", "POST"],
@@ -32,8 +39,48 @@ Trakt.obtainShow(app);
 Trakt.obtainMovie(app);
 Trakt.obtainSeasons(app);
 Trakt.obtainShowProgress(app);
+Login.verifyLogin(app);
 app.get("/health", (req, res) => {
     res.json({ status: "ok" });
+});
+async function fetchWithRetry(url, options, retries = 5, delay = 500) {
+    try {
+        const res = await fetch(url, options);
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        return res;
+    }
+    catch (err) {
+        if (retries === 0)
+            throw err;
+        console.log(`Retrying ${url}... (${retries} left)`);
+        await new Promise((r) => setTimeout(r, delay));
+        return fetchWithRetry(url, options, retries - 1, delay * 2); // exponential backoff
+    }
+}
+app.get("/tmdb", async (req, res) => {
+    const raw = req.query.url;
+    if (!raw)
+        return res.status(400).json({ error: "Missing url" });
+    const url = `https://api.themoviedb.org/3${decodeURIComponent(raw)}`;
+    try {
+        const response = await fetchWithRetry(url, {
+            headers: _header,
+        });
+        // const response = await fetch(url, {
+        //   headers: _header,
+        // });
+        if (response.ok) {
+            res.status(200).json(await response.json());
+        }
+        else {
+            console.log("Failed to request TMDB API");
+        }
+    }
+    catch (_) {
+        res.status(300);
+    }
 });
 // simple in-memory cache
 const imageCache = new Map();
@@ -41,6 +88,7 @@ const imageCache = new Map();
 app.get("/img", async (req, res) => {
     try {
         const raw = req.query.url;
+        console.log(`Trying to get $raw`);
         if (!raw)
             return res.status(400).send("Missing url");
         const url = decodeURIComponent(raw);
@@ -82,7 +130,8 @@ app.post("/addons/set", (req, res) => {
         return res.status(400).json({ error: "Missing data" });
     }
     console.log("Saving addon.");
-    var username = Trakt.verifyToken(req.cookies.token).username;
+    var username = Trakt.verifyToken(req.cookies.token)
+        .username;
     console.log("Saving addons for user:", username);
     const insert = DB.db.prepare(`
     INSERT OR REPLACE INTO addons
@@ -99,140 +148,109 @@ app.post("/addons/set", (req, res) => {
 });
 // Get addons for a user
 app.get("/addons/get", (req, res) => {
-    var username = Trakt.verifyToken(req.cookies.token)
-        .username;
-    console.log("Fetching addons for user:", username);
-    const rows = DB.db
-        .prepare(`
-    SELECT * FROM addons WHERE username = ?
-  `)
-        .all(username);
-    const addons = rows.map((r) => ({
-        id: r.id,
-        name: r.name,
-        manifestUrl: r.manifest_url,
-        icon: r.icon,
-        enabledResources: JSON.parse(r.enabled_resources),
-        forced: 0,
-        config: JSON.parse(r.config),
-    }));
-    addons.push({
-        id: "com.linvo.cinemeta",
-        name: "Cinemeta",
-        icon: "",
-        manifestUrl: "https://v3-cinemeta.strem.io/manifest.json",
-        enabledResources: ["catalog"],
-        forced: 1,
-        config: {},
-    });
-    addons.push({
-        id: "org.stremio.watchhub",
-        name: "WatchHub",
-        icon: "",
-        manifestUrl: "https://watchhub.strem.io/manifest.json",
-        enabledResources: ["stream"],
-        forced: 1,
-        config: {},
-    });
-    res.json({ addons });
+    try {
+        var email = Trakt.verifyToken(req.cookies.auth).email;
+        console.log("Fetching addons for user:", email);
+        const rows = DB.db
+            .prepare(`
+      SELECT * FROM addons WHERE email = ?
+    `)
+            .all(email);
+        console.log(rows);
+        const addons = rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            manifestUrl: r.manifest_url,
+            icon: r.icon,
+            enabledResources: JSON.parse(r.enabled_resources),
+            forced: 0,
+            config: JSON.parse(r.config),
+        }));
+        // const addons = [];
+        addons.push({
+            id: "com.linvo.cinemeta",
+            name: "Cinemeta",
+            icon: "",
+            manifestUrl: "https://v3-cinemeta.strem.io/manifest.json",
+            enabledResources: ["catalog"],
+            forced: 1,
+            config: {},
+        });
+        addons.push({
+            id: "org.stremio.watchhub",
+            name: "WatchHub",
+            icon: "",
+            manifestUrl: "https://watchhub.strem.io/manifest.json",
+            enabledResources: ["stream"],
+            forced: 1,
+            config: {},
+        });
+        res.json({ addons });
+    }
+    catch (_) { }
 });
 app.get("/transcode", async (req, res) => {
     const raw = req.query.url;
     if (!raw)
         return res.status(400).send("Missing url");
-    console.log("transcoding");
+    console.log("Starting transcoding for", raw);
     const id = crypto.createHash("md5").update(raw).digest("hex");
     const dir = path.join(streamsDir, id);
-    // if (fs.existsSync(dir)) {
-    //   db.prepare(
-    //     `
-    //   UPDATE streams SET last_access = ?
-    //   WHERE id = ?
-    //   `,
-    //   ).run(Date.now(), id);
-    //   console.log("Stream already exists");
-    //   res.json({ streamUrl: `/streams/${id}/master.m3u8` });
-    //   return;
-    // }
-    DB.db.prepare(`
-  INSERT OR REPLACE INTO streams
-  (id, source_url, directory, created_at, last_access)
-  VALUES (?, ?, ?, ?, ?)
-  `).run(id, raw, dir, Date.now(), Date.now());
-    // if (fs.existsSync(dir)) {
-    //   fs.rmSync(dir, { recursive: true });
-    // }
     fs.mkdirSync(dir, { recursive: true });
-    const masterPlaylist = path.join(dir, "master.m3u8");
-    const args = [
+    // 1️⃣ Probe the input for audio tracks
+    const probeArgs = [
         "-i",
         raw,
-        "-map",
-        "0:v:0",
-        "-map",
-        "0:a?",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "fast",
-        "-profile:v",
-        "baseline", // iOS Safari requires baseline or main
-        "-level",
-        "4.0", // widely compatible level
-        "-crf",
-        "23",
-        "-c:a",
-        "aac",
-        "-vf",
-        "scale=-2:1080,format=yuv420p",
-        "-ar",
-        "44100",
-        "-ac",
-        "2",
-        "-b:a",
-        "128k",
-        "-movflags",
-        "+faststart",
-        "-f",
-        "hls",
-        "-hls_time",
-        "6",
-        "-hls_list_size",
-        "0",
-        "-hls_playlist_type",
-        "event",
-        "-hls_flags",
-        "independent_segments+append_list",
-        "-hls_segment_filename",
-        path.join(dir, "segment_%03d.ts"),
-        masterPlaylist,
-    ];
-    const probeargs = [
+        "-show_streams",
         "-select_streams",
-        "v:0",
-        "-show_entries",
-        "stream=index,codec_name,codec_type,width,height",
+        "a",
         "-of",
         "json",
-        raw,
     ];
-    console.log(masterPlaylist);
-    // const ffprobe = spawn("ffprobe", probeargs);
-    // ffprobe.stderr.on("data", (d) => console.log("ffprobe:", d.toString()));
-    // ffprobe.on("error", console.error);
-    const proc = spawn("ffmpeg", args);
-    proc.stderr.on("data", (d) => console.log("ffmpeg:", d.toString()));
-    proc.on("error", console.error);
-    const firstSegment = path.join(dir, "segment_000.ts");
+    const probe = spawn("ffprobe", probeArgs);
+    let probeData = "";
+    probe.stdout.on("data", (d) => (probeData += d.toString()));
+    await new Promise((resolve, reject) => {
+        probe.on("close", (code) => code === 0 ? resolve() : reject("ffprobe failed"));
+    });
+    const audioStreams = JSON.parse(probeData).streams;
+    if (!audioStreams?.length)
+        return res.status(400).send("No audio streams found");
+    console.log(`Found ${audioStreams.length} audio track(s)`);
+    // 2️⃣ Generate HLS for each audio track
+    const ffmpegArgs = [];
+    // Video stream mapping
+    ffmpegArgs.push("-i", raw);
+    ffmpegArgs.push("-map", "0:v:0");
+    ffmpegArgs.push("-c:v", "libx264", "-preset", "fast", "-profile:v", "main", "-level", "4.0", "-crf", "23");
+    ffmpegArgs.push("-vf", "scale=-2:1080,format=yuv420p");
+    // Map all audio tracks individually
+    // 3️⃣ Run FFmpeg
+    const ffmpeg = spawn("ffmpeg", ffmpegArgs);
+    ffmpeg.stderr.on("data", (d) => console.log("ffmpeg:", d.toString()));
+    ffmpeg.on("error", console.error);
+    // Wait until first segment of first audio track exists
+    const firstSegment = path.join(dir, "audio_0", "segment_000.ts");
     await new Promise((resolve) => {
-        const check = () => {
-            if (fs.existsSync(firstSegment))
-                return resolve();
-            setTimeout(check, 200);
-        };
+        const check = () => fs.existsSync(firstSegment) ? resolve() : setTimeout(check, 200);
         check();
     });
-    res.json({ streamUrl: `/streams/${id}/master.m3u8` });
+    ffmpeg.unref();
+    // 4️⃣ Return JSON with all audio track URIs
+    const audioTrackUris = audioStreams.map((track, i) => ({
+        id: track.tags?.language || `audio_${i}`,
+        uri: `/streams/${id}/audio_${i}/master.m3u8`,
+    }));
+    res.json({
+        id,
+        videoUri: `/streams/${id}/audio_0/master.m3u8`, // optional main video URI
+        audioTracks: audioTrackUris,
+    });
+});
+app.get("/transcode/:id", (req, res) => {
+    const proc = ffmpegProcs.get(req.params.id);
+    const running = proc ? proc.exitCode === null : false;
+    res.json({ transcoding: running });
 });
 app.use("/streams", express.static(streamsDir, {
     setHeaders: (res, path) => {

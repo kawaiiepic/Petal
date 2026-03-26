@@ -38,6 +38,8 @@
             # runtime
             wayland
             libxkbcommon
+
+            ninja
           ];
 
           shellHook = ''

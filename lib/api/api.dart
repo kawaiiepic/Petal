@@ -6,12 +6,12 @@ import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class Api {
-  static bool dev = false;
+  static bool dev = true;
   static bool traktLoggedIn = false;
+  static bool loggedIn = false;
 
   static String proxyImage(String url) {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
@@ -23,6 +23,7 @@ class Api {
   static Timer? _healthPoller;
 
   static Future<void> initApi() async {
+    await TraktApi.init();
     await TraktApi.verifySession();
 
     _healthPoller?.cancel();
@@ -54,7 +55,7 @@ class Api {
 
   static Future<bool> healthCheck() async {
     try {
-      final res = await http.get(Uri.parse("$ServerUrl/health")).timeout(const Duration(seconds: 3));
+      final res = await TraktApi.dio.get("$ServerUrl/health").timeout(const Duration(seconds: 3));
 
       return res.statusCode == 200;
     } catch (_) {
