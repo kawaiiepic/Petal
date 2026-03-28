@@ -14,6 +14,7 @@ import 'package:fuzzywuzzy/algorithms/token_sort.dart';
 import 'package:fuzzywuzzy/applicable.dart';
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 import 'package:fuzzywuzzy/ratios/partial_ratio.dart';
+import 'package:go_router/go_router.dart';
 
 enum SearchType { seriesAndMovies, series, movies, actors }
 
@@ -153,22 +154,15 @@ class _SearchState extends State<Search> {
                               .map((item) {
                                 final choice = item.choice;
                                 return InkWell(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(5),
                                   onTap: () async {
                                     if (mounted) {
-                                      final searchSnapshot = await ApiCache.getSearch("imdb", choice.id, choice.type);
-                                      final show = choice.type == "series";
-                                      final item = show
-                                          ? await TraktApi.fetchShowWithProgress(searchSnapshot.show!.ids.trakt)
-                                          : await TraktApi.fetchMovie(searchSnapshot.movie!.ids.trakt.toString());
-                                      // Navigator.push(
-                                      //   context,
-                                      //   MaterialPageRoute(
-                                      //     builder: (_) => show
-                                      //         ? EpisodeOverview(item: item! as TraktWatchedShowWithProgress, selectedEpisode: null)
-                                      //         : MovieOverview(item: item! as Movie),
-                                      //   ),
-                                      // );
+                                      final searchSnapshot = await ApiCache.getTmdbSearch(choice.id);
+                                      final tmdbItem = choice.type == "series" ? searchSnapshot.tv[0] : searchSnapshot.movies[0];
+
+                                      print(tmdbItem.id);
+                                      context.pop();
+                                      context.go('/catalogs/${choice.type}/${tmdbItem.id}');
                                     }
                                   },
 

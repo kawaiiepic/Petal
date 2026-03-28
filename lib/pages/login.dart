@@ -13,6 +13,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final registrationTokenController = TextEditingController();
 
   bool loading = false;
   bool register = false;
@@ -23,27 +24,46 @@ class _LoginState extends State<Login> {
       loading = true;
       error = null;
     });
-
     try {
-      // 🔥 Replace with your API call
-      await Future.delayed(const Duration(seconds: 2));
-
       final email = emailController.text;
       final password = passwordController.text;
-
       final response = await TraktApi.dio.post("${Api.ServerUrl}/login/signin", data: {"email": email, "password": password});
-
       print(response.data);
-
-      final cookies = await TraktApi.cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/login/verify"));
-
-      print("cookies: $cookies");
-
-      if (email != "test" || password != "password") {
+      if (response.data["status"] != "success") {
         throw Exception("Invalid credentials");
       }
+      if (mounted) {
+        TraktApi.authState.setLoggedIn(true);
+        Api.loggedIn = true;
+        context.go('/');
+      }
+    } catch (e) {
+      setState(() {
+        error = e.toString();
+      });
+    } finally {
+      setState(() {
+        loading = false;
+      });
+    }
+  }
 
-      // ✅ Navigate after login
+  Future<void> handleRegister() async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      final email = emailController.text;
+      final password = passwordController.text;
+      final token = registrationTokenController.text;
+      final response = await TraktApi.dio.post("${Api.ServerUrl}/login/register", data: {"email": email, "password": password, "token": token});
+      print(response.data);
+
+      if (response.data["status"] == "already-exist") throw Exception("Account already exist");
+      if (response.data["status"] != "success") {
+        throw Exception("Registration failed");
+      }
       if (mounted) {
         Api.loggedIn = true;
         context.go('/');
@@ -70,44 +90,51 @@ class _LoginState extends State<Login> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("Login", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-
+                Text(register ? "Register" : "Login", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 24),
-
                 TextField(
                   controller: emailController,
                   decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
                 ),
-
                 const SizedBox(height: 16),
-
                 TextField(
                   controller: passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
                 ),
-
+                if (register) ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: registrationTokenController,
+                    decoration: const InputDecoration(labelText: "Registration Token", border: OutlineInputBorder()),
+                  ),
+                ],
                 const SizedBox(height: 16),
-
                 if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
-
                 const SizedBox(height: 16),
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: loading ? null : handleLogin,
-                    child: loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Login"),
+                    onPressed: loading ? null : (register ? handleRegister : handleLogin),
+                    child: loading
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : Text(register ? "Register" : "Login"),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: loading ? null : handleLogin,
-                    child: loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Register"),
+                  child: TextButton(
+                    onPressed: loading
+                        ? null
+                        : () {
+                            setState(() {
+                              register = !register;
+                              error = null;
+                              registrationTokenController.clear();
+                            });
+                          },
+                    child: Text(register ? "Already have an account? Login" : "No account? Register"),
                   ),
                 ),
               ],

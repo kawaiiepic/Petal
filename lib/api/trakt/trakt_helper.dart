@@ -51,19 +51,11 @@ class TraktApi {
         print('Failed to verify session');
       }
     } else {
-      print('Checking Session');
+      final response = await dio.get("${Api.ServerUrl}/login/verify");
 
-      final cookies = await cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/login/verify"));
-
-      print("cookies: $cookies");
-
-      print(await dio.get("${Api.ServerUrl}/login/verify"));
-
-      authState.setLoggedIn(true);
-      // Print cookies
-
-      // // Second request with the cookies
-      // await dio.get("${Api.ServerUrl}/login/verify");
+      if (response.data["status"] == "success") {
+        authState.setLoggedIn(true);
+      }
     }
   }
 
@@ -73,7 +65,7 @@ class TraktApi {
     final response = await dio.get(url);
 
     if (response.statusCode == 200) {
-      print(response.data);
+      print("Addons: ${response.data}");
       final data = response.data;
       final addonsJson = data['addons'] as List;
 

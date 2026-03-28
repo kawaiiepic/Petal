@@ -92,7 +92,7 @@ app.get("/tmdb", async (req, res) => {
 
   try {
 
-    const response = await fetchWithRetry(url, {
+    const response = await fetch(url, {
       headers: _header,
     });
 
@@ -169,14 +169,14 @@ app.post("/addons/set", (req, res) => {
 
   console.log("Saving addon.");
 
-  var username = (Trakt.verifyToken(req.cookies.token) as jwt.JwtPayload)
-    .username;
+  var email = (Login.verifyToken(req.cookies.auth) as jwt.JwtPayload)
+    .email;
 
-  console.log("Saving addons for user:", username);
+  console.log("Saving addons for user:", email);
 
   const insert = DB.db.prepare(`
     INSERT OR REPLACE INTO addons
-    (id, username, name, manifest_url, icon, enabled_resources, forced, config)
+    (id, email, name, manifest_url, icon, enabled_resources, forced, config)
     VALUES (?,?, ?, ?, ?, ?, ?, ?)
   `);
 
@@ -184,7 +184,7 @@ app.post("/addons/set", (req, res) => {
     for (const addon of addons) {
       insert.run(
         addon.id,
-        username,
+        email,
         addon.name,
         addon.manifestUrl,
         addon.icon || "",
@@ -226,8 +226,6 @@ app.get("/addons/get", (req, res) => {
       forced: 0,
       config: JSON.parse(r.config),
     }));
-
-    // const addons = [];
 
     addons.push({
       id: "com.linvo.cinemeta",

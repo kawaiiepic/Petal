@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:blssmpetal/api/tmdb/tmdb.dart';
+import 'package:blssmpetal/models/custom_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,6 +16,7 @@ class EpisodeOverview extends StatefulWidget {
 
 class _EpisodeOverviewState extends State<EpisodeOverview> {
   int _selectedSeason = 1;
+  Episode episode = Episode(seasonNumber: 1, episodeNumber: 1);
 
   @override
   void initState() {
@@ -116,9 +118,9 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                   spacing: 8,
                                   children: [
                                     ElevatedButton.icon(
-                                      onPressed: () => context.push('/player?show=${show.id}'),
+                                      onPressed: () => context.push('/player?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}'),
                                       icon: const Icon(Icons.play_arrow_rounded),
-                                      label: const Text('Play now'),
+                                      label: Text('Play now S${episode.seasonNumber}:E${episode.episodeNumber}'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.white,
                                         foregroundColor: Colors.black,

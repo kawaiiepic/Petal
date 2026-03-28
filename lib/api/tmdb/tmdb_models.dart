@@ -778,3 +778,96 @@ class SpokenLanguage {
 
   Map<String, dynamic> toJson() => {'english_name': englishName, 'iso_639_1': iso639_1, 'name': name};
 }
+
+class TmdbSeason {
+  final String id;
+  final String? airDate;
+  final List<TmdbEpisode> episodes;
+  final String name;
+  final String? overview;
+  final String? posterPath;
+  final int seasonNumber;
+  final double voteAverage;
+
+  const TmdbSeason({
+    required this.id,
+    this.airDate,
+    required this.episodes,
+    required this.name,
+    this.overview,
+    this.posterPath,
+    required this.seasonNumber,
+    required this.voteAverage,
+  });
+
+  factory TmdbSeason.fromJson(Map<String, dynamic> json) => TmdbSeason(
+    id: json['_id'] as String,
+    airDate: json['air_date'] as String?,
+    episodes: (json['episodes'] as List<dynamic>).map((e) => TmdbEpisode.fromJson(e as Map<String, dynamic>)).toList(),
+    name: json['name'] as String,
+    overview: json['overview'] as String?,
+    posterPath: json['poster_path'] as String?,
+    seasonNumber: json['season_number'] as int,
+    voteAverage: (json['vote_average'] as num).toDouble(),
+  );
+}
+
+class TmdbCrewMember {
+  final int id;
+  final String name;
+  final String job;
+  final String department;
+  final String creditId;
+  final String? profilePath;
+  final double popularity;
+
+  const TmdbCrewMember({
+    required this.id,
+    required this.name,
+    required this.job,
+    required this.department,
+    required this.creditId,
+    this.profilePath,
+    required this.popularity,
+  });
+
+  factory TmdbCrewMember.fromJson(Map<String, dynamic> json) => TmdbCrewMember(
+    id: json['id'] as int,
+    name: json['name'] as String,
+    job: json['job'] as String,
+    department: json['department'] as String,
+    creditId: json['credit_id'] as String,
+    profilePath: json['profile_path'] as String?,
+    popularity: (json['popularity'] as num).toDouble(),
+  );
+}
+
+class TmdbGuestStar {
+  final int id;
+  final String name;
+  final String character;
+  final String creditId;
+  final int order;
+  final String? profilePath;
+  final double popularity;
+
+  const TmdbGuestStar({
+    required this.id,
+    required this.name,
+    required this.character,
+    required this.creditId,
+    required this.order,
+    this.profilePath,
+    required this.popularity,
+  });
+
+  factory TmdbGuestStar.fromJson(Map<String, dynamic> json) => TmdbGuestStar(
+    id: json['id'] as int,
+    name: json['name'] as String,
+    character: json['character'] as String,
+    creditId: json['credit_id'] as String,
+    order: json['order'] as int,
+    profilePath: json['profile_path'] as String?,
+    popularity: (json['popularity'] as num).toDouble(),
+  );
+}

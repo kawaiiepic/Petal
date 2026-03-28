@@ -6,13 +6,14 @@
   "main": "/server.js",
   "keywords": [],
   "author": "",
-    "scripts": {
+  "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
     "dev": "tsx src/main.js"
   },
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",
     "body-parser": "^2.2.1",
     "cookie-parser": "^1.4.7",
@@ -21,6 +22,7 @@
     "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",

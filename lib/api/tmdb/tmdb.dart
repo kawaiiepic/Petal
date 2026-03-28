@@ -38,6 +38,14 @@ class TMDB {
     return TmdbEpisode.fromJson(jsonDecode(response.body));
   }
 
+    static Future<TmdbSeason> tvSeason(int tmdbId, int seasonNumber) async {
+    final response = await http.get(apiCall('/tv/$tmdbId/season/$seasonNumber'), headers: _headers);
+
+    if (response.statusCode != 200) throw Exception('Search failed');
+
+    return TmdbSeason.fromJson(jsonDecode(response.body));
+  }
+
   static Future<TmdbShow> tvShow(int tmdbId) async {
     final response = await http.get(apiCall('/tv/$tmdbId?append_to_response=images,external_ids'), headers: _headers);
 

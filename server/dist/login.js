@@ -1,4 +1,7 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { DB } from "./db.js";
+import bcrypt from "bcrypt";
 export class Login {
     static verifyToken(token) {
         return jwt.verify(token, this.SECRET_KEY);
@@ -10,20 +13,31 @@ export class Login {
                 var email = req.body.email;
                 var password = req.body.password;
                 var registerToken = req.body.token;
-                if (email == undefined || password == undefined || registerToken == undefined)
-                    throw new Error("Missing Email or Password");
+                if (email == undefined ||
+                    password == undefined ||
+                    registerToken == undefined)
+                    throw new Error("Missing Email, Password, or Register Token");
                 // TODO: Check if email and password matches the database.
                 if (registerToken == "token") {
-                    var token = jwt.sign({ email: email }, this.SECRET_KEY);
+                    console.log("Token accepted");
+                    const user = DB.db
+                        .prepare(`SELECT * FROM users WHERE email = ?`)
+                        .get(email);
+                    if (user != undefined) {
+                        res.status(200).json({ status: "already-exist" });
+                        return;
+                    }
+                    const uuid = crypto.randomUUID();
+                    DB.addUser({ email: email, password: password, key: uuid });
+                    var token = jwt.sign({ email: email, uuid: uuid }, this.SECRET_KEY);
                     res.cookie("auth", token);
-                    res.status(200).json({ email: email, cookies: req.cookies });
+                    res.status(200).json({ status: "success" });
                     return;
                 }
                 throw new Error("Incorrect Login");
             }
-            catch (err) {
-                console.log(err);
-                res.status(200).json({ ok: false });
+            catch (_) {
+                res.status(201).json({ ok: false });
             }
         });
         app.post("/login/signin", async (req, res) => {
@@ -34,24 +48,41 @@ export class Login {
                 if (email == undefined || password == undefined)
                     throw new Error("Missing Email or Password");
                 // TODO: Check if email and password matches the database.
-                if (email == "mia" && password == "password") {
-                    var token = jwt.sign({ email: email }, this.SECRET_KEY);
+                const user = DB.db
+                    .prepare(`SELECT * FROM users WHERE email = ?`)
+                    .get(email);
+                if (!user) {
+                    res.status(200).json({ ok: false });
+                    return;
+                }
+                const match = await bcrypt.compare(password, user.password);
+                if (match) {
+                    var uuid = user.key;
+                    var token = jwt.sign({ email: email, key: uuid }, this.SECRET_KEY);
                     res.cookie("auth", token);
-                    res.status(200).json({ email: email, cookies: req.cookies });
+                    res.status(200).json({ status: "success", token: token });
                     return;
                 }
                 throw new Error("Incorrect Login");
             }
             catch (_) {
-                res.status(200).json({ ok: false });
+                res.status(200).json({ status: "failed" });
             }
         });
         app.get("/login/verify", async (req, res) => {
-            if (req.cookies.auth != undefined) {
+            if (req.cookies.auth != undefined && req.cookies.key != undefined) {
                 console.log(req.cookies.auth);
                 var verify = this.verifyToken(req.cookies.auth);
-                // TODO: Check if login is still valid.
-                res.status(200).json({ verify: verify });
+                const user = DB.db
+                    .prepare(`SELECT * FROM users WHERE email = ?`)
+                    .get(verify.email);
+                if (user != undefined && verify.key == user.key) {
+                    console.log("User verified");
+                    res.status(200).json({ status: "success" });
+                    return;
+                }
+                console.log("User NOT verified");
+                res.status(201).json({ verified: false });
             }
             else {
                 res.status(300).json({ verified: false });

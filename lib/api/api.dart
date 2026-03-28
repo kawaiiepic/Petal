@@ -20,29 +20,14 @@ class Api {
   static final ServerUrl = dev ? 'http://localhost:3000' : 'https://petal.blossomvale.dev/api';
 
   static final ValueNotifier<bool> healthy = ValueNotifier(true);
-  static Timer? _healthPoller;
 
   static Future<void> initApi() async {
     await TraktApi.init();
     await TraktApi.verifySession();
 
-    _healthPoller?.cancel();
-
     if (TraktApi.validSession.value) {
       _onBackendRecovered();
     }
-
-    // _healthPoller = Timer.periodic(const Duration(seconds: 60), (_) async {
-    //   final ok = await healthCheck();
-
-    //   if (healthy.value != ok) {
-    //     healthy.value = ok;
-
-    //     if (ok) {
-    //       _onBackendRecovered();
-    //     }
-    //   }
-    // });
 
     // initial check
     final ok = await healthCheck();

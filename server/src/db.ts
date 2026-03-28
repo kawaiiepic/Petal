@@ -1,5 +1,7 @@
 import Database from "better-sqlite3";
 import fs from "fs";
+import bcrypt from "bcrypt";
+import { UUID } from "crypto";
 
 export abstract class DB {
   static db = new Database("test.db");
@@ -15,6 +17,7 @@ export abstract class DB {
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
       password TEXT,
+      key TEXT,
       created_at INTEGER
     )
     `,
@@ -26,8 +29,8 @@ export abstract class DB {
       .prepare(
         `
     CREATE TABLE IF NOT EXISTS addons (
-      email TEXT,
       id TEXT,
+      email TEXT,
       name TEXT,
       manifest_url TEXT,
       icon TEXT,
@@ -35,7 +38,7 @@ export abstract class DB {
       forced INTEGER,
       config TEXT,
       PRIMARY KEY (email, id),
-      FOREIGN KEY(email) REFERENCES users(username)
+      FOREIGN KEY(email) REFERENCES users(email)
     )
   `,
       )
@@ -100,22 +103,19 @@ export abstract class DB {
     ); // run every hour
   }
 
-  public static addUser(data: any) {
+  public static async addUser(data: any) {
     console.log(data);
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
     this.db
       .prepare(
         `
-    INSERT INTO users (email, created_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO users (email, password, key, created_at)
+    VALUES (?, ?, ?, ?)
     `,
       )
-      .run(
-        data.email,
-        data.access_token,
-        data.expires_in,
-        data.refresh_token,
-        Date.now(),
-      );
+      .run(data.email, hashedPassword, data.key, Date.now());
   }
 
   public static getUser(email: string) {
@@ -188,3 +188,10 @@ interface StreamRecord {
   created_at: number;
   last_access: number;
 }
+
+export type User = {
+  email: string;
+  password: string;
+  key: UUID;
+  created_at: number;
+};

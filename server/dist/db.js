@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import fs from "fs";
+import bcrypt from "bcrypt";
 export class DB {
     static init() {
         this.db.pragma("journal_mode = WAL");
@@ -10,6 +11,7 @@ export class DB {
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
       password TEXT,
+      key TEXT,
       created_at INTEGER
     )
     `)
@@ -18,8 +20,8 @@ export class DB {
         this.db
             .prepare(`
     CREATE TABLE IF NOT EXISTS addons (
-      email TEXT,
       id TEXT,
+      email TEXT,
       name TEXT,
       manifest_url TEXT,
       icon TEXT,
@@ -27,7 +29,7 @@ export class DB {
       forced INTEGER,
       config TEXT,
       PRIMARY KEY (email, id),
-      FOREIGN KEY(email) REFERENCES users(username)
+      FOREIGN KEY(email) REFERENCES users(email)
     )
   `)
             .run();
@@ -75,14 +77,15 @@ export class DB {
             }
         }, 1000 * 60 * 60); // run every hour
     }
-    static addUser(data) {
+    static async addUser(data) {
         console.log(data);
+        const hashedPassword = await bcrypt.hash(data.password, 10);
         this.db
             .prepare(`
-    INSERT INTO users (email, created_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO users (email, password, key, created_at)
+    VALUES (?, ?, ?, ?)
     `)
-            .run(data.email, data.access_token, data.expires_in, data.refresh_token, Date.now());
+            .run(data.email, hashedPassword, data.key, Date.now());
     }
     static getUser(email) {
         return this.db

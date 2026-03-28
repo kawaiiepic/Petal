@@ -53,6 +53,8 @@ dependencies:
   cookie_jar: ^4.0.9
   dio_cookie_manager: ^3.4.0
   path: ^1.9.1
+  pip_plugin: ^0.0.1+2
+  window_manager: ^0.5.1
 
 dev_dependencies:
   flutter_test:

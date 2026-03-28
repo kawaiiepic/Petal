@@ -4,9 +4,11 @@ import 'package:blssmpetal/main.dart';
 import 'package:blssmpetal/models/custom_model.dart';
 import 'package:blssmpetal/navigation/navigation.dart';
 import 'package:blssmpetal/pages/addons.dart';
+import 'package:blssmpetal/pages/dashboard/search_widget.dart';
 import 'package:blssmpetal/pages/episode_overview.dart';
 import 'package:blssmpetal/pages/login.dart';
 import 'package:blssmpetal/pages/movie_overview.dart';
+import 'package:blssmpetal/pages/offline.dart';
 import 'package:blssmpetal/pages/player/player_old.dart';
 import 'package:blssmpetal/pages/settings.dart';
 import 'package:blssmpetal/router/dialog_page.dart';
@@ -26,7 +28,7 @@ class AppRouter {
     redirect: (context, state) {
       final loggingIn = state.matchedLocation == '/login';
 
-      print(TraktApi.authState.loggedIn);
+      if (!Api.healthy.value) return '/offline';
 
       if (!TraktApi.authState.loggedIn) return '/login';
       if (TraktApi.authState.loggedIn && loggingIn) return '/';
@@ -72,9 +74,14 @@ class AppRouter {
       ),
       settingsRoute,
       GoRoute(
-    path: '/addons',
-    pageBuilder: (context, state) => DialogPage(builder: (context) => Addons()),
-  ),
+        path: '/addons',
+        pageBuilder: (context, state) => DialogPage(builder: (context) => Addons()),
+      ),
+      GoRoute(
+        path: '/search',
+        pageBuilder: (context, state) => DialogPage(builder: (context) => Search()),
+      ),
+      GoRoute(path: '/offline',  builder: (context, state) => Offline()),
       GoRoute(path: '/login', builder: (context, state) => Login()),
       GoRoute(
         parentNavigatorKey: PetalApp.rootNavigatorKey,

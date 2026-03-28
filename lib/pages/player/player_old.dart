@@ -41,18 +41,15 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
     if (stream != null) {
       selectedStream = stream;
-      player.open(Media(selectedStream.url));
+      print("Best Stream found: ${selectedStream.url}");
+      await player.open(Media(selectedStream.url));
     } else {
       context.pop();
 
       showToast(
         context: context,
         builder: (context, overlay) => SurfaceCard(
-          child: Basic(
-            title: const Text('Stream'),
-            subtitle: const Text('No Streams available'),
-            trailingAlignment: Alignment.center,
-          ),
+          child: Basic(title: const Text('Stream'), subtitle: const Text('No Streams available'), trailingAlignment: Alignment.center),
         ),
         location: ToastLocation.bottomRight,
       );
@@ -67,9 +64,8 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(child: Text('Dead'));
-    // return Scaffold(
-    //   body: Video(controller: controller, controls: customVideoControls),
-    // );
+    return Scaffold(
+      child: Video(controller: controller, controls: (state) => customVideoControls(state, widget)),
+    );
   }
 }

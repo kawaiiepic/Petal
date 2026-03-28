@@ -16,7 +16,7 @@ class Navigation extends StatelessWidget {
     _NavItem(icon: Icons.local_fire_department_rounded, label: 'Hot', route: '/trending'),
     _NavItem(icon: Icons.download, label: 'Addons', route: '/addons', popUp: true),
     _NavItem(icon: Icons.settings, label: 'Settings', route: '/settings', popUp: true),
-    _NavItem(icon: Icons.search_rounded, label: 'Search', route: '/search'),
+    _NavItem(icon: Icons.search_rounded, label: 'Search', route: '/search', popUp: true),
   ];
 
   @override

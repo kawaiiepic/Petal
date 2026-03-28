@@ -65,7 +65,7 @@ app.get("/tmdb", async (req, res) => {
         return res.status(400).json({ error: "Missing url" });
     const url = `https://api.themoviedb.org/3${decodeURIComponent(raw)}`;
     try {
-        const response = await fetchWithRetry(url, {
+        const response = await fetch(url, {
             headers: _header,
         });
         // const response = await fetch(url, {
@@ -130,17 +130,17 @@ app.post("/addons/set", (req, res) => {
         return res.status(400).json({ error: "Missing data" });
     }
     console.log("Saving addon.");
-    var username = Trakt.verifyToken(req.cookies.token)
-        .username;
-    console.log("Saving addons for user:", username);
+    var email = Login.verifyToken(req.cookies.auth)
+        .email;
+    console.log("Saving addons for user:", email);
     const insert = DB.db.prepare(`
     INSERT OR REPLACE INTO addons
-    (id, username, name, manifest_url, icon, enabled_resources, forced, config)
+    (id, email, name, manifest_url, icon, enabled_resources, forced, config)
     VALUES (?,?, ?, ?, ?, ?, ?, ?)
   `);
     const tx = DB.db.transaction(() => {
         for (const addon of addons) {
-            insert.run(addon.id, username, addon.name, addon.manifestUrl, addon.icon || "", JSON.stringify(addon.enabledResources || []), addon.forced, JSON.stringify(addon.config || {}));
+            insert.run(addon.id, email, addon.name, addon.manifestUrl, addon.icon || "", JSON.stringify(addon.enabledResources || []), addon.forced, JSON.stringify(addon.config || {}));
         }
     });
     tx();
@@ -166,7 +166,6 @@ app.get("/addons/get", (req, res) => {
             forced: 0,
             config: JSON.parse(r.config),
         }));
-        // const addons = [];
         addons.push({
             id: "com.linvo.cinemeta",
             name: "Cinemeta",
