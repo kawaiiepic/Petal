@@ -15,6 +15,7 @@ class _LoginState extends State<Login> {
   final passwordController = TextEditingController();
 
   bool loading = false;
+  bool register = false;
   String? error;
 
   Future<void> handleLogin() async {
@@ -97,6 +98,16 @@ class _LoginState extends State<Login> {
                   child: ElevatedButton(
                     onPressed: loading ? null : handleLogin,
                     child: loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Login"),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: loading ? null : handleLogin,
+                    child: loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Register"),
                   ),
                 ),
               ],

@@ -22,8 +22,9 @@ export abstract class Login {
 
         // TODO: Check if email and password matches the database.
 
-        if (email == "mia" && password == "password") {
-          var token = jwt.sign({ email: email }, this.SECRET_KEY);
+        if (registerToken == "token") {
+          const uuid: string = crypto.randomUUID();
+          var token = jwt.sign({ email: email, uuid: uuid }, this.SECRET_KEY);
 
           res.cookie("auth", token);
 

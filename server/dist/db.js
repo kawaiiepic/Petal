@@ -9,6 +9,7 @@ export class DB {
             .prepare(`
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
+      password TEXT,
       created_at INTEGER
     )
     `)
