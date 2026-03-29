@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 
 class Api {
-  static bool dev = true;
+  static bool dev = false;
   static bool traktLoggedIn = false;
   static bool loggedIn = false;
 
