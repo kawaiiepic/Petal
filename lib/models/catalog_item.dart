@@ -1,4 +1,3 @@
-import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/models/stremio/stremio_episode.dart';
 import 'package:blssmpetal/models/stremio/stremio_season.dart';
 import 'trailer.dart';

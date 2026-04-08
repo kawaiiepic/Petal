@@ -1,4 +1,5 @@
 import 'package:blssmpetal/api/api_cache.dart';
+import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
@@ -15,16 +16,18 @@ class CatalogItemWidget extends StatefulWidget {
 
 class _CatalogItemWidget extends State<CatalogItemWidget> {
   late final CatalogItem catalogItem;
+  late final Future<TmdbSearchResult> _searchFuture;
 
   @override
   void initState() {
     super.initState();
     catalogItem = widget.catalogItem;
+    _searchFuture = ApiCache.getTmdbSearch(catalogItem.id);
   }
 
   @override
   Widget build(BuildContext context) => FutureBuilder(
-    future: ApiCache.getTmdbSearch(catalogItem.id),
+    future: _searchFuture,
     builder: (context, searchSnapshot) => HoverableItem(
       image: searchSnapshot.hasData
           ? CachedNetworkImage(

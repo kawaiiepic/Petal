@@ -38,7 +38,6 @@ dependencies:
   media_kit: ^1.2.6
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
-  media_kit_libs_audio: ^1.0.7
 
   media_kit_libs_linux: any
   url_launcher: ^6.3.2

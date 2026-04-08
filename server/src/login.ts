@@ -110,9 +110,9 @@ export abstract class Login {
 
         console.log("User NOT verified");
 
-        res.status(201).json({ verified: false });
+       res.status(200).json({ status: "fail" });
       } else {
-        res.status(300).json({ verified: false });
+        res.status(200).json({ status: "fail" });
       }
     });
   }

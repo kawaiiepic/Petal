@@ -2,14 +2,12 @@ import 'dart:async';
 
 import 'package:blssmpetal/api/catalog_helper.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
-import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 
 class Api {
-  static bool dev = false;
+  static bool dev = true;
   static bool traktLoggedIn = false;
   static bool loggedIn = false;
 
@@ -17,30 +15,33 @@ class Api {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
   }
 
-  static final ServerUrl = dev ? 'http://localhost:3000' : 'https://petal.blossomvale.dev/api';
+  static final ServerUrl = dev ? 'http://10.0.0.105:3000' : 'https://petal.blossomvale.dev/api';
 
-  static final ValueNotifier<bool> healthy = ValueNotifier(true);
+  static final ValueNotifier<bool> healthy = ValueNotifier(false);
 
   static Future<void> initApi() async {
     await TraktApi.init();
-    await TraktApi.verifySession();
-
-    if (TraktApi.validSession.value) {
-      _onBackendRecovered();
-    }
-
     // initial check
     final ok = await healthCheck();
     healthy.value = ok;
+
+    healthy.addListener(() {
+      if (healthy.value) {
+        _onBackendRecovered();
+      }
+    });
   }
 
   static void _onBackendRecovered() {
+    TraktApi.verifySession();
     CatalogApi.clearCache();
   }
 
   static Future<bool> healthCheck() async {
     try {
       final res = await TraktApi.dio.get("$ServerUrl/health").timeout(const Duration(seconds: 3));
+
+      print(res.data);
 
       return res.statusCode == 200;
     } catch (_) {

@@ -73,9 +73,9 @@ class StreamApi {
     final name = s.name.toUpperCase();
 
     // Resolution
-    if (name.contains('2160P') || name.contains('4K'))
+    if (name.contains('2160P') || name.contains('4K')) {
       score += 40;
-    else if (name.contains('1080P'))
+    } else if (name.contains('1080P'))
       score += 30;
     else if (name.contains('720P'))
       score += 20;
@@ -83,9 +83,9 @@ class StreamApi {
       score += 10;
 
     // Source quality
-    if (name.contains('BLURAY') || name.contains('BLU-RAY'))
+    if (name.contains('BLURAY') || name.contains('BLU-RAY')) {
       score += 15;
-    else if (name.contains('WEB-DL') || name.contains('WEBDL'))
+    } else if (name.contains('WEB-DL') || name.contains('WEBDL'))
       score += 12;
     else if (name.contains('WEBRIP'))
       score += 10;

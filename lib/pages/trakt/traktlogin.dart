@@ -1,4 +1,3 @@
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/api/api.dart';
 import 'package:flutter/material.dart';

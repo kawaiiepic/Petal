@@ -33,7 +33,7 @@ class TraktCache {
     if (kIsWeb) {
       return null;
     } else {
-      print("Getting ${key}");
+      print("Getting $key");
       final file = await _file(key);
       if (!await file.exists()) return null;
 

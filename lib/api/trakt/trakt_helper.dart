@@ -34,11 +34,13 @@ class TraktApi {
   static Future<void> prepareCookieManager() async {
     dio = Dio();
     final directory = await getApplicationCacheDirectory();
+    print(directory.path);
     cookieJar = PersistCookieJar(ignoreExpires: true, storage: FileStorage("${directory.path}/.cookies/"));
     dio.interceptors.add(CookieManager(cookieJar));
   }
 
   static Future<void> verifySession() async {
+    print("Verifying session");
     if (kIsWeb) {
       try {
         final response = await dio.get("${Api.ServerUrl}/trakt/verify_session");
@@ -52,6 +54,9 @@ class TraktApi {
       }
     } else {
       final response = await dio.get("${Api.ServerUrl}/login/verify");
+
+      print("Response code for verify.");
+      print(response.data);
 
       if (response.data["status"] == "success") {
         authState.setLoggedIn(true);
@@ -154,12 +159,12 @@ class TraktApi {
     return Future.error(Exception());
   }
 
-  static Future<Search> search(String id_type, String id, String type) async {
+  static Future<Search> search(String idType, String id, String type) async {
     final typeFixed = switch (type) {
       "series" => "show",
       String() => type,
     };
-    final response = await dio.get('${Api.ServerUrl}/trakt/search/$id_type/$id/$typeFixed');
+    final response = await dio.get('${Api.ServerUrl}/trakt/search/$idType/$id/$typeFixed');
 
     if (response.statusCode == 200) {
       try {

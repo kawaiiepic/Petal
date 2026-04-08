@@ -1,4 +1,6 @@
 import 'package:blssmpetal/api/api_cache.dart';
+import 'package:blssmpetal/models/catalog.dart';
+import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/pages/catalog_row.dart';
 import 'package:blssmpetal/pages/empty_sliver.dart';
 import 'package:flutter/material.dart';
@@ -11,48 +13,60 @@ class CatalogWidget extends StatefulWidget {
 }
 
 class _CatalogWidget extends State<CatalogWidget> {
+  late final Future<List<CatalogWithItems>> _catalogsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _catalogsFuture = _loadAllCatalogs();
+  }
+
+  Future<List<CatalogWithItems>> _loadAllCatalogs() async {
+    final addons = await ApiCache.getAddons();
+    final catalogs = addons.where((addon) => addon.enabledResources.contains("catalog")).expand((addon) => ApiCache.getCatalogs(addon)).toList();
+
+    final results = await Future.wait(
+      catalogs.map((catalog) async {
+        final items = await ApiCache.getCatalogItems(catalog);
+        return CatalogWithItems(catalog: catalog, items: items.take(3).toList());
+      }),
+    );
+
+    // Prefetch all TMDB searches before rendering anything
+    final allItems = results.expand((c) => c.items).toList();
+    Future.wait(allItems.map((item) => ApiCache.getTmdbSearch(item.id)));
+
+    return results;
+  }
+
   @override
   Widget build(BuildContext context) => CustomScrollView(
     slivers: [
-      FutureBuilder(
-        future: ApiCache.getAddons(),
-        builder: (context, addonsSnapshot) {
-          switch (addonsSnapshot.connectionState) {
-            case ConnectionState.active:
+      FutureBuilder<List<CatalogWithItems>>(
+        future: _catalogsFuture,
+        builder: (context, snapshot) {
+          switch (snapshot.connectionState) {
             case ConnectionState.done:
-              {
-
-                final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
-
-                final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
-
-                return SliverFixedExtentList(
-                  itemExtent: 300,
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final catalog = catalogs[index];
-
-                    return FutureBuilder(
-                      future: ApiCache.getCatalogItems(catalog),
-                      builder: (context, snapshot) {
-                        switch (snapshot.connectionState) {
-                          case ConnectionState.active:
-                          case ConnectionState.done:
-                            {
-                              return CatalogRow(key: ValueKey(catalog.id), catalog: catalog, catalogItems: snapshot.data!);
-                            }
-                          case _:
-                            return SizedBox();
-                        }
-                      },
-                    );
-                  }, childCount: catalogs.length),
-                );
-              }
-            case _:
+              return SliverFixedExtentList(
+                itemExtent: 300,
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final entry = snapshot.data![index];
+                  return CatalogRow(key: ValueKey(entry.catalog.id), catalog: entry.catalog, catalogItems: entry.items);
+                }, childCount: snapshot.data!.length),
+              );
+            case ConnectionState.waiting:
+              return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
+            default:
               return EmptySliver();
           }
         },
       ),
     ],
   );
+}
+
+class CatalogWithItems {
+  final Catalog catalog;
+  final List<CatalogItem> items;
+  const CatalogWithItems({required this.catalog, required this.items});
 }

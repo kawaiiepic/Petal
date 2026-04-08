@@ -161,7 +161,7 @@ class TmdbMedia {
     required this.releaseDate,
   });
 
-  String? get posterUrl => posterPath != null ? '${TMDB.imageUrl}$posterPath' : null;
+  String? get posterUrl => '${TMDB.imageUrl}$posterPath';
 
   factory TmdbMedia.fromJson(Map<String, dynamic> json) {
     return TmdbMedia(
