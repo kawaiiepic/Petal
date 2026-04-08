@@ -318,6 +318,7 @@ class _PlayerControls extends State<PlayerControls> {
           ),
         ),
 
+        if(isShow)
         Positioned(
           right: 20,
           bottom: 40,
