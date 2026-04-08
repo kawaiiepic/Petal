@@ -4,10 +4,12 @@ import 'package:blssmpetal/api/tmdb/tmdb.dart';
 import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
 import 'package:blssmpetal/pages/player/player_old.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:pip_plugin/pip_plugin.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -49,6 +51,8 @@ class _PlayerControls extends State<PlayerControls> {
   void initState() {
     super.initState();
 
+    player = widget.state.widget.controller.player;
+
     isShow = widget.widget.showId != null;
 
     if (isShow) {
@@ -62,31 +66,15 @@ class _PlayerControls extends State<PlayerControls> {
       movie = TMDB.movie(widget.widget.movieId!);
     }
 
-    player = widget.state.widget.controller.player;
-    duration = widget.state.widget.controller.player.state.duration;
-
     player.stream.buffering.listen((buffering) {
       setState(() {
         isBuffering = buffering;
       });
     });
 
-    _positonTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
-      if (mounted) {
-        setState(() {
-          position = player.state.position; // always refresh
-          duration = player.state.duration;
-        });
-      }
-    });
-
     player.stream.playing.listen((playing) {
-      isPlaying = playing;
-    });
-
-    player.stream.buffer.listen((buffer) {
       setState(() {
-        this.buffer = buffer;
+        isPlaying = playing;
       });
     });
   }
@@ -120,311 +108,221 @@ class _PlayerControls extends State<PlayerControls> {
   }
 
   @override
-  Widget build(BuildContext context) => MouseRegion(
-    cursor: _uiIsActive ? SystemMouseCursors.basic : SystemMouseCursors.none,
-    onHover: (event) {
-      setState(() {
-        _uiIsActive = true;
-      });
-
-      widget.state.setSubtitleViewPadding(EdgeInsets.fromLTRB(0, 0, 0, 100) + widget.state.widget.subtitleViewConfiguration.padding);
-
-      _uiTimer?.cancel();
-      _uiTimer = Timer(Duration(milliseconds: 5500), () {
-        setState(() {
-          _uiIsActive = false;
-        });
-        widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
-      });
+  Widget build(BuildContext context) => CallbackShortcuts(
+    bindings: <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.space): () => widget.state.widget.controller.player.playOrPause(),
+      const SingleActivator(LogicalKeyboardKey.arrowLeft): () => player.seek(player.state.position - Duration(seconds: 30)),
+      const SingleActivator(LogicalKeyboardKey.arrowRight): () => player.seek(player.state.position + Duration(seconds: 30)),
     },
-    child: Stack(
-      alignment: AlignmentGeometry.bottomRight,
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: () {
-              widget.state.widget.controller.player.playOrPause();
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Container(),
-          ),
-        ),
+    child: Focus(
+      autofocus: true,
+      child: MouseRegion(
+        cursor: _uiIsActive ? SystemMouseCursors.basic : SystemMouseCursors.none,
+        onHover: (event) {
+          if (_uiIsActive == false) {
+            setState(() {
+              _uiIsActive = true;
+            });
 
-        // Controls overlay
-        AnimatedOpacity(
-          opacity: _uiIsActive ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          child: Padding(
-            padding: const EdgeInsets.all(15),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+            widget.state.setSubtitleViewPadding(EdgeInsets.fromLTRB(0, 0, 0, 100) + widget.state.widget.subtitleViewConfiguration.padding);
+          }
+
+          _uiTimer?.cancel();
+          _uiTimer = Timer(Duration(milliseconds: 5500), () {
+            setState(() {
+              _uiIsActive = false;
+            });
+            widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
+          });
+        },
+        child: Stack(
+          alignment: AlignmentGeometry.bottomRight,
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  widget.state.widget.controller.player.playOrPause();
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Container(),
+              ),
+            ),
+
+            // Controls overlay
+            AnimatedOpacity(
+              opacity: _uiIsActive ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      variance: ButtonVariance.ghost,
-                      onPressed: () {
-                        context.pop();
-                      },
-                      icon: Row(children: [Icon(Icons.arrow_back_ios_new_rounded), Text("Return")]),
-                    ),
-                    if (isShow)
-                      FutureBuilder(
-                        future: _showData,
-                        builder: (context, snapshot) => Column(
-                          spacing: 8,
-                          children: [
-                            Text(snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
-                            Text(snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name'),
-                          ],
-                        ).asSkeleton(snapshot: snapshot),
-                      )
-                    else
-                      FutureBuilder(
-                        future: movie,
-                        builder: (context, snapshot) => snapshot.hasData ? Text((snapshot.data! as TmdbMovie).title) : const SizedBox.shrink(),
-                      ),
-                    ControlButton(icon: Icon(Icons.info_outline_rounded)),
-                  ],
-                ),
-                Center(
-                  child: ControlButton(
-                    onTap: () => player.playOrPause(),
-                    icon: isBuffering ? CircularProgressIndicator() : Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
-                  ),
-                ),
-                Column(
-                  spacing: 8,
-                  children: [
-                    Slider(
-                      value: SliderValue.single(duration.inMilliseconds > 0 ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0) : 0.0),
-                      hintValue: SliderValue.single(duration.inMilliseconds > 0 ? (buffer.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0) : 0.0),
-                      onChanged: duration.inMilliseconds > 0
-                          ? (value) {
-                              final newPosition = Duration(milliseconds: (value.value * duration.inMilliseconds).toInt());
-                              player.seek(newPosition);
-                            }
-                          : null,
-                    ),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ControlButton(onTap: () => player.playOrPause(), icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded)),
-                        VolumeButton(player: player),
-                        Row(spacing: 4, children: [Text(formatDurationShort(position)), Text('/'), Text(formatDurationShort(duration))]),
-
-                        if (isShow) ...[
-                          const SizedBox(width: 10),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                          ),
-                          const SizedBox(width: 10),
-                          Row(spacing: 8, children: [Text('S${widget.widget.episode!.seasonNumber}'), Text('E${widget.widget.episode!.episodeNumber}')]),
-                        ],
-
-                        const Spacer(),
+                        IconButton(
+                          variance: ButtonVariance.ghost,
+                          onPressed: () {
+                            context.pop();
+                          },
+                          icon: const Row(children: [Icon(Icons.arrow_back_ios_new_rounded), Text("Return")]),
+                        ),
                         if (isShow)
-                          ControlButton(
-                            onTap: () {
-                              openDrawer(
-                                context: context,
-                                builder: (context) => _EpisodeDrawer(
-                                  showData: _showData,
-                                  initialSeason: _selectedSeason,
-                                  tmdbId: widget.widget.showId!,
-                                  onSeasonChanged: (season) {
-                                    setState(() => _selectedSeason = season);
-                                  },
-                                ),
-                                position: OverlayPosition.right,
-                              );
-                            },
-                            icon: Icon(Icons.amp_stories_rounded),
+                          FutureBuilder(
+                            future: _showData,
+                            builder: (context, snapshot) => Column(
+                              spacing: 8,
+                              children: [
+                                Text(snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
+                                Text(snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name'),
+                              ],
+                            ).asSkeleton(snapshot: snapshot),
+                          )
+                        else
+                          FutureBuilder(
+                            future: movie,
+                            builder: (context, snapshot) => snapshot.hasData ? Text((snapshot.data! as TmdbMovie).title) : const SizedBox.shrink(),
                           ),
-                        ControlButton(
-                          onTap: () async {
-                            TmdbEpisode? nextEpisode = await _nextEpisode;
-                            if (nextEpisode != null) {
-                              context.pushReplacement('/player?show=${widget.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}');
-                            }
-                          },
-                          icon: Icon(Icons.skip_next_rounded),
+                        const ControlButton(icon: Icon(Icons.info_outline_rounded)),
+                      ],
+                    ),
+                    Center(
+                      child: RepaintBoundary(
+                        child: ControlButton(
+                          onTap: () => player.playOrPause(),
+                          icon: isBuffering ? CircularProgressIndicator(size: 50) : Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
                         ),
-                        DropdownButton(
-                          dropdownMenu: DropdownMenu(
-                            children: [
-                              MenuLabel(
-                                child: Row(
-                                  children: [
-                                    ControlButton(icon: Icon(Icons.arrow_back_ios_new_rounded)),
-                                    Icon(Icons.subtitles_rounded),
-                                    Text('Subtitles'),
-                                    Spacer(),
-                                    ControlButton(icon: Icon(Icons.upload_rounded)),
-                                  ],
-                                ),
-                              ),
-                              MenuDivider(),
-                              MenuLabel(child: Text('Subtitle')),
-                              ...player.state.tracks.subtitle.map(
-                                (e) => MenuButton(onPressed: (context) => player.setSubtitleTrack(e), child: Text(e.language ?? e.id)),
-                              ),
+                      ),
+                    ),
+                    Column(
+                      spacing: 8,
+                      children: [
+                        _Slider(player: player),
+                        Row(
+                          children: [
+                            RepaintBoundary(
+                              child: ControlButton(onTap: () => player.playOrPause(), icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded)),
+                            ),
+                            VolumeButton(player: player),
+                            _PositionDisplay(player: player),
 
-                              MenuLabel(child: Text('Audio')),
-                              ...player.state.tracks.audio.map(
-                                (e) => MenuButton(onPressed: (context) => player.setAudioTrack(e), child: Text(e.language ?? e.id)),
+                            if (isShow) ...[
+                              const SizedBox(width: 10),
+                              Container(
+                                width: 4,
+                                height: 4,
+                                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                              ),
+                              const SizedBox(width: 10),
+                              Row(spacing: 8, children: [Text('S${widget.widget.episode!.seasonNumber}'), Text('E${widget.widget.episode!.episodeNumber}')]),
+                            ],
+
+                            const Spacer(),
+                            if (isShow) ...[
+                              ControlButton(
+                                onTap: () {
+                                  openDrawer(
+                                    context: context,
+                                    builder: (context) => _EpisodeDrawer(
+                                      showData: _showData,
+                                      initialSeason: _selectedSeason,
+                                      tmdbId: widget.widget.showId!,
+                                      onSeasonChanged: (season) {
+                                        setState(() => _selectedSeason = season);
+                                      },
+                                    ),
+                                    position: OverlayPosition.right,
+                                  );
+                                },
+                                icon: const Icon(Icons.amp_stories_rounded),
+                              ),
+                              ControlButton(
+                                onTap: () async {
+                                  TmdbEpisode? nextEpisode = await _nextEpisode;
+                                  if (nextEpisode != null) {
+                                    context.pushReplacement(
+                                      '/player?show=${widget.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.skip_next_rounded),
                               ),
                             ],
-                          ),
-                          icon: Icon(Icons.subtitles_rounded),
-                        ),
-                        DropdownButton(
-                          dropdownMenu: DropdownMenu(
-                            children: [
-                              MenuLabel(
-                                child: Row(
-                                  children: [
-                                    ControlButton(icon: Icon(Icons.arrow_back_ios_new_rounded)),
-                                    Icon(Icons.settings_rounded),
-                                    Text('Settings'),
-                                  ],
-                                ),
+                            DropdownButton(
+                              dropdownMenu: DropdownMenu(
+                                children: [
+                                  const MenuLabel(
+                                    child: Row(
+                                      children: [
+                                        ControlButton(icon: Icon(Icons.arrow_back_ios_new_rounded)),
+                                        Icon(Icons.subtitles_rounded),
+                                        Text('Subtitles'),
+                                        Spacer(),
+                                        ControlButton(icon: Icon(Icons.upload_rounded)),
+                                      ],
+                                    ),
+                                  ),
+                                  const MenuDivider(),
+                                  const MenuLabel(child: Text('Subtitle')),
+                                  ...player.state.tracks.subtitle.map(
+                                    (e) => MenuButton(onPressed: (context) => player.setSubtitleTrack(e), child: Text(e.language ?? e.id)),
+                                  ),
+
+                                  const MenuLabel(child: Text('Audio')),
+                                  ...player.state.tracks.audio.map(
+                                    (e) => MenuButton(onPressed: (context) => player.setAudioTrack(e), child: Text(e.language ?? e.id)),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          icon: Icon(Icons.settings_rounded),
-                        ),
-                        ControlButton(
-                          onTap: () {
-                            pip.setupPip();
-                            pip.startPip();
-                          },
-                          icon: Icon(Icons.picture_in_picture_alt_rounded),
-                        ),
-                        ControlButton(
-                          onTap: () async {
-                            windowManager.setFullScreen(!(await windowManager.isFullScreen()));
-                          },
-                          icon: Icon(Icons.fullscreen_rounded),
+                              icon: const Icon(Icons.subtitles_rounded),
+                            ),
+                            const DropdownButton(
+                              dropdownMenu: DropdownMenu(
+                                children: [
+                                  MenuLabel(
+                                    child: Row(
+                                      children: [
+                                        ControlButton(icon: Icon(Icons.arrow_back_ios_new_rounded)),
+                                        Icon(Icons.settings_rounded),
+                                        Text('Settings'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              icon: Icon(Icons.settings_rounded),
+                            ),
+                            ControlButton(
+                              onTap: () {
+                                pip.setupPip();
+                                pip.startPip();
+                              },
+                              icon: const Icon(Icons.picture_in_picture_alt_rounded),
+                            ),
+                            ControlButton(
+                              onTap: () async {
+                                windowManager.setFullScreen(!(await windowManager.isFullScreen()));
+                              },
+                              icon: const Icon(Icons.fullscreen_rounded),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ),
-
-        if(isShow)
-        Positioned(
-          right: 20,
-          bottom: 40,
-          child: AnimatedSlide(
-            offset: (duration.inMilliseconds > 0 && (position.inMilliseconds / duration.inMilliseconds) > 0.93) ? Offset(0, -0.10) : Offset.zero,
-            duration: const Duration(milliseconds: 500),
-            child: AnimatedOpacity(
-              opacity: (duration.inMilliseconds > 0 && (position.inMilliseconds / duration.inMilliseconds) > 0.93) ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 500),
-              child: AnimatedSlide(
-                duration: const Duration(milliseconds: 200),
-                offset: _uiIsActive ? Offset(0, -0.20) : Offset.zero,
-                child: FutureBuilder(
-                  future: _nextEpisode,
-                  builder: (context, snapshot) => ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 300,
-                      height: 170,
-                      child: Stack(
-                        // fit: StackFit.expand,
-                        children: [
-                          snapshot.hasData
-                              ? CachedNetworkImage(imageUrl: 'https://image.tmdb.org/t/p/w300${snapshot.data!.stillPath}', fit: BoxFit.cover)
-                              : Container(width: 120, height: 68, color: Colors.pink),
-
-                          Container(color: Colors.black.withAlpha(120)),
-
-                          Center(
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withAlpha(40),
-                                border: Border.all(color: Colors.white, width: 1.5),
-                              ),
-                              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
-                            ),
-                          ),
-
-                          Positioned(
-                            top: 6,
-                            right: 6,
-                            child: GestureDetector(
-                              // onTap: () => setState(() => disableNextUp = true),
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withAlpha(120)),
-                                child: const Icon(Icons.close, color: Colors.white, size: 16),
-                              ),
-                            ),
-                          ),
-
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                  colors: [Colors.black.withAlpha(230), Colors.transparent],
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    "Up Next",
-                                    style: const TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.w600, letterSpacing: 0.5),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    snapshot.hasData ? snapshot.data!.name : 'Example Show Name',
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    snapshot.hasData
-                                        ? "S${snapshot.data!.seasonNumber}:E${snapshot.data!.episodeNumber} · ${snapshot.data!.name}"
-                                        : "Example Episode title and Season info",
-                                    style: const TextStyle(fontSize: 11, color: Colors.white),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  // const SizedBox(height: 8),
-                                  LinearProgressIndicator(value: 0.5, minHeight: 8, color: Colors.pink, backgroundColor: Colors.white.withAlpha(60)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               ),
             ),
-          ),
+
+            if (isShow)
+              Positioned(
+                right: 20,
+                bottom: 40,
+                child: _NextUpCard(player: player, nextEpisode: _nextEpisode, uiIsActive: _uiIsActive),
+              ),
+          ],
         ),
-      ],
+      ),
     ),
   );
 }
@@ -620,13 +518,233 @@ class _VolumeButtonState extends State<VolumeButton> {
                       ),
                     ),
                   ),
-                  Gap(_hovered ? 5 : 0)
+                  Gap(_hovered ? 5 : 0),
                 ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _Slider extends StatefulWidget {
+  final Player player;
+
+  const _Slider({required this.player});
+
+  @override
+  State<StatefulWidget> createState() => _SliderState();
+}
+
+class _SliderState extends State<_Slider> {
+  Duration position = Duration.zero;
+  Duration duration = Duration.zero;
+  Duration buffer = Duration.zero;
+  Timer? _timer;
+  double? _dragValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        if (position != widget.player.state.position) {
+          setState(() {
+            position = widget.player.state.position;
+            duration = widget.player.state.duration;
+            buffer = widget.player.state.buffer;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Duration>(
+      stream: widget.player.stream.position.throttleTime(const Duration(seconds: 1)),
+      builder: (context, snapshot) {
+        final pos = snapshot.data ?? Duration.zero;
+
+        final progress = duration.inMilliseconds > 0 ? (pos.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0) : 0.0;
+
+        final value = _dragValue ?? progress;
+
+        return Slider(
+          value: SliderValue.single(value),
+          onChanged: duration.inMilliseconds > 0
+              ? (v) {
+                  setState(() {
+                    _dragValue = v.value;
+                  });
+                }
+              : null,
+          onChangeEnd: (v) {
+            widget.player.seek(Duration(milliseconds: (v.value * duration.inMilliseconds).toInt()));
+            setState(() {
+              _dragValue = null;
+            });
+          },
+        );
+      },
+    );
+  }
+}
+
+// Separate widget that only rebuilds itself
+class _PositionDisplay extends StatefulWidget {
+  final Player player;
+  const _PositionDisplay({required this.player});
+
+  @override
+  State<_PositionDisplay> createState() => _PositionDisplayState();
+}
+
+class _PositionDisplayState extends State<_PositionDisplay> {
+  Duration position = Duration.zero;
+  Duration duration = Duration.zero;
+  Duration buffer = Duration.zero;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        if (position != widget.player.state.position) {
+          setState(() {
+            position = widget.player.state.position;
+            duration = widget.player.state.duration;
+            buffer = widget.player.state.buffer;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _fmt(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    if (h > 0) {
+      return '$h:$m:$s';
+    }
+    return '${d.inMinutes}:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) => Row(spacing: 4, children: [Text(_fmt(position)), const Text('/'), Text(_fmt(duration))]);
+}
+
+class _NextUpCard extends StatelessWidget {
+  final Player player;
+  final Future<TmdbEpisode?> nextEpisode;
+  final bool uiIsActive;
+
+  const _NextUpCard({required this.player, required this.nextEpisode, required this.uiIsActive});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Duration>(
+      stream: player.stream.position.throttleTime(const Duration(seconds: 1)),
+      builder: (context, posSnapshot) {
+        final pos = posSnapshot.data ?? Duration.zero;
+        final dur = player.state.duration;
+        final progress = dur.inMilliseconds > 0 ? pos.inMilliseconds / dur.inMilliseconds : 0.0;
+        final nearEnd = progress > 0.93;
+
+        return AnimatedSlide(
+          offset: nearEnd ? const Offset(0, -0.10) : Offset.zero,
+          duration: const Duration(milliseconds: 500),
+          child: AnimatedOpacity(
+            opacity: nearEnd ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 500),
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 200),
+              offset: uiIsActive ? const Offset(0, -0.20) : Offset.zero,
+              child: FutureBuilder(
+                future: nextEpisode,
+                builder: (context, snapshot) => ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 300,
+                    height: 170,
+                    child: Stack(
+                      children: [
+                        snapshot.hasData
+                            ? CachedNetworkImage(imageUrl: 'https://image.tmdb.org/t/p/w300${snapshot.data!.stillPath}', fit: BoxFit.cover)
+                            : const SizedBox.shrink(),
+                        Container(color: Colors.black.withAlpha(120)),
+                        Center(
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withAlpha(40),
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
+                          ),
+                        ),
+                        if (snapshot.hasData)
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [Colors.black.withAlpha(230), Colors.transparent],
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    "Up Next",
+                                    style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    snapshot.data!.name,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    "S${snapshot.data!.seasonNumber}:E${snapshot.data!.episodeNumber} · ${snapshot.data!.name}",
+                                    style: const TextStyle(fontSize: 11, color: Colors.white),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  LinearProgressIndicator(value: progress, minHeight: 8, color: Colors.pink, backgroundColor: Colors.white.withAlpha(60)),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

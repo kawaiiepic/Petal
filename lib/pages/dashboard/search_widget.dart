@@ -1,20 +1,13 @@
 import 'dart:async';
 import 'package:blssmpetal/api/api_cache.dart';
 import 'package:blssmpetal/api/stream_helper.dart';
-import 'package:blssmpetal/api/trakt/models.dart';
-import 'package:blssmpetal/api/trakt/trakt_class.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
-import 'package:blssmpetal/pages/episode_overview.dart';
-import 'package:blssmpetal/pages/movie_overview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
-import 'package:fuzzywuzzy/algorithms/token_sort.dart';
-import 'package:fuzzywuzzy/applicable.dart';
+import 'package:flutter/material.dart' as material;
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';
-import 'package:fuzzywuzzy/ratios/partial_ratio.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 enum SearchType { seriesAndMovies, series, movies, actors }
 
@@ -88,21 +81,21 @@ class _SearchState extends State<Search> {
     Widget? cacheWidget;
     return Padding(
       padding: EdgeInsets.all(8),
-      child: SearchAnchor(
+      child: material.SearchAnchor(
         isFullScreen: false,
         viewHintText: 'Search TV Shows, Movies & more...',
         viewLeading: ValueListenableBuilder<SearchType>(
           valueListenable: searchTypeNotifier,
           builder: (context, type, _) {
-            return PopupMenuButton<SearchType>(
+            return material.PopupMenuButton<SearchType>(
               icon: Row(children: [Icon(Icons.filter_list), SizedBox(width: 6), Text(label(type))]),
               onSelected: (t) => searchTypeNotifier.value = t,
-              itemBuilder: (context) => SearchType.values.map((type) => PopupMenuItem<SearchType>(value: type, child: Text(label(type)))).toList(),
+              itemBuilder: (context) => SearchType.values.map((type) => material.PopupMenuItem<SearchType>(value: type, child: Text(label(type)))).toList(),
             );
           },
         ),
         builder: (context, controller) {
-          return SearchBar(
+          return material.SearchBar(
             controller: controller,
             hintText: 'Search TV Shows, Movies & more...',
             onTap: () => controller.openView(),
@@ -132,47 +125,77 @@ class _SearchState extends State<Search> {
                       listenable: searchModel,
                       builder: (context, _) {
                         return Column(
-                          children: extractTop(query: searchModel._currentQuery, choices: searchModel.results, limit: 10, cutoff: 80, getter: (x) => x.name)
-                              .where((item) {
+                          children:
+                              extractTop(
+                                query: searchModel._currentQuery,
+                                choices: searchModel.results.where((item) {
+                                  switch (searchTypeNotifier.value) {
+                                    case SearchType.series:
+                                      return item.type == "series";
+
+                                    case SearchType.movies:
+                                      return item.type == "movie";
+
+                                    case SearchType.seriesAndMovies:
+                                      return item.type == "series" || item.type == "movie";
+
+                                    case SearchType.actors:
+                                      return item.type == "actor";
+                                  }
+                                }).toList(),
+                                limit: 10,
+                                cutoff: 80,
+                                getter: (x) => x.name,
+                              ).map((item) {
                                 final choice = item.choice;
+                                return Padding(
+                                  padding: EdgeInsetsGeometry.all(2),
+                                  child: Button(
+                                    // borderRadius: BorderRadius.circular(5),
+                                    style: ButtonVariance.card,
+                                    onPressed: () async {
+                                      if (mounted) {
+                                        final searchSnapshot = await ApiCache.getTmdbSearch(choice.id);
+                                        final tmdbItem = choice.type == "series" ? searchSnapshot.tv[0] : searchSnapshot.movies[0];
 
-                                print("Text: ${searchModel._currentQuery}, Show: ${choice.name}, Score: ${item.score}");
-                                switch (searchTypeNotifier.value) {
-                                  case SearchType.series:
-                                    return choice.type == "series";
+                                        print(tmdbItem.id);
+                                        context.pop();
+                                        context.go('/catalogs/${choice.type}/${tmdbItem.id}');
+                                      }
+                                    },
 
-                                  case SearchType.movies:
-                                    return choice.type == "movie";
-
-                                  case SearchType.seriesAndMovies:
-                                    return choice.type == "series" || choice.type == "movie";
-
-                                  case SearchType.actors:
-                                    return choice.type == "actor";
-                                }
-                              })
-                              .map((item) {
-                                final choice = item.choice;
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(5),
-                                  onTap: () async {
-                                    if (mounted) {
-                                      final searchSnapshot = await ApiCache.getTmdbSearch(choice.id);
-                                      final tmdbItem = choice.type == "series" ? searchSnapshot.tv[0] : searchSnapshot.movies[0];
-
-                                      print(tmdbItem.id);
-                                      context.pop();
-                                      context.go('/catalogs/${choice.type}/${tmdbItem.id}');
-                                    }
-                                  },
-
-                                  child: Container(
-                                    padding: EdgeInsets.all(8),
-                                    child: Row(children: [Text(choice.name), Text("(${choice.type})")]),
+                                    child: Container(
+                                      padding: EdgeInsets.all(8),
+                                      child: Row(
+                                        spacing: 8,
+                                        children: [
+                                          SizedBox(
+                                            width: 60,
+                                            height: 100,
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadiusGeometry.circular(8),
+                                              child: CachedNetworkImage(imageUrl: choice.poster, fit: BoxFit.cover),
+                                            ),
+                                          ),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(choice.name),
+                                              Row(
+                                                spacing: 8,
+                                                children: [
+                                                  Chip(style: const ButtonStyle.outline(), child: Text(choice.type)),
+                                                  Chip(style: const ButtonStyle.outline(), child: Text(choice.releaseInfo)),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 );
-                              })
-                              .toList(),
+                              }).toList(),
                         );
                       },
                     );

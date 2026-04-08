@@ -42,14 +42,14 @@ DB.init();
 Trakt.deviceCode(app);
 Trakt.pollForAccessToken(app);
 Trakt.verifySession(app);
-Trakt.obtainUserProfile(app);
-Trakt.obtainLastActivities(app);
-Trakt.search(app);
+// Trakt.obtainUserProfile(app);
+// Trakt.obtainLastActivities(app);
+// Trakt.search(app);
 Trakt.startWatching(app);
 Trakt.obtainWatched(app);
-Trakt.obtainShow(app);
-Trakt.obtainMovie(app);
-Trakt.obtainSeasons(app);
+// Trakt.obtainShow(app);
+// Trakt.obtainMovie(app);
+// Trakt.obtainSeasons(app);
 Trakt.obtainShowProgress(app);
 
 Login.verifyLogin(app);
@@ -65,7 +65,6 @@ async function fetchWithRetry(
   delay = 500,
 ): Promise<Response> {
   try {
-
     const res = await fetch(url, options);
 
     if (!res.ok) {
@@ -91,7 +90,6 @@ app.get("/tmdb", async (req, res) => {
   const url = `https://api.themoviedb.org/3${decodeURIComponent(raw as string)}`;
 
   try {
-
     const response = await fetch(url, {
       headers: _header,
     });
@@ -158,6 +156,17 @@ app.get("/img", async (req, res) => {
   }
 });
 
+app.get("/user/settings", (req, res) => {
+  try {
+    var accessToken = Trakt.accessToken(req.cookies.auth);
+    res.json({ traktConnected: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ traktConnected: false });
+  }
+});
+
+app.post("/user/settings", (req, res) => {});
 // Save addons for a user
 app.post("/addons/set", (req, res) => {
   console.log(req.body);
@@ -169,8 +178,7 @@ app.post("/addons/set", (req, res) => {
 
   console.log("Saving addon.");
 
-  var email = (Login.verifyToken(req.cookies.auth) as jwt.JwtPayload)
-    .email;
+  var email = (Login.verifyToken(req.cookies.auth) as jwt.JwtPayload).email;
 
   console.log("Saving addons for user:", email);
 
@@ -207,13 +215,13 @@ app.get("/addons/get", (req, res) => {
     var email = (Trakt.verifyToken(req.cookies.auth) as jwt.JwtPayload).email;
     console.log("Fetching addons for user:", email);
 
-        const rows = DB.db
-          .prepare(
-            `
+    const rows = DB.db
+      .prepare(
+        `
       SELECT * FROM addons WHERE email = ?
     `,
-          )
-          .all(email);
+      )
+      .all(email);
 
     console.log(rows);
 

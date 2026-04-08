@@ -94,7 +94,7 @@ export abstract class Login {
       }
     });
     app.get("/login/verify", async (req, res) => {
-      if (req.cookies.auth != undefined && req.cookies.key != undefined) {
+      if (req.cookies.auth != undefined) {
         console.log(req.cookies.auth);
         var verify = this.verifyToken(req.cookies.auth) as jwt.JwtPayload;
 

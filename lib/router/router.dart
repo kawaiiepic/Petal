@@ -11,6 +11,7 @@ import 'package:blssmpetal/pages/movie_overview.dart';
 import 'package:blssmpetal/pages/offline.dart';
 import 'package:blssmpetal/pages/player/player_old.dart';
 import 'package:blssmpetal/pages/settings.dart';
+import 'package:blssmpetal/pages/trakt/traktlogin.dart';
 import 'package:blssmpetal/router/dialog_page.dart';
 import 'package:blssmpetal/router/routes/catalog_widget.dart';
 import 'package:blssmpetal/pages/dashboard/dashboard.dart';
@@ -83,6 +84,7 @@ class AppRouter {
       ),
       GoRoute(path: '/offline',  builder: (context, state) => Offline()),
       GoRoute(path: '/login', builder: (context, state) => Login()),
+      GoRoute(path: '/traktLogin', builder: (context, state) => TraktLoginPage()),
       GoRoute(
         parentNavigatorKey: PetalApp.rootNavigatorKey,
         path: '/player',

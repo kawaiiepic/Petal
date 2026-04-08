@@ -30,14 +30,14 @@ DB.init();
 Trakt.deviceCode(app);
 Trakt.pollForAccessToken(app);
 Trakt.verifySession(app);
-Trakt.obtainUserProfile(app);
-Trakt.obtainLastActivities(app);
-Trakt.search(app);
+// Trakt.obtainUserProfile(app);
+// Trakt.obtainLastActivities(app);
+// Trakt.search(app);
 Trakt.startWatching(app);
 Trakt.obtainWatched(app);
-Trakt.obtainShow(app);
-Trakt.obtainMovie(app);
-Trakt.obtainSeasons(app);
+// Trakt.obtainShow(app);
+// Trakt.obtainMovie(app);
+// Trakt.obtainSeasons(app);
 Trakt.obtainShowProgress(app);
 Login.verifyLogin(app);
 app.get("/health", (req, res) => {
@@ -122,6 +122,17 @@ app.get("/img", async (req, res) => {
         res.status(500).send("Proxy error");
     }
 });
+app.get("/user/settings", (req, res) => {
+    try {
+        var accessToken = Trakt.accessToken(req.cookies.auth);
+        res.json({ traktConnected: true });
+    }
+    catch (err) {
+        console.error(err);
+        res.json({ traktConnected: false });
+    }
+});
+app.post("/user/settings", (req, res) => { });
 // Save addons for a user
 app.post("/addons/set", (req, res) => {
     console.log(req.body);
@@ -130,8 +141,7 @@ app.post("/addons/set", (req, res) => {
         return res.status(400).json({ error: "Missing data" });
     }
     console.log("Saving addon.");
-    var email = Login.verifyToken(req.cookies.auth)
-        .email;
+    var email = Login.verifyToken(req.cookies.auth).email;
     console.log("Saving addons for user:", email);
     const insert = DB.db.prepare(`
     INSERT OR REPLACE INTO addons

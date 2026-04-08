@@ -11,7 +11,7 @@ class TraktAuth {
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.data);
+      final data = response.data;
       return data;
     } else {
       throw Exception('Failed to get device code: ${response.statusCode}');

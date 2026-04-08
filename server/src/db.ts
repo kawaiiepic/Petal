@@ -24,6 +24,23 @@ export abstract class DB {
       )
       .run();
 
+    this.db
+      .prepare(
+        `
+      CREATE TABLE IF NOT EXISTS trakt_accounts (
+  user_email TEXT,
+  access_token TEXT,
+  refresh_token TEXT,
+  username TEXT,
+  expires_at INTEGER,
+  created_at INTEGER,
+  PRIMARY KEY(user_email),
+  FOREIGN KEY(user_email) REFERENCES users(email)
+);
+      `,
+      )
+      .run();
+
     // user addons
     this.db
       .prepare(
@@ -116,6 +133,50 @@ export abstract class DB {
     `,
       )
       .run(data.email, hashedPassword, data.key, Date.now());
+  }
+
+  public static syncTrakt(userEmail: string, trakt: any) {
+    this.db
+      .prepare(
+        `
+    INSERT INTO trakt_accounts (
+      user_email,
+      access_token,
+      refresh_token,
+      username,
+      expires_at,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_email) DO UPDATE SET
+      access_token = excluded.access_token,
+      refresh_token = excluded.refresh_token,
+      username = excluded.username,
+      expires_at = excluded.expires_at
+  `,
+      )
+      .run(
+        userEmail,
+        trakt.access_token,
+        trakt.refresh_token,
+        trakt.username,
+        trakt.expires_at,
+        Date.now(),
+      );
+  }
+
+  public static getTraktAccessToken(userEmail: string): string | null {
+    const row = this.db
+      .prepare(
+        `
+      SELECT access_token
+      FROM trakt_accounts
+      WHERE user_email = ?
+    `,
+      )
+      .get(userEmail) as { access_token: string } | undefined;
+
+    return row?.access_token ?? null;
   }
 
   public static getUser(email: string) {

@@ -29,8 +29,6 @@ class _CatalogRowState extends State<CatalogRow> {
     final List<CatalogItem> catalogItems = widget.catalogItems.toList();
     final style = TextStyle(fontSize: 18);
 
-    print("${catalog.name} & ${catalogItems.length}");
-
     return Column(
       spacing: 8,
       children: [

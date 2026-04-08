@@ -48,8 +48,8 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
       showToast(
         context: context,
-        builder: (context, overlay) => SurfaceCard(
-          child: Basic(title: const Text('Stream'), subtitle: const Text('No Streams available'), trailingAlignment: Alignment.center),
+        builder: (context, overlay) => const SurfaceCard(
+          child: Basic(title: Text('Stream'), subtitle: Text('No Streams available'), trailingAlignment: Alignment.center),
         ),
         location: ToastLocation.bottomRight,
       );

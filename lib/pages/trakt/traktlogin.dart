@@ -2,13 +2,14 @@ import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/api/api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TraktLoginPage extends StatefulWidget {
   const TraktLoginPage({super.key});
 
   @override
-  _TraktLoginPageState createState() => _TraktLoginPageState();
+  State createState() => _TraktLoginPageState();
 }
 
 class _TraktLoginPageState extends State<TraktLoginPage> {
@@ -34,7 +35,7 @@ class _TraktLoginPageState extends State<TraktLoginPage> {
 
     await TraktAuth.pollForAccessToken(data['device_code'], data['interval'], data['expires_in']);
     Api.traktLoggedIn = true;
-    if (mounted) Navigator.of(context).pushReplacementNamed('/');
+    if (mounted) context.go('/');
   }
 
   @override

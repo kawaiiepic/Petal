@@ -16,35 +16,28 @@ class CatalogItemWidget extends StatefulWidget {
 
 class _CatalogItemWidget extends State<CatalogItemWidget> {
   late final CatalogItem catalogItem;
-  late final Future<TmdbSearchResult> _searchFuture;
 
   @override
   void initState() {
     super.initState();
     catalogItem = widget.catalogItem;
-    _searchFuture = ApiCache.getTmdbSearch(catalogItem.id);
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder(
-    future: _searchFuture,
-    builder: (context, searchSnapshot) => HoverableItem(
-      image: searchSnapshot.hasData
-          ? CachedNetworkImage(
-              imageUrl: searchSnapshot.hasData ? (catalogItem.type == "series" ? searchSnapshot.data!.tv[0] : searchSnapshot.data!.movies[0]).posterPath : '',
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Center(child: CircularProgressIndicator()),
-              errorWidget: (context, url, error) => Icon(Icons.error),
-            )
-          : Container(width: 1, height: 1, color: Colors.pink),
-      onTap: () {
-        if (searchSnapshot.hasData) {
-          print(catalogItem.type);
-          final tmdbItem = catalogItem.type == "series" ? searchSnapshot.data!.tv[0] : searchSnapshot.data!.movies[0];
-          context.push('/catalogs/${catalogItem.type}/${tmdbItem.id}');
-        }
-      },
-    ).asSkeleton(snapshot: searchSnapshot),
+  Widget build(BuildContext context) => HoverableItem(
+    image: CachedNetworkImage(
+      imageUrl: catalogItem.poster,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(color: Colors.pink.withAlpha(1)).asSkeleton(leaf: true),
+      errorWidget: (context, url, error) => Icon(Icons.error),
+    ),
+    onTap: () async {
+      print("Getting TmdbSearch");
+      final searchResults = await ApiCache.getTmdbSearch(catalogItem.id);
+      final tmdbItem = catalogItem.type == "series" ? searchResults.tv[0] : searchResults.movies[0];
+      print(tmdbItem.id);
+      context.push('/catalogs/${catalogItem.type}/${tmdbItem.id}');
+    },
   );
 }
 

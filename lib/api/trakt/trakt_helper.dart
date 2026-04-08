@@ -55,6 +55,8 @@ class TraktApi {
     } else {
       final response = await dio.get("${Api.ServerUrl}/login/verify");
 
+      print(await cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/login/verify")));
+
       print("Response code for verify.");
       print(response.data);
 
@@ -118,6 +120,7 @@ class TraktApi {
   }
 
   static Future<List<TraktShow>> fetchWatched(MediaType mediaType) async {
+    print("Fetching watcheed...");
     final name = mediaType == MediaType.show ? "shows" : "movies";
 
     final response = await dio.get('${Api.ServerUrl}/trakt/sync_watched/$name');
@@ -200,6 +203,8 @@ class TraktApi {
 
   static Future<List<TraktWatchedShowWithProgress>> fetchWatchedShowWithProgress() async {
     if (_cachedWatchedShowWithProgress != null) return _cachedWatchedShowWithProgress!;
+
+    print("Fetching");
 
     final watched = (await fetchWatched(MediaType.show));
 

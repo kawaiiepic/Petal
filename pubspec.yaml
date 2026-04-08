@@ -54,6 +54,7 @@ dependencies:
   path: ^1.9.1
   pip_plugin: ^0.0.1+2
   window_manager: ^0.5.1
+  rxdart: ^0.28.0
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,7 @@ import 'package:blssmpetal/api/catalog_helper.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
+import 'package:blssmpetal/models/settings.dart';
 import 'package:flutter/material.dart';
 
 class Api {
@@ -22,14 +23,16 @@ class Api {
   static Future<void> initApi() async {
     await TraktApi.init();
     // initial check
-    final ok = await healthCheck();
-    healthy.value = ok;
 
     healthy.addListener(() {
+      print("Running healthy");
       if (healthy.value) {
         _onBackendRecovered();
       }
     });
+
+    final ok = await healthCheck();
+    healthy.value = ok;
   }
 
   static void _onBackendRecovered() {
@@ -49,6 +52,16 @@ class Api {
     }
   }
 
+  static Future<Settings?> userSettings() async {
+    final response = await TraktApi.dio.get('${Api.ServerUrl}/user/settings');
+
+    if (response.statusCode == 200) {
+      return Settings.fromJson(response.data);
+    } else {
+      return null;
+    }
+  }
+
   static List<Catalog> generateCatalogs(Addon addon) {
     print("Generating Catalogs");
     final List<Catalog> catalogs = [];
@@ -61,7 +74,6 @@ class Api {
     const allowed = {'top', 'year', 'imdbRating'};
 
     for (final cat in manifest['catalogs']) {
-      print("Running catalog");
       final id = cat['id'];
       final type = cat['type'];
       if (!allowed.contains(id)) continue;
