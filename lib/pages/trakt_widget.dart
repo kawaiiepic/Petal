@@ -19,12 +19,12 @@ class NextUpRow extends StatefulWidget {
 
 class _NextUpRowState extends State<NextUpRow> {
   final ScrollController _controller = ScrollController();
-  bool _isHovering = false;
+  final bool _isHovering = false;
 
   @override
   Widget build(BuildContext context) {
     final traktWidgets = [TraktNextUp()];
-    
+
     return SliverFixedExtentList(
       itemExtent: 300,
       delegate: SliverChildBuilderDelegate((context, index) {

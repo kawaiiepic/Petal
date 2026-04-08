@@ -1,5 +1,3 @@
-import 'package:blssmpetal/api/api.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:flutter/material.dart';
 
 class Profile extends StatelessWidget {

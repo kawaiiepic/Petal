@@ -85,7 +85,7 @@ class _SearchState extends State<Search> {
 
   @override
   Widget build(BuildContext context) {
-    Widget? _cacheWidget;
+    Widget? cacheWidget;
     return Padding(
       padding: EdgeInsets.all(8),
       child: SearchAnchor(
@@ -123,9 +123,9 @@ class _SearchState extends State<Search> {
 
                 searchModel.search(controller.text, snapshot.data!);
 
-                if (_cacheWidget != null && searchModel._debounce != null && searchModel._debounce!.isActive) return _cacheWidget!;
+                if (cacheWidget != null && searchModel._debounce != null && searchModel._debounce!.isActive) return cacheWidget!;
 
-                _cacheWidget = ValueListenableBuilder<SearchType>(
+                cacheWidget = ValueListenableBuilder<SearchType>(
                   valueListenable: searchTypeNotifier,
                   builder: (context, searchType, _) {
                     return ListenableBuilder(
@@ -179,7 +179,7 @@ class _SearchState extends State<Search> {
                   },
                 );
 
-                return _cacheWidget!;
+                return cacheWidget!;
               },
             ),
           ];

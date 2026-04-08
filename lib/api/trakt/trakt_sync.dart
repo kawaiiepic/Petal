@@ -1,5 +1,4 @@
 import 'package:blssmpetal/api/trakt/trakt_cache.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 
 class TraktSync {
   static Future<void> syncUpdates() async {

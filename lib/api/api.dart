@@ -2,14 +2,12 @@ import 'dart:async';
 
 import 'package:blssmpetal/api/catalog_helper.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
-import 'package:blssmpetal/api/trakt/traktauth.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 
 class Api {
-  static bool dev = false;
+  static bool dev = true;
   static bool traktLoggedIn = false;
   static bool loggedIn = false;
 

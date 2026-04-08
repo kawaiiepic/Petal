@@ -1,17 +1,12 @@
 import 'dart:async';
-import 'package:blssmpetal/api/api.dart';
-import 'package:blssmpetal/api/catalog_helper.dart';
 import 'package:blssmpetal/api/tmdb/tmdb.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
-import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:blssmpetal/router/routes/catalog_widget.dart';
 import 'package:blssmpetal/pages/dashboard/search_widget.dart';
 import 'package:blssmpetal/pages/trakt_widget.dart';
-import 'package:blssmpetal/pages/episode_overview.dart';
-import 'package:blssmpetal/pages/movie_overview.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 class Seek extends StatefulWidget {
+  const Seek({super.key});
+
   @override
   State<StatefulWidget> createState() => _SeekState();
 }

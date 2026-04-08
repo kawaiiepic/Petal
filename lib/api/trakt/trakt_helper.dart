@@ -154,12 +154,12 @@ class TraktApi {
     return Future.error(Exception());
   }
 
-  static Future<Search> search(String id_type, String id, String type) async {
+  static Future<Search> search(String idType, String id, String type) async {
     final typeFixed = switch (type) {
       "series" => "show",
       String() => type,
     };
-    final response = await dio.get('${Api.ServerUrl}/trakt/search/$id_type/$id/$typeFixed');
+    final response = await dio.get('${Api.ServerUrl}/trakt/search/$idType/$id/$typeFixed');
 
     if (response.statusCode == 200) {
       try {

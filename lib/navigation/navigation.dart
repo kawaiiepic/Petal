@@ -75,7 +75,7 @@ class Navigation extends StatelessWidget {
 }
 
 extension on GoRouter {
-  get routes => null;
+  Null get routes => null;
 }
 
 class _NavItem {

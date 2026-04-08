@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Breadcrumb extends StatefulWidget {
+  const Breadcrumb({super.key});
+
   @override
   State<StatefulWidget> createState() => _BreadcrumbState();
 }

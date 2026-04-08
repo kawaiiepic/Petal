@@ -1,6 +1,5 @@
 import 'package:blssmpetal/api/api_cache.dart';
 import 'package:blssmpetal/api/trakt/trakt_class.dart';
-import 'package:blssmpetal/pages/episode_overview.dart';
 import 'package:blssmpetal/pages/scrollable_widget.dart';
 import 'package:flutter/material.dart';
 
