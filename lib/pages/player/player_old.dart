@@ -43,6 +43,14 @@ class _StreamPlayerState extends State<StreamPlayer> {
       selectedStream = stream;
       print("Best Stream found: ${selectedStream.url}");
       await player.open(Media(selectedStream.url));
+
+      showToast(
+        context: context,
+        builder: (context, overlay) => SurfaceCard(
+          child: Basic(title: Text('Trakt'), subtitle: Text('${selectedStream.title} set as currently-watching.'), trailingAlignment: Alignment.center),
+        ),
+        location: ToastLocation.bottomRight,
+      );
     } else {
       context.pop();
 

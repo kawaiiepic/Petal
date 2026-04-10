@@ -20,7 +20,7 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
-    return Text('Boop');
+    return Scaffold(body: SafeArea(child: Text('Boop')));
     return CustomScrollView(
       slivers: [
         // Search(),
@@ -162,7 +162,6 @@ class _CatalogRowState extends State<CatalogRow> {
                     if (searchSnapshot.hasError) {
                       return loadingInk;
                     } else {
-
                       final search = searchSnapshot.data!;
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4), // space between posters

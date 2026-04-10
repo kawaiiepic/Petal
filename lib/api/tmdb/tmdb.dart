@@ -73,14 +73,6 @@ class TMDB {
     }
   }
 
-  static Future<Uint8List> still(String id, int season, int episode) {
-    if (imageData.containsKey("still_${id}_${season}_$episode")) {
-      return imageData["still_${id}_${season}_$episode"]!;
-    } else {
-      return imageData["still_${id}_${season}_$episode"] = _episode_still(id, season, episode);
-    }
-  }
-
   static Future<Uint8List> backdrop(String tmdbId) {
     if (imageData.containsKey("backdrop$tmdbId")) {
       print("Loading backdrop from cache");
@@ -181,15 +173,15 @@ class TMDB {
     return art.bodyBytes;
   }
 
-  static Future<Uint8List> _episode_still(String tmdb, int season, int episode) async {
+  static Future<String> episode_still(String tmdb, int season, int episode) async {
     File? file;
     if (kIsWeb) {
     } else {
       final directory = await getApplicationCacheDirectory();
-      file = File('${directory.path}/cache/tmdb/still_${season}_${episode}_$tmdb.jpg');
+      file = File('${directory.path}/cache/tmdb/still_${season}_${episode}_$tmdb.txt');
 
       if (await file.exists()) {
-        return await file.readAsBytes();
+        return await file.readAsString();
       }
     }
 
@@ -198,19 +190,55 @@ class TMDB {
 
     if (response.statusCode != 200) return Future.error(Exception('Failed: ${response.statusCode}'));
 
+    print("Images array: ${response.body}");
+
     final images = Images.fromJson(jsonDecode(response.body));
     if (images.stills == null || images.stills!.isEmpty) return Future.error(Exception('No stills'));
 
     print("Getting this image: ${'https://image.tmdb.org/t/p/original${images.stills![0].filePath!}'}");
 
-    final art = await http.get(Uri.parse(Api.proxyImage('https://image.tmdb.org/t/p/original${images.stills![0].filePath!}')));
     // w780 is ideal for episode stills — good quality without being huge
 
     if (!kIsWeb && file != null) {
       await file.create(recursive: true);
-      await file.writeAsBytes(art.bodyBytes);
+      await file.writeAsString('https://image.tmdb.org/t/p/original${images.stills![0].filePath!}');
     }
 
-    return art.bodyBytes;
+    return 'https://image.tmdb.org/t/p/original${images.stills![0].filePath!}';
   }
+
+  // static Future<Uint8List> _episode_still(String tmdb, int season, int episode) async {
+  //   File? file;
+  //   if (kIsWeb) {
+  //   } else {
+  //     final directory = await getApplicationCacheDirectory();
+  //     file = File('${directory.path}/cache/tmdb/still_${season}_${episode}_$tmdb.jpg');
+
+  //     if (await file.exists()) {
+  //       return await file.readAsBytes();
+  //     }
+  //   }
+
+  //   final url = Uri.https('api.themoviedb.org', '/3/tv/$tmdb/season/$season/episode/$episode/images');
+  //   final response = await http.get(url, headers: _headers);
+
+  //   if (response.statusCode != 200) return Future.error(Exception('Failed: ${response.statusCode}'));
+
+  //   print("Images array: ${response.body}");
+
+  //   final images = Images.fromJson(jsonDecode(response.body));
+  //   if (images.stills == null || images.stills!.isEmpty) return Future.error(Exception('No stills'));
+
+  //   print("Getting this image: ${'https://image.tmdb.org/t/p/original${images.stills![0].filePath!}'}");
+
+  //   final art = await http.get(Uri.parse(Api.proxyImage('https://image.tmdb.org/t/p/original${images.stills![0].filePath!}')));
+  //   // w780 is ideal for episode stills — good quality without being huge
+
+  //   if (!kIsWeb && file != null) {
+  //     await file.create(recursive: true);
+  //     await file.writeAsBytes(art.bodyBytes);
+  //   }
+
+  //   return art.bodyBytes;
+  // }
 }

@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/authstate.dart';
 import 'package:blssmpetal/api/trakt/activity.dart';
 import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/api/trakt/trakt_cache.dart';
 import 'package:blssmpetal/api/trakt/trakt_class.dart';
-import 'package:blssmpetal/api/trakt/trakt_sync.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/trakt/enum/media_type.dart';
 import 'package:blssmpetal/models/trakt/profile/extended_profile.dart';
@@ -131,7 +129,7 @@ class TraktApi {
 
     print("Fetching watched.");
 
-    final list = (jsonDecode(response.data) as List).map((e) {
+    final list = (response.data as List).map((e) {
       try {
         return TraktShow.fromJson(e as Map<String, dynamic>);
       } catch (err, stack) {
@@ -141,6 +139,8 @@ class TraktApi {
         rethrow;
       }
     }).toList();
+
+    print("Watched has ${list.length}");
     return list;
   }
 
@@ -194,7 +194,7 @@ class TraktApi {
     final response = await dio.get('${Api.ServerUrl}/trakt/show_progress/$traktId');
 
     if (response.statusCode == 200) {
-      final result = TraktShowProgress.fromJson(jsonDecode(response.data));
+      final result = TraktShowProgress.fromJson(response.data);
       return result;
     }
 
@@ -206,23 +206,26 @@ class TraktApi {
 
     print("Fetching");
 
-    final watched = (await fetchWatched(MediaType.show));
+    final watched = (await fetchWatched(MediaType.show)).take(20).toList();
 
-    print("Fetching Show Progress again.");
+    print("Fetching Show Progress in parallel.");
 
-    final result = <TraktWatchedShowWithProgress>[];
-
-    for (final w in watched) {
-      if (result.length >= 20) break;
+    final futures = watched.map((w) async {
       final progress = await fetchShowProgress(w.show.ids.trakt.toString());
-      final season = await fetchShowSeasons(w.show.ids.trakt.toString());
-      if (progress.nextEpisode != null) {
-        result.add(TraktWatchedShowWithProgress(watchedShow: w, show: null, showProgress: progress, seasons: season));
+      if (progress.nextEpisode != null &&
+          progress.nextEpisode!.firstAired != null &&
+          DateTime.parse(progress.nextEpisode!.firstAired!).isBefore(DateTime.now())) {
+        return TraktWatchedShowWithProgress(watchedShow: w, show: null, showProgress: progress);
       }
-    }
+      return null;
+    });
 
-    _cachedWatchedShowWithProgress = Future.value(result);
-    return _cachedWatchedShowWithProgress!;
+    final results = await Future.wait(futures);
+
+    final filtered = results.whereType<TraktWatchedShowWithProgress>().toList();
+
+    _cachedWatchedShowWithProgress = Future.value(filtered);
+    return filtered;
   }
 
   /// Fetch a single show's watched progress and seasons by Trakt ID
@@ -234,9 +237,6 @@ class TraktApi {
     final progress = await fetchShowProgress(traktId.toString());
     if (progress.nextEpisode == null) return null;
 
-    // Fetch seasons
-    final seasons = await fetchShowSeasons(traktId.toString());
-
-    return TraktWatchedShowWithProgress(watchedShow: null, show: watchedShow, showProgress: progress, seasons: seasons);
+    return TraktWatchedShowWithProgress(watchedShow: null, show: watchedShow, showProgress: progress);
   }
 }

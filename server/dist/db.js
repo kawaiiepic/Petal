@@ -22,7 +22,6 @@ export class DB {
   user_email TEXT,
   access_token TEXT,
   refresh_token TEXT,
-  username TEXT,
   expires_at INTEGER,
   created_at INTEGER,
   PRIMARY KEY(user_email),
@@ -108,7 +107,6 @@ export class DB {
       user_email,
       access_token,
       refresh_token,
-      username,
       expires_at,
       created_at
     )
@@ -116,10 +114,9 @@ export class DB {
     ON CONFLICT(user_email) DO UPDATE SET
       access_token = excluded.access_token,
       refresh_token = excluded.refresh_token,
-      username = excluded.username,
       expires_at = excluded.expires_at
   `)
-            .run(userEmail, trakt.access_token, trakt.refresh_token, trakt.username, trakt.expires_at, Date.now());
+            .run(userEmail, trakt.access_token, trakt.refresh_token, Date.now() + trakt.expires_in, Date.now());
     }
     static getTraktAccessToken(userEmail) {
         const row = this.db

@@ -28,13 +28,14 @@ export class Trakt {
                 }),
             });
             if (response.status == 400) {
-                res.status(400).json({ error: "Failed to fetch access token" });
+                res.status(201).json({ error: "Failed to fetch access token" });
             }
             else {
                 if (response.status == 200) {
                     const data = await response.json();
                     if (req.cookies.auth != undefined) {
                         var verify = Login.verifyToken(req.cookies.auth);
+                        console.log(`Saving Trakt Login for: ${verify.email} data is: ${data}`);
                         DB.syncTrakt(verify.email, data);
                         res.status(200).json({ status: "success" });
                     }
@@ -64,6 +65,7 @@ export class Trakt {
     static accessToken(auth) {
         try {
             var verify = Login.verifyToken(auth);
+            console.log(`Email: ${verify.email}`);
             return DB.getTraktAccessToken(verify.email);
         }
         catch (err) {
@@ -241,6 +243,7 @@ export class Trakt {
             const accessToken = this.accessToken(req.cookies.auth);
             console.log(accessToken);
             const type = req.params.type;
+            console.log(`AccessToken: ${accessToken}`);
             const response = await fetch(`https://api.trakt.tv/sync/watched/${type}?extended=full`, {
                 headers: {
                     ...this._header,
@@ -248,7 +251,7 @@ export class Trakt {
                 },
             });
             if (!response.ok)
-                throw new Error("Failed to fetch watched: " + (await response.text()));
+                throw new Error("Failed to fetch watched: " + (await response.url));
             res.json(await response.json());
             // return await response.json();
             // const data = await this.cachedUserFetchWithLastActivity(
@@ -348,7 +351,7 @@ export class Trakt {
     // }
     static async obtainShowProgress(app) {
         app.get("/trakt/show_progress/:traktId", async (req, res) => {
-            if (!req.cookies.token)
+            if (!req.cookies.auth)
                 return res.sendStatus(300);
             var verify = Login.verifyToken(req.cookies.auth);
             const accessToken = this.accessToken(req.cookies.auth);
@@ -393,6 +396,6 @@ Trakt._header = {
     "Content-Type": "application/json",
     "trakt-api-version": "2",
     "trakt-api-key": _a.CLIENT_ID,
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "User-Agent": "BlssmPetal/1.0.0",
 };
 Trakt.pending = new Map();

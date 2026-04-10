@@ -18,7 +18,9 @@
             ffmpeg
             yarn
             typescript
+            sqlite
             # better-sqlite3
+
           ];
 
           shellHook = ''

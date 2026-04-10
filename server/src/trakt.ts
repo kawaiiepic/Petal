@@ -47,13 +47,16 @@ export abstract class Trakt {
       });
 
       if (response.status == 400) {
-        res.status(400).json({ error: "Failed to fetch access token" });
+        res.status(201).json({ error: "Failed to fetch access token" });
       } else {
         if (response.status == 200) {
           const data = await response.json();
 
           if (req.cookies.auth != undefined) {
             var verify = Login.verifyToken(req.cookies.auth) as jwt.JwtPayload;
+            console.log(
+              `Saving Trakt Login for: ${verify.email} data is: ${data}`,
+            );
 
             DB.syncTrakt(verify.email, data);
 
@@ -91,6 +94,7 @@ export abstract class Trakt {
   public static accessToken(auth: string) {
     try {
       var verify = Login.verifyToken(auth) as jwt.JwtPayload;
+      console.log(`Email: ${verify.email}`);
       return DB.getTraktAccessToken(verify.email);
     } catch (err) {
       console.error(err);
@@ -294,6 +298,8 @@ export abstract class Trakt {
       console.log(accessToken);
       const type = req.params.type;
 
+      console.log(`AccessToken: ${accessToken}`);
+
       const response = await fetch(
         `https://api.trakt.tv/sync/watched/${type}?extended=full`,
         {
@@ -305,7 +311,7 @@ export abstract class Trakt {
       );
 
       if (!response.ok)
-        throw new Error("Failed to fetch watched: " + (await response.text()));
+        throw new Error("Failed to fetch watched: " + (await response.url));
       res.json(await response.json());
       // return await response.json();
 
@@ -424,7 +430,7 @@ export abstract class Trakt {
 
   public static async obtainShowProgress(app: express.Express) {
     app.get("/trakt/show_progress/:traktId", async (req, res) => {
-      if (!req.cookies.token) return res.sendStatus(300);
+      if (!req.cookies.auth) return res.sendStatus(300);
 
       var verify = Login.verifyToken(req.cookies.auth) as jwt.JwtPayload;
       const accessToken = this.accessToken(req.cookies.auth) as string;

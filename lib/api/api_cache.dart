@@ -48,10 +48,6 @@ class ApiCache {
     return _tmdbPosterFuture.putIfAbsent(mediaType + tmdbId, () => TMDB.poster(MediaType.user.fromTmdbSafe(mediaType), tmdbId));
   }
 
-  static Future<Uint8List> getTmdbStill(String tmdbId, TraktEpisode episode) {
-    return _tmdbStillFuture.putIfAbsent(tmdbId + episode.title!, () => TMDB.still(tmdbId, episode.season, episode.number));
-  }
-
   static Future<TmdbSearchResult> getTmdbSearch(String imdbId) {
     return _tmdbSearchResult.putIfAbsent(imdbId , () => TMDB.search(imdbId));
   }

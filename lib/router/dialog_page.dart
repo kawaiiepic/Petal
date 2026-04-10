@@ -30,8 +30,8 @@ class DialogPage<T> extends Page<T> {
     builder: (context) => Dialog(
       backgroundColor: Colors.transparent,
       child: SizedBox(
-        width: MediaQuery.of(context).size.width * 0.45,
-        height: MediaQuery.of(context).size.height * 0.85,
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
         child: Center(
           child: ClipRRect(borderRadius: BorderRadius.circular(16), child: builder(context)),
         ),

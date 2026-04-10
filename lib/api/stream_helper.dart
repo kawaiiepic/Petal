@@ -1,12 +1,9 @@
 import 'dart:convert';
-import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/api_cache.dart';
-import 'package:blssmpetal/api/trakt/models.dart';
 import 'package:blssmpetal/models/addon.dart';
 import 'package:blssmpetal/models/catalog.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:blssmpetal/models/custom_model.dart';
-import 'package:blssmpetal/models/stremio/stremio_episode.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:blssmpetal/models/stream.dart';

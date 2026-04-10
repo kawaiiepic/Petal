@@ -1,10 +1,4 @@
-import 'package:blssmpetal/api/api_cache.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
-import 'package:blssmpetal/pages/dashboard/dashboard.dart';
-import 'package:blssmpetal/pages/dashboard/trakt/still.dart';
-import 'package:blssmpetal/pages/empty_sliver.dart';
-import 'package:blssmpetal/pages/episode_overview.dart';
 import 'package:blssmpetal/pages/trakt_next_up.dart';
 import 'package:flutter/material.dart';
 
@@ -18,18 +12,11 @@ class NextUpRow extends StatefulWidget {
 }
 
 class _NextUpRowState extends State<NextUpRow> {
-  final ScrollController _controller = ScrollController();
-  final bool _isHovering = false;
-
   @override
   Widget build(BuildContext context) {
-    final traktWidgets = [TraktNextUp()];
-
-    return SliverFixedExtentList(
-      itemExtent: 300,
-      delegate: SliverChildBuilderDelegate((context, index) {
-        return traktWidgets[index];
-      }, childCount: traktWidgets.length),
+    print("Rebuilding NextUpRow");
+    return SliverToBoxAdapter(
+      child: Column(children: const [TraktNextUp(key: ValueKey("traktNextUp"))]),
     );
 
     // return Column(

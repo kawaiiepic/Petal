@@ -1,6 +1,3 @@
-import 'dart:ui';
-import 'package:blssmpetal/main.dart';
-import 'package:blssmpetal/router/router.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

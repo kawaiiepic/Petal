@@ -124,8 +124,10 @@ app.get("/img", async (req, res) => {
 });
 app.get("/user/settings", (req, res) => {
     try {
-        var accessToken = Trakt.accessToken(req.cookies.auth);
-        res.json({ traktConnected: true });
+        var email = Login.verifyToken(req.cookies.auth).email;
+        var accessToken = DB.getTraktAccessToken(email);
+        console.log(`Email: ${email} Trakt accessToken: ${accessToken}`);
+        res.json({ traktConnected: accessToken != null });
     }
     catch (err) {
         console.error(err);

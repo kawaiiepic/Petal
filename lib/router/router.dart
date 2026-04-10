@@ -47,32 +47,22 @@ class AppRouter {
             path: '/catalogs',
             routes: [
               settingsRoute,
-              GoRoute(
-                path: '/series/:id',
-                pageBuilder: (context, state) => DialogPage(
-                  builder: (context) {
-                    return EpisodeOverview(tmdbId: int.parse(state.pathParameters['id']!));
-                  },
-                ),
-              ),
-              GoRoute(
-                path: '/movie/:id',
-                pageBuilder: (context, state) => DialogPage(
-                  builder: (context) {
-                    return MovieOverview(tmdbId: int.parse(state.pathParameters['id']!));
-                  },
-                ),
-              ),
+
             ],
             builder: (context, state) => const CatalogWidget(),
           ),
-
-          GoRoute(
-            path: '/tv/:id',
-            pageBuilder: (context, state) => DialogPage(builder: (context) => EpisodeOverview(tmdbId: int.parse(state.pathParameters['id']!))),
-          ),
         ],
       ),
+
+      GoRoute(
+        path: '/series/:id',
+        builder: (context, state) => EpisodeOverview(tmdbId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/movie/:id',
+        builder: (context, state) => MovieOverview(tmdbId: int.parse(state.pathParameters['id']!)),
+      ),
+      
       settingsRoute,
       GoRoute(
         path: '/addons',

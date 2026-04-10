@@ -1,5 +1,4 @@
 import 'package:blssmpetal/api/api_cache.dart';
-import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
@@ -36,7 +35,7 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
       final searchResults = await ApiCache.getTmdbSearch(catalogItem.id);
       final tmdbItem = catalogItem.type == "series" ? searchResults.tv[0] : searchResults.movies[0];
       print(tmdbItem.id);
-      context.push('/catalogs/${catalogItem.type}/${tmdbItem.id}');
+      context.push('/${catalogItem.type}/${tmdbItem.id}');
     },
   );
 }
