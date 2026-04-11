@@ -44,6 +44,7 @@ class _TraktNextUp extends State<TraktNextUp> {
                 child: ListView.builder(
                   controller: _controller,
                   scrollDirection: Axis.horizontal,
+                  key: PageStorageKey<String>('unique_key_for_this_list'),
 
                   itemCount: snapshot.hasData ? snapshot.data!.length : 10,
                   itemBuilder: (context, index) => snapshot.hasData
@@ -148,21 +149,30 @@ class _TraktNextUpItem extends State<TraktNextUpItem> {
               return Text('Error: ${widget.show.watchedShow!.show.title}');
             }
 
-            return Column(
-              spacing: 8,
-              children: [
-                HoverableItem(
-                  image: CachedNetworkImage(imageUrl: tmdbPosterSnapshot.data!, fit: BoxFit.cover),
-                ),
+            print("Reloading Thingyy.");
 
-                Text(
-                  "${widget.show.showProgress.nextEpisode!.season}x${widget.show.showProgress.nextEpisode!.number} ${widget.show.watchedShow!.show.title}",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+            return SizedBox(
+              width: 400,
+              child: Column(
+                spacing: 8,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: 'https://wallpapers-clan.com/wp-content/uploads/2025/05/pensive-anime-girl-neon-lights-desktop-wallpaper-preview.jpg',
+                    width: 100,
+                  ),
 
-                Text(widget.show.showProgress.nextEpisode!.title!, maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
+                  // HoverableItem(
+                  //   image: CachedNetworkImage(imageUrl: tmdbPosterSnapshot.data!, fit: BoxFit.cover),
+                  // ),
+                  Text(
+                    "${widget.show.showProgress.nextEpisode!.season}x${widget.show.showProgress.nextEpisode!.number} ${widget.show.watchedShow!.show.title}",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  Text(widget.show.showProgress.nextEpisode!.title!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
             );
             // return MouseRegion(
             //   onEnter: (event) => setState(() {
