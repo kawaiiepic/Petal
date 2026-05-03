@@ -49,7 +49,7 @@ jobs:
           cd ..
           zip -r bookadapt_unsigned.ipa Payload
       - name: Upload IPA
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v7
         with:
           name: ios_ipa
           path: build/ios/iphoneos/*.ipa
