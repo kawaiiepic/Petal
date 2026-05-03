@@ -29,7 +29,6 @@ app.use(cookieParser());
 DB.init();
 Trakt.deviceCode(app);
 Trakt.pollForAccessToken(app);
-Trakt.verifySession(app);
 // Trakt.obtainUserProfile(app);
 // Trakt.obtainLastActivities(app);
 // Trakt.search(app);
@@ -162,13 +161,11 @@ app.post("/addons/set", (req, res) => {
 app.get("/addons/get", (req, res) => {
     try {
         var email = Trakt.verifyToken(req.cookies.auth).email;
-        console.log("Fetching addons for user:", email);
         const rows = DB.db
             .prepare(`
       SELECT * FROM addons WHERE email = ?
     `)
             .all(email);
-        console.log(rows);
         const addons = rows.map((r) => ({
             id: r.id,
             name: r.name,

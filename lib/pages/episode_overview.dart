@@ -4,12 +4,12 @@ import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
 import 'package:blssmpetal/models/custom_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart' as material;
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class EpisodeOverview extends StatefulWidget {
   final int tmdbId;
-  // final TmdbShow show;
 
   const EpisodeOverview({super.key, required this.tmdbId});
 
@@ -54,7 +54,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
           final show = showSnapshot.data!;
 
           return Container(
-            color: Theme.of(context).colorScheme.background, // Set your desired color here
+            color: Theme.of(context).colorScheme.background,
             child: CustomScrollView(
               slivers: [
                 SliverAppBar(
@@ -103,14 +103,25 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                           child: Row(
                             spacing: 8,
                             children: [
-                              Button(
-                                onPressed: () => context.push('/player?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}'),
-                                style: const ButtonStyle.primary().withBorderRadius(
-                                  borderRadius: BorderRadius.circular(16),
-                                  hoverBorderRadius: BorderRadius.circular(16),
+                              ContextMenu(
+                                items: [
+                                  MenuButton(
+                                    trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+                                    onPressed: (context) {
+                                      context.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                    },
+                                    child: const Text('Select Source'),
+                                  ),
+                                ],
+                                child: Button(
+                                  onPressed: () => context.push('/player?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}'),
+                                  style: const ButtonStyle.primary().withBorderRadius(
+                                    borderRadius: BorderRadius.circular(16),
+                                    hoverBorderRadius: BorderRadius.circular(16),
+                                  ),
+                                  trailing: Text('Play now S${episode.seasonNumber}:E${episode.episodeNumber}'),
+                                  child: const Icon(Icons.play_arrow_rounded),
                                 ),
-                                trailing: Text('Play now S${episode.seasonNumber}:E${episode.episodeNumber}'),
-                                child: const Icon(Icons.play_arrow_rounded),
                               ),
                               _IconBtn(icon: Icons.check_rounded, onTap: () {}),
                               _IconBtn(icon: Icons.bookmark_outline_rounded, onTap: () {}),
@@ -118,27 +129,6 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                             ],
                           ),
                         ),
-
-                        // Positioned(
-                        //   bottom: 0, // ← negative value makes it bleed into content below
-                        //   left: 0,
-                        //   right: 0,
-                        //   height: 10,
-                        //   child: ClipRect(
-                        //     child: BackdropFilter(
-                        //       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        //       child: Container(
-                        //         decoration: BoxDecoration(
-                        //           gradient: LinearGradient(
-                        //             begin: Alignment.bottomCenter,
-                        //             end: Alignment.topCenter,
-                        //             colors: [Colors.transparent, Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5)],
-                        //           ),
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   ),
-                        // ),
                       ],
                     ),
                   ),
@@ -147,35 +137,6 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                 SliverToBoxAdapter(
                   child: Stack(
                     children: [
-                      // Positioned.fill(
-                      //   child: ClipRect(
-                      //     child: ImageFiltered(
-                      //       imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                      //       child: Image.network(
-                      //         'https://image.tmdb.org/t/p/original${show.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
-                      //         fit: BoxFit.cover,
-                      //         alignment: Alignment.bottomCenter,
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ),
-
-                      // Positioned.fill(
-                      //   child: Container(
-                      //     decoration: BoxDecoration(
-                      //       gradient: LinearGradient(
-                      //         begin: Alignment.topCenter, // ← swapped
-                      //         end: Alignment.bottomCenter, // ← swapped
-                      //         colors: [
-                      //           Colors.black, // solid at top
-                      //           Colors.black.withOpacity(0.9), // semi at middle
-                      //           Colors.black.withOpacity(0.8),
-                      //         ],
-                      //         stops: const [0.0, 0.3, 0.7],
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                         child: Column(
@@ -230,9 +191,11 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
 
                                 _DropdownSeasons(
                                   tvShow: show,
-                                  selectedSeason: episode.seasonNumber,
+                                  selectedSeason: show.seasons.firstWhere(
+                                    (s) => s.seasonNumber == episode.seasonNumber,
+                                  ), // show.seasons[episode.seasonNumber -1]
                                   onSeasonChanged: (season) {
-                                    _seasons = TMDB.tvSeason(widget.tmdbId, season);
+                                    _seasons = TMDB.tvSeason(widget.tmdbId, season.seasonNumber);
                                     setState(() {});
                                   },
                                 ),
@@ -245,7 +208,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                               builder: (context, snapshot) {
                                 return Column(
                                   children: [
-                                    if (snapshot.hasData && snapshot.data!.episodes.isEmpty) Text("There is no episodes."),
+                                    if (snapshot.hasData && snapshot.data!.episodes.isEmpty) Text("There are no episodes."),
 
                                     if (snapshot.hasData && snapshot.data!.episodes.isNotEmpty)
                                       ListView(
@@ -254,53 +217,64 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                             .map(
                                               (episode) => Padding(
                                                 padding: EdgeInsetsGeometry.fromLTRB(0, 4, 0, 4),
-                                                child: GhostButton(
-                                                  onPressed: () {
-                                                    context.pushReplacement(
-                                                      '/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                                    );
-                                                  },
-                                                  child: Row(
-                                                    spacing: 12,
-                                                    children: [
-                                                      ClipRRect(
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        child: CachedNetworkImage(
-                                                          imageUrl:
-                                                              'https://image.tmdb.org/t/p/w300${episode.stillPath ?? show.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
-                                                          width: 120,
-                                                          height: 68,
-                                                          fit: BoxFit.cover,
+                                                child: ContextMenu(
+                                                  items: [
+                                                    MenuButton(
+                                                      trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+                                                      onPressed: (context) {
+                                                        context.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                                      },
+                                                      child: const Text('Select Source'),
+                                                    ),
+                                                  ],
+                                                  child: GhostButton(
+                                                    onPressed: () {
+                                                      context.pushReplacement(
+                                                        '/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
+                                                      );
+                                                    },
+                                                    child: Row(
+                                                      spacing: 12,
+                                                      children: [
+                                                        ClipRRect(
+                                                          borderRadius: BorderRadius.circular(6),
+                                                          child: CachedNetworkImage(
+                                                            imageUrl:
+                                                                'https://image.tmdb.org/t/p/w300${episode.stillPath ?? show.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+                                                            width: 120,
+                                                            height: 68,
+                                                            fit: BoxFit.cover,
+                                                          ),
                                                         ),
-                                                      ),
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          spacing: 8,
-                                                          children: [
-                                                            Row(
-                                                              spacing: 8,
-                                                              children: [Text('${episode.seasonNumber}x${episode.episodeNumber}').light, Text(episode.name)],
-                                                            ),
-                                                            Text(
-                                                              episode.airDate,
-                                                              style: TextStyle(
-                                                                fontSize: 11,
-                                                                color: DateTime.parse(episode.airDate).isAfter(DateTime.now())
-                                                                    ? Colors.red.withAlpha(200)
-                                                                    : Colors.white.withAlpha(200),
+                                                        Expanded(
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            spacing: 8,
+                                                            children: [
+                                                              Row(
+                                                                spacing: 8,
+                                                                children: [Text('${episode.seasonNumber}x${episode.episodeNumber}').light, Text(episode.name)],
                                                               ),
-                                                            ).light,
-                                                            Text(
-                                                              episode.overview,
-                                                              maxLines: 2,
-                                                              overflow: TextOverflow.ellipsis,
-                                                              style: const TextStyle(fontSize: 12),
-                                                            ),
-                                                          ],
+                                                              Text(
+                                                                episode.airDate,
+                                                                style: TextStyle(
+                                                                  fontSize: 11,
+                                                                  color: (DateTime.tryParse(episode.airDate)?.isAfter(DateTime.now()) ?? false)
+                                                                      ? Colors.red.withAlpha(200)
+                                                                      : Colors.white.withAlpha(200),
+                                                                ),
+                                                              ).light,
+                                                              Text(
+                                                                episode.overview,
+                                                                maxLines: 2,
+                                                                overflow: TextOverflow.ellipsis,
+                                                                style: const TextStyle(fontSize: 12),
+                                                              ),
+                                                            ],
+                                                          ),
                                                         ),
-                                                      ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -330,8 +304,8 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
 
 class _DropdownSeasons extends StatefulWidget {
   final TmdbShow tvShow;
-  final int selectedSeason;
-  final void Function(int) onSeasonChanged;
+  final SeasonSummary selectedSeason;
+  final void Function(SeasonSummary) onSeasonChanged;
 
   const _DropdownSeasons({required this.tvShow, required this.selectedSeason, required this.onSeasonChanged});
 
@@ -340,7 +314,7 @@ class _DropdownSeasons extends StatefulWidget {
 }
 
 class _DropdownSeasonsState extends State<_DropdownSeasons> {
-  int? _selectedSeason;
+  SeasonSummary? _selectedSeason;
 
   @override
   void initState() {
@@ -350,8 +324,8 @@ class _DropdownSeasonsState extends State<_DropdownSeasons> {
 
   @override
   material.Widget build(material.BuildContext context) {
-    return Select<int>(
-      itemBuilder: (context, item) => Text('Season $item'),
+    return Select<SeasonSummary>(
+      itemBuilder: (context, item) => Text(item.name),
       popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
       onChanged: (value) {
         setState(() => _selectedSeason = value);
@@ -361,7 +335,7 @@ class _DropdownSeasonsState extends State<_DropdownSeasons> {
       placeholder: const Text('Select a season'),
       popup: SelectPopup(
         items: SelectItemList(
-          children: widget.tvShow.seasons.map((s) => SelectItemButton(value: s.seasonNumber, child: Text(s.name))).toList(),
+          children: widget.tvShow.seasons.map((s) => SelectItemButton(value: s, child: Text(s.name))).toList(),
         ),
       ).call,
     );

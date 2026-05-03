@@ -13,7 +13,8 @@ class StreamPlayer extends StatefulWidget {
   final int? showId;
   final int? movieId;
   final Episode? episode;
-  const StreamPlayer({super.key, required this.showId, required this.movieId, required this.episode});
+  final StreamItem? stream;
+  const StreamPlayer({super.key, required this.showId, required this.movieId, required this.episode, this.stream});
 
   @override
   State<StatefulWidget> createState() => _StreamPlayerState();
@@ -37,7 +38,13 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
     final streams = await StreamApi.fetchStreams(mediaImdb!, widget.episode);
 
-    final stream = StreamApi.autoSelectStream(streams);
+    StreamItem? stream;
+
+    if (widget.stream != null) {
+      stream = widget.stream;
+    } else {
+      stream = StreamApi.autoSelectStream(streams);
+    }
 
     if (stream != null) {
       selectedStream = stream;

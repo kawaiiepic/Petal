@@ -8,9 +8,6 @@ class Navigation extends StatelessWidget {
 
   final List<_NavItem> _navItems = const [
     _NavItem(icon: Icons.home_rounded, label: 'Home', route: '/'),
-    _NavItem(icon: Icons.trending_up_rounded, label: 'Trending', route: '/catalogs'),
-    _NavItem(icon: Icons.movie_rounded, label: 'Movies', route: '/anime'),
-    _NavItem(icon: Icons.local_fire_department_rounded, label: 'Hot', route: '/trending'),
     _NavItem(icon: Icons.download, label: 'Addons', route: '/addons', popUp: true),
     _NavItem(icon: Icons.settings, label: 'Settings', route: '/settings', popUp: true),
     _NavItem(icon: Icons.search_rounded, label: 'Search', route: '/search', popUp: true),
@@ -21,7 +18,7 @@ class Navigation extends StatelessWidget {
     final location = GoRouterState.of(context).uri.path;
 
     // Derive selected index from current URL
-    const routes = ['/', '/catalogs', '/anime', '/trending', '/search'];
+    const routes = ['/', '/addons', '/anime', '/settings', '/search'];
 
     final index = routes.indexOf(location);
 

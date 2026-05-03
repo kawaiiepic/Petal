@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class ScrollableWidget extends StatefulWidget {
   final Widget child;
   final ScrollController controller;
-  const ScrollableWidget({super.key, required this.child, required this.controller});
+  final double offset;
+  const ScrollableWidget({super.key, required this.child, required this.controller, this.offset = 0.0});
 
   @override
   State<StatefulWidget> createState() => _ScrollableWidget();
@@ -39,7 +40,12 @@ class _ScrollableWidget extends State<ScrollableWidget> {
   }
 
   void _scrollBy(double offset) {
-    _controller.animateTo(_controller.offset + offset, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    var scrollTo = (_controller.offset + offset) > _controller.position.maxScrollExtent
+        ? _controller.position.maxScrollExtent + 100
+        : (_controller.offset + offset) < 0
+        ? _controller.position.minScrollExtent - 100
+        : _controller.offset + offset;
+    _controller.animateTo(scrollTo, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
   @override
@@ -60,7 +66,7 @@ class _ScrollableWidget extends State<ScrollableWidget> {
 
           Positioned(
             left: 8,
-            top: 0,
+            top: widget.offset,
             bottom: 0,
 
             child: Center(
@@ -70,7 +76,7 @@ class _ScrollableWidget extends State<ScrollableWidget> {
 
           Positioned(
             right: 8,
-            top: 0,
+            top: widget.offset,
             bottom: 0,
             child: Center(
               child: ArrowButton(visible: _isHovering && _canScrollRight, icon: Icons.arrow_forward_ios, onPressed: () => _scrollBy(900)),

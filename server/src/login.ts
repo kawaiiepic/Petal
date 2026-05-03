@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto, { randomUUID } from "crypto";
 import { DB, User } from "./db.js";
 import bcrypt from "bcrypt";
+import { Trakt } from "./trakt.js";
 
 export abstract class Login {
   static SECRET_KEY = "your_secret_key_here";
@@ -103,6 +104,8 @@ export abstract class Login {
           .get(verify.email) as User | undefined;
 
         if (user != undefined && verify.key == user.key) {
+
+          Trakt.verifySession(user);
           console.log("User verified");
           res.status(200).json({ status: "success" });
           return;

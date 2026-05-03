@@ -145,7 +145,7 @@ export abstract class DB {
       expires_at,
       created_at
     )
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(user_email) DO UPDATE SET
       access_token = excluded.access_token,
       refresh_token = excluded.refresh_token,
@@ -175,6 +175,12 @@ export abstract class DB {
     return row?.access_token ?? null;
   }
 
+  public static getTraktUser(userEmail: string): TraktAccount | null {
+    return (this.db
+      .prepare(`SELECT * FROM trakt_accounts WHERE user_email = ?`)
+      .get(userEmail) as TraktAccount) ?? null;
+  }
+
   public static getUser(email: string) {
     return this.db
       .prepare(
@@ -182,7 +188,7 @@ export abstract class DB {
     SELECT * FROM users WHERE email = ?
     `,
       )
-      .get(email);
+      .get(email) as User;
   }
 
   public static updateUser(username: string, data: any) {
@@ -254,5 +260,9 @@ export type User = {
 };
 
 export type TraktAccount = {
+  user_email: string;
   access_token: string;
+  refresh_token: string;
+  expires_at: number;
+  created_at: number;
 };

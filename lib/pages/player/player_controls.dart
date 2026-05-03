@@ -385,7 +385,7 @@ class _EpisodeDrawerState extends State<_EpisodeDrawer> {
             future: widget.showData,
             builder: (context, snapshot) {
               return Select<int>(
-                itemBuilder: (context, item) => Text('Season $item'),
+                itemBuilder: (context, item) => Text(snapshot.hasData ? (snapshot.data![0] as TmdbShow).seasons[item].name : ''),
                 popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
                 onChanged: (value) {
                   setState(() => _selectedSeason = value);

@@ -1,6 +1,7 @@
 import 'package:blssmpetal/api/api_cache.dart';
 import 'package:blssmpetal/models/catalog_item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -43,8 +44,10 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
 class HoverableItem extends StatefulWidget {
   final Widget image;
   final VoidCallback? onTap;
+  final VoidCallback? contextItems;
+  final Orientation orientation;
 
-  const HoverableItem({super.key, required this.image, this.onTap});
+  const HoverableItem({super.key, required this.image, this.onTap, this.contextItems, this.orientation = Orientation.portrait});
 
   @override
   State<StatefulWidget> createState() => _HoverableItem();
@@ -62,23 +65,32 @@ class _HoverableItem extends State<HoverableItem> {
       onExit: (event) => setState(() {
         _isHovering = false;
       }),
-      child: GestureDetector(
-        onTap: widget.onTap,
+      child: ContextMenu(
+        items: [
+          MenuButton(
+            trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+            onPressed: (context) {},
+            child: const Text('Add to Watchlist'),
+          ),
+        ],
+        child: GestureDetector(
+          onTap: widget.onTap,
 
-        child: Container(
-          color: Colors.transparent,
-          width: 200,
-          height: 300,
-          child: Padding(
-            padding: EdgeInsetsGeometry.fromLTRB(16, 0, 16, 0),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: _isHovering ? Colors.white : Colors.transparent),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadiusGeometry.circular(8),
-                child: AnimatedScale(scale: _isHovering ? 1.1 : 1, duration: const Duration(milliseconds: 300), child: widget.image),
+          child: Container(
+            color: Colors.transparent,
+            width: widget.orientation == Orientation.portrait ? 200 : 300,
+            height: widget.orientation == Orientation.portrait ? 300 : 150,
+            child: Padding(
+              padding: EdgeInsetsGeometry.fromLTRB(16, 0, 16, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: _isHovering ? Colors.white : Colors.transparent),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadiusGeometry.circular(8),
+                  child: AnimatedScale(scale: _isHovering ? 1.1 : 1, duration: const Duration(milliseconds: 300), child: widget.image),
+                ),
               ),
             ),
           ),

@@ -41,7 +41,6 @@ DB.init();
 
 Trakt.deviceCode(app);
 Trakt.pollForAccessToken(app);
-Trakt.verifySession(app);
 // Trakt.obtainUserProfile(app);
 // Trakt.obtainLastActivities(app);
 // Trakt.search(app);
@@ -215,7 +214,6 @@ app.post("/addons/set", (req, res) => {
 app.get("/addons/get", (req, res) => {
   try {
     var email = (Trakt.verifyToken(req.cookies.auth) as jwt.JwtPayload).email;
-    console.log("Fetching addons for user:", email);
 
     const rows = DB.db
       .prepare(
@@ -224,8 +222,6 @@ app.get("/addons/get", (req, res) => {
     `,
       )
       .all(email);
-
-    console.log(rows);
 
     const addons = rows.map((r: any) => ({
       id: r.id,

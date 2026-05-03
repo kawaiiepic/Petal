@@ -25,6 +25,8 @@ class TraktApi {
 
   static final ValueNotifier<bool> validSession = ValueNotifier(false);
 
+  static Future<void>? _traktWatchlist;
+
   static Future<void> init() async {
     prepareCookieManager();
   }
@@ -52,9 +54,6 @@ class TraktApi {
       }
     } else {
       final response = await dio.get("${Api.ServerUrl}/login/verify");
-
-      print(await cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/login/verify")));
-
       print("Response code for verify.");
       print(response.data);
 

@@ -160,7 +160,7 @@ class _SearchState extends State<Search> {
 
                                         print(tmdbItem.id);
                                         context.pop();
-                                        context.go('/catalogs/${choice.type}/${tmdbItem.id}');
+                                        context.push('/${choice.type}/${tmdbItem.id}');
                                       }
                                     },
 

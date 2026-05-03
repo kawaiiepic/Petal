@@ -72,144 +72,37 @@ export class Trakt {
             console.error(err);
         }
     }
-    // static async cachedUserFetchWithLastActivity(
-    //   key: string,
-    //   username: string,
-    //   ttlMs: number,
-    //   accessToken: string,
-    //   fetcher: () => Promise<any>,
-    // ) {
-    //   // Check last_activities timestamp
-    //   const lastActivities = await this.cachedFetch(
-    //     `last_activities`,
-    //     1000 * 30, // 30 sec cache
-    //     async () => {
-    //       const response = await fetch(
-    //         "https://api.trakt.tv/sync/last_activities",
-    //         {
-    //           headers: {
-    //             ...this._header,
-    //             Authorization: `Bearer ${accessToken}`,
-    //           },
-    //         },
-    //       );
-    //       if (!response.ok) throw new Error("Failed to fetch last_activities");
-    //       return await response.json();
-    //     },
-    //     username,
-    //   );
-    //   // Construct a cache key with last_activity timestamp
-    //   const lastWatched = lastActivities?.movies?.watched_at ?? 0;
-    //   const lastKey = `${key}:${lastWatched}`;
-    //   // Return cached value using combined key
-    //   return this.cachedFetch(lastKey, ttlMs, fetcher, username);
-    // }
-    // static async cachedFetch(
-    //   key: string,
-    //   ttlMs: number,
-    //   fetcher: () => Promise<any>,
-    //   username?: string,
-    // ) {
-    //   const cached = DB.getCache(key, username);
-    //   if (cached) return cached;
-    //   if (this.pending.has(key + (username ?? ""))) {
-    //     return this.pending.get(key + (username ?? ""));
-    //   }
-    //   const promise = (async () => {
-    //     const fresh = await fetcher();
-    //     DB.setCache(key, fresh, ttlMs, username);
-    //     this.pending.delete(key + (username ?? ""));
-    //     return fresh;
-    //   })();
-    //   this.pending.set(key + (username ?? ""), promise);
-    //   return promise;
-    // }
-    static async verifySession(app) {
-        app.get("/trakt/verify_session", async (req, res) => {
-            if (req.cookies.token != undefined) {
-                console.log(req.cookies.token);
-                var verify = this.verifyToken(req.cookies.token);
-                if (DB.getUser(verify.username) != undefined) {
-                    res.status(200);
-                    res.json({ verified: true });
-                }
-                else {
-                    res.status(201).json({ verified: false });
-                }
-            }
-            else {
-                res.status(300).json({ verified: false });
-            }
+    static async refreshToken(trakt_user) {
+        const response = await fetch("https://api.trakt.tv/oauth/token", {
+            method: "POST",
+            headers: this._header,
+            body: JSON.stringify({
+                refresh_token: trakt_user.refresh_token,
+                client_id: this.CLIENT_ID,
+                client_secret: this.CLIENT_SECRET,
+                redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
+                grant_type: 'refresh_token'
+            }),
         });
+        if (response.ok) {
+            var json = await response.json();
+            DB.syncTrakt(trakt_user.user_email, { access_token: json.access_token, refresh_token: json.refresh_token, expires_in: json.expires_in });
+            console.log("Obtained new access token");
+        }
+        else {
+            console.log("Refresh token isn't valid" + response.status + " " + response.statusText);
+            console.log(response.headers);
+        }
     }
-    // public static async obtainUserProfile(app: express.Express) {
-    //   app.get("/trakt/user_profile", async (req, res) => {
-    //     if (!req.cookies.token) return res.sendStatus(300);
-    //     var verify = Login.verifyToken(req.cookies.auth) as jwt.JwtPayload;
-    //     const accessToken = this.accessToken(req.cookies.auth) as string;
-    //     const data = await this.cachedFetch(
-    //       `user_profile`,
-    //       1000 * 60 * 5, // 5 min
-    //       async () => {
-    //         return await this.userProfile(accessToken);
-    //       },
-    //       verify.email,
-    //     );
-    //     res.json(data);
-    //   });
-    // }
-    // public static async obtainLastActivities(app: express.Express) {
-    //   app.get("/trakt/last_activities", async (req, res) => {
-    //     if (!req.cookies.token) return res.sendStatus(300);
-    //     var verify = Login.verifyToken(req.cookies.auth) as jwt.JwtPayload;
-    //     const accessToken = this.accessToken(req.cookies.auth) as string;
-    //     const data = await this.cachedFetch(
-    //       `last_activities`,
-    //       1000 * 30, // 30 sec
-    //       async () => {
-    //         const response = await fetch(
-    //           "https://api.trakt.tv/sync/last_activities",
-    //           {
-    //             headers: {
-    //               ...this._header,
-    //               Authorization: `Bearer ${accessToken}`,
-    //             },
-    //           },
-    //         );
-    //         if (!response.ok) throw new Error("Failed");
-    //         return await response.json();
-    //       },
-    //       verify.email,
-    //     );
-    //     res.json(data);
-    //   });
-    // }
-    // public static async search(app: express.Express) {
-    //   app.get("/trakt/search/:id_type/:id/:type", async (req, res) => {
-    //     if (!req.cookies.token) return res.sendStatus(300);
-    //     const { id_type, id, type } = req.params;
-    //     const accessToken = this.accessToken(req.cookies.token);
-    //     const cacheKey = `search:${id_type}:${id}:${type}`;
-    //     const data = await this.cachedFetch(
-    //       `search:${id_type}:${id}:${type}`,
-    //       1000 * 60 * 60 * 24,
-    //       async () => {
-    //         const response = await fetch(
-    //           `https://api.trakt.tv/search/${id_type}/${id}?type=${type}`,
-    //           {
-    //             headers: {
-    //               ...this._header,
-    //               Authorization: `Bearer ${accessToken}`,
-    //             },
-    //           },
-    //         );
-    //         if (!response.ok) throw new Error("Fetch failed");
-    //         return await response.json();
-    //       },
-    //     );
-    //     res.json(data);
-    //   });
-    // }
+    static async verifySession(user) {
+        var trakt_user = DB.getTraktUser(user.email);
+        if (trakt_user != undefined) {
+            if (Date.now() > trakt_user?.expires_at) {
+                console.log("Token expired");
+                this.refreshToken(trakt_user);
+            }
+        }
+    }
     static async startWatching(app) {
         app.post("/trakt/start_watching", async (req, res) => {
             if (req.cookies.token != undefined) {
@@ -251,7 +144,7 @@ export class Trakt {
                 },
             });
             if (!response.ok)
-                throw new Error("Failed to fetch watched: " + (await response.url));
+                throw new Error("Failed to fetch watched: " + (await response.status));
             res.json(await response.json());
             // return await response.json();
             // const data = await this.cachedUserFetchWithLastActivity(
@@ -276,79 +169,6 @@ export class Trakt {
             // res.json(data);
         });
     }
-    // public static async obtainShow(app: express.Express) {
-    //   app.get("/trakt/shows/:traktId", async (req, res) => {
-    //     if (!req.cookies.token) return res.sendStatus(300);
-    //     const accessToken = this.accessToken(req.cookies.token);
-    //     const data = await this.cachedFetch(
-    //       `show:${req.params.traktId}`,
-    //       1000 * 60 * 60 * 24 * 7, // 7 days
-    //       async () => {
-    //         const response = await fetch(
-    //           `https://api.trakt.tv/shows/${req.params.traktId}?extended=full`,
-    //           {
-    //             headers: {
-    //               ...this._header,
-    //               Authorization: `Bearer ${accessToken}`,
-    //             },
-    //           },
-    //         );
-    //         if (!response.ok) throw new Error("Failed");
-    //         return await response.json();
-    //       },
-    //     );
-    //     res.json(data);
-    //   });
-    // }
-    // public static async obtainMovie(app: express.Express) {
-    //   app.get("/trakt/movies/:traktId", async (req, res) => {
-    //     if (!req.cookies.token) return res.sendStatus(300);
-    //     const accessToken = this.accessToken(req.cookies.token);
-    //     // Cache the movie data for 7 days
-    //     const data = await this.cachedFetch(
-    //       `movie:${req.params.traktId}`,
-    //       1000 * 60 * 60 * 24 * 7, // 7 days
-    //       async () => {
-    //         const response = await fetch(
-    //           `https://api.trakt.tv/movies/${req.params.traktId}?extended=full`,
-    //           {
-    //             headers: {
-    //               ...this._header,
-    //               Authorization: `Bearer ${accessToken}`,
-    //             },
-    //           },
-    //         );
-    //         if (!response.ok) throw new Error("Failed to fetch movie");
-    //         return await response.json();
-    //       },
-    //     );
-    //     res.json(data);
-    //   });
-    // }
-    // public static async obtainSeasons(app: express.Express) {
-    //   app.get("/trakt/seasons/:traktId", async (req, res) => {
-    //     if (!req.cookies.token) return res.sendStatus(300);
-    //     const accessToken = this.accessToken(req.cookies.token);
-    //     const data = await this.cachedFetch(
-    //       `seasons:${req.params.traktId}`,
-    //       1000 * 60 * 60 * 24 * 7,
-    //       async () => {
-    //         const response = await fetch(
-    //           `https://api.trakt.tv/shows/${req.params.traktId}/seasons?extended=episodes,full`,
-    //           {
-    //             headers: {
-    //               ...this._header,
-    //               Authorization: `Bearer ${accessToken}`,
-    //             },
-    //           },
-    //         );
-    //         if (!response.ok) throw new Error("Failed");
-    //         return await response.json();
-    //       },
-    //     );
-    //     res.json(data);
-    //   });
-    // }
     static async obtainShowProgress(app) {
         app.get("/trakt/show_progress/:traktId", async (req, res) => {
             if (!req.cookies.auth)
@@ -398,4 +218,3 @@ Trakt._header = {
     "trakt-api-key": _a.CLIENT_ID,
     "User-Agent": "BlssmPetal/1.0.0",
 };
-Trakt.pending = new Map();

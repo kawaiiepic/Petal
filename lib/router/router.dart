@@ -2,6 +2,7 @@ import 'package:blssmpetal/api/api.dart';
 import 'package:blssmpetal/api/trakt/trakt_helper.dart';
 import 'package:blssmpetal/main.dart';
 import 'package:blssmpetal/models/custom_model.dart';
+import 'package:blssmpetal/models/stream.dart';
 import 'package:blssmpetal/navigation/navigation.dart';
 import 'package:blssmpetal/pages/addons.dart';
 import 'package:blssmpetal/pages/dashboard/search_widget.dart';
@@ -11,6 +12,7 @@ import 'package:blssmpetal/pages/movie_overview.dart';
 import 'package:blssmpetal/pages/offline.dart';
 import 'package:blssmpetal/pages/player/player_old.dart';
 import 'package:blssmpetal/pages/settings.dart';
+import 'package:blssmpetal/pages/streams.dart';
 import 'package:blssmpetal/pages/trakt/traktlogin.dart';
 import 'package:blssmpetal/router/dialog_page.dart';
 import 'package:blssmpetal/router/routes/catalog_widget.dart';
@@ -41,16 +43,7 @@ class AppRouter {
         navigatorKey: PetalApp.shellNavigatorKey,
         builder: (context, state, child) => Navigation(child: child),
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const Dashboard()),
-
-          GoRoute(
-            path: '/catalogs',
-            routes: [
-              settingsRoute,
-
-            ],
-            builder: (context, state) => const CatalogWidget(),
-          ),
+          GoRoute(path: '/', routes: [settingsRoute], builder: (context, state) => const CatalogWidget()),
         ],
       ),
 
@@ -62,7 +55,23 @@ class AppRouter {
         path: '/movie/:id',
         builder: (context, state) => MovieOverview(tmdbId: int.parse(state.pathParameters['id']!)),
       ),
-      
+      GoRoute(
+        parentNavigatorKey: PetalApp.rootNavigatorKey,
+        path: '/streams',
+        builder: (context, state) {
+          final showId = state.uri.queryParameters['show'];
+          final season = state.uri.queryParameters['s'];
+          final episode = state.uri.queryParameters['e'];
+          final movieId = state.uri.queryParameters['movie'];
+
+          return StreamsPage(
+            showId: showId != null ? int.parse(showId) : null,
+            episode: (season != null && episode != null) ? Episode(seasonNumber: int.parse(season), episodeNumber: int.parse(episode)) : null,
+            movieId: movieId != null ? int.parse(movieId) : null,
+          );
+        },
+      ),
+
       settingsRoute,
       GoRoute(
         path: '/addons',
@@ -72,7 +81,7 @@ class AppRouter {
         path: '/search',
         pageBuilder: (context, state) => DialogPage(builder: (context) => Search()),
       ),
-      GoRoute(path: '/offline',  builder: (context, state) => Offline()),
+      GoRoute(path: '/offline', builder: (context, state) => Offline()),
       GoRoute(path: '/login', builder: (context, state) => Login()),
       GoRoute(path: '/traktLogin', builder: (context, state) => TraktLoginPage()),
       GoRoute(
@@ -83,11 +92,13 @@ class AppRouter {
           final season = state.uri.queryParameters['s'];
           final episode = state.uri.queryParameters['e'];
           final movieId = state.uri.queryParameters['movie'];
+          final streamItem = state.extra as StreamItem?;
 
           return StreamPlayer(
             showId: showId != null ? int.parse(showId) : null,
             episode: (season != null && episode != null) ? Episode(seasonNumber: int.parse(season), episodeNumber: int.parse(episode)) : null,
             movieId: movieId != null ? int.parse(movieId) : null,
+            stream: streamItem,
           );
         },
       ),

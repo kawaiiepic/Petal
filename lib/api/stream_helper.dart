@@ -21,8 +21,6 @@ class StreamApi {
     // Fetch all addons in parallel
     final results = await Future.wait(streamAddons.map((addon) => _fetchFromAddon(addon, type, id, episode)));
 
-
-
     final expanded = results.expand((s) => s).toList();
 
     if (expanded.isEmpty) {
@@ -50,6 +48,18 @@ class StreamApi {
     } catch (_) {
       return [];
     }
+  }
+
+  static StreamItem? streamFromUrl(List<StreamItem> streams, String url) {
+    if (streams.isEmpty) return null;
+
+    print("Trying to find: $url");
+
+    return streams.firstWhere((s) {
+      print("Stream URL: ${s.url}");
+      if (s.url == url) return true;
+      return false;
+    });
   }
 
   static StreamItem? autoSelectStream(List<StreamItem> streams) {

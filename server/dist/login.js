@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { DB } from "./db.js";
 import bcrypt from "bcrypt";
+import { Trakt } from "./trakt.js";
 export class Login {
     static verifyToken(token) {
         return jwt.verify(token, this.SECRET_KEY);
@@ -77,6 +78,7 @@ export class Login {
                     .prepare(`SELECT * FROM users WHERE email = ?`)
                     .get(verify.email);
                 if (user != undefined && verify.key == user.key) {
+                    Trakt.verifySession(user);
                     console.log("User verified");
                     res.status(200).json({ status: "success" });
                     return;
