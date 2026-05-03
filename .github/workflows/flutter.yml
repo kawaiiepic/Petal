@@ -75,8 +75,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: release-linux
-          path: build/linux/x64/release/bundle/blssmpetal
-          archive: false
+          path: build/linux/x64/release/bundle/
       
   windows-build:
     runs-on: windows-latest
