@@ -118,7 +118,7 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            artifacts/release-apk/app-release.apk
-            artifacts/ios-ipa/*.ipa
+            artifacts/app-release.apk/app-release.apk
+            artifacts/bookadapt_unsigned.ipa/bookadapt_unsigned.ipa
             artifacts/release-linux/release-linux.zip
-            artifacts/release-windows/release-windows.zip
+            artifacts/blssmpetal.exe/blssmpetal.exe
