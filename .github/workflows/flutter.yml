@@ -52,7 +52,7 @@ jobs:
       - name: Upload IPA
         uses: actions/upload-artifact@v7
         with:
-          name: ios_ipa
+          name: release-ios_ipa
           path: build/ios/iphoneos/*.ipa
           archive: false
   linux-build:
@@ -110,6 +110,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: artifacts/
+          pattern: release-*
+          merge-multiple: true
+      - name: Display structure of downloaded files
+        run: ls -R artifacts/
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
