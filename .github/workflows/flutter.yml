@@ -96,3 +96,29 @@ jobs:
           name: release-exe
           path: build/windows/x64/runner/Release/blssmpetal.exe
           archive: false
+
+  release:
+    needs: [android-build, ios-build, linux-build, windows-build]
+    runs-on: ubuntu-latest
+    # Only release on pushes to main, not on PRs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "Build #${{ github.run_number }}"
+          draft: false
+          prerelease: true
+          files: |
+            artifacts/release-apk/app-release.apk
+            artifacts/ios-ipa/*.ipa
+            artifacts/release-linux/release-linux.zip
+            artifacts/release-windows/release-windows.zip
