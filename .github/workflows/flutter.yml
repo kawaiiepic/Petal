@@ -26,6 +26,7 @@ jobs:
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          archive: false
   ios-build:
     runs-on: macos-latest
     steps:
@@ -53,6 +54,7 @@ jobs:
         with:
           name: ios_ipa
           path: build/ios/iphoneos/*.ipa
+          archive: false
   linux-build:
     runs-on: ubuntu-latest
     steps:
@@ -74,6 +76,7 @@ jobs:
         with:
           name: release-linux
           path: build/linux/x64/release/bundle/blssmpetal
+          archive: false
       
   windows-build:
     runs-on: windows-latest
@@ -93,3 +96,4 @@ jobs:
         with:
           name: release-exe
           path: build/windows/x64/runner/Release/blssmpetal.exe
+          archive: false
