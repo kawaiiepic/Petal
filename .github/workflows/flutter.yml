@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
     
 jobs:
-  build:
+  android-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,6 +17,8 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.19.0
-      - run: flutter --version
-      - uses: actions/checkout@v4
+          flutter-version-file: pubspec.yaml
+      - run: flutter pub get
+      - run: flutter test
+      - run: flutter build apk
+      - run: flutter build appbundle
