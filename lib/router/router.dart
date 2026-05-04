@@ -16,7 +16,6 @@ import 'package:blssmpetal/pages/streams.dart';
 import 'package:blssmpetal/pages/trakt/traktlogin.dart';
 import 'package:blssmpetal/router/dialog_page.dart';
 import 'package:blssmpetal/router/routes/catalog_widget.dart';
-import 'package:blssmpetal/pages/dashboard/dashboard.dart';
 import 'package:go_router/go_router.dart';
 
 class AppRouter {

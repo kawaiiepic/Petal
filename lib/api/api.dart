@@ -8,7 +8,7 @@ import 'package:blssmpetal/models/settings.dart';
 import 'package:flutter/material.dart';
 
 class Api {
-  static bool dev = true;
+  static bool dev = false;
   static bool traktLoggedIn = false;
   static bool loggedIn = false;
 
