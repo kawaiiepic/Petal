@@ -76,6 +76,7 @@ jobs:
         with:
           name: release-linux
           path: build/linux/x64/release/bundle/
+          archive: true
       
   windows-build:
     runs-on: windows-latest
