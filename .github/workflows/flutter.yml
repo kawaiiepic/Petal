@@ -125,5 +125,5 @@ jobs:
           files: |
             artifacts/app-release.apk/app-release.apk
             artifacts/bookadapt_unsigned.ipa/bookadapt_unsigned.ipa
-            artifacts/release-linux
+            artifacts/release-linux/release-linux.zip
             artifacts/blssmpetal.exe/blssmpetal.exe
