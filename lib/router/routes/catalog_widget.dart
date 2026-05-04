@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/pages/catalog_row.dart';
 import 'package:petal/pages/empty_sliver.dart';
@@ -13,51 +14,57 @@ class CatalogWidget extends StatefulWidget {
 
 class _CatalogWidget extends State<CatalogWidget> {
   @override
-  Widget build(BuildContext context) => Scaffold(
-    child: SafeArea(
-      child: CustomScrollView(
-        slivers: [
-          NextUpRow(),
-          FutureBuilder(
-            future: ApiCache.getAddons(),
-            builder: (context, addonsSnapshot) {
-              switch (addonsSnapshot.connectionState) {
-                case ConnectionState.active:
-                case ConnectionState.done:
-                  {
-                    final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
+  Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
-                    final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
+    return Scaffold(
+      child: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            NextUpRow(),
+            FutureBuilder(
+              future: ApiCache.getAddons(),
+              builder: (context, addonsSnapshot) {
+                switch (addonsSnapshot.connectionState) {
+                  case ConnectionState.active:
+                  case ConnectionState.done:
+                    {
+                      final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
 
-                    return SliverFixedExtentList(
-                      itemExtent: 300,
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final catalog = catalogs[index];
+                      final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
 
-                        return FutureBuilder(
-                          future: ApiCache.getCatalogItems(catalog),
-                          builder: (context, snapshot) {
-                            switch (snapshot.connectionState) {
-                              case ConnectionState.active:
-                              case ConnectionState.done:
-                                {
-                                  return CatalogRow(key: ValueKey(catalog.id), catalog: catalog, catalogItems: snapshot.data!);
-                                }
-                              case _:
-                                return SizedBox();
-                            }
-                          },
-                        );
-                      }, childCount: catalogs.length),
-                    );
-                  }
-                case _:
-                  return EmptySliver();
-              }
-            },
-          ),
-        ],
+                      return SliverFixedExtentList(
+                        itemExtent: 300,
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final catalog = catalogs[index];
+
+                          return FutureBuilder(
+                            future: ApiCache.getCatalogItems(catalog),
+                            builder: (context, snapshot) {
+                              switch (snapshot.connectionState) {
+                                case ConnectionState.active:
+                                case ConnectionState.done:
+                                  {
+                                    return CatalogRow(key: ValueKey(catalog.id), catalog: catalog, catalogItems: snapshot.data!);
+                                  }
+                                case _:
+                                  return SizedBox();
+                              }
+                            },
+                          );
+                        }, childCount: catalogs.length),
+                      );
+                    }
+                  case _:
+                    return EmptySliver();
+                }
+              },
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

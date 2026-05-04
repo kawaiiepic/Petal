@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
@@ -31,6 +32,8 @@ class _PlayerControls extends State<PlayerControls> {
   late Player player;
   bool isPlaying = false;
   bool isBuffering = true;
+  bool isLoaded = false;
+  int overlayInt = 0;
   late bool isShow;
 
   late Future<List<dynamic>> _showData;
@@ -69,6 +72,10 @@ class _PlayerControls extends State<PlayerControls> {
     player.stream.buffering.listen((buffering) {
       setState(() {
         isBuffering = buffering;
+
+        if (!isLoaded && !buffering) {
+          isLoaded = true;
+        }
       });
     });
 
@@ -107,6 +114,27 @@ class _PlayerControls extends State<PlayerControls> {
     super.dispose();
   }
 
+  void restartUi() {
+    if (_uiIsActive == false) {
+      setState(() {
+        _uiIsActive = true;
+      });
+
+      widget.state.setSubtitleViewPadding(EdgeInsets.fromLTRB(0, 0, 0, 100) + widget.state.widget.subtitleViewConfiguration.padding);
+    }
+
+    _uiTimer?.cancel();
+    _uiTimer = Timer.periodic(Duration(milliseconds: 5500), (timer) {
+      if (isPlaying && isLoaded && overlayInt == 0) {
+        setState(() {
+          _uiIsActive = false;
+        });
+        widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
+        timer.cancel();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) => CallbackShortcuts(
     bindings: <ShortcutActivator, VoidCallback>{
@@ -118,30 +146,18 @@ class _PlayerControls extends State<PlayerControls> {
       autofocus: true,
       child: MouseRegion(
         cursor: _uiIsActive ? SystemMouseCursors.basic : SystemMouseCursors.none,
-        onHover: (event) {
-          if (_uiIsActive == false) {
-            setState(() {
-              _uiIsActive = true;
-            });
-
-            widget.state.setSubtitleViewPadding(EdgeInsets.fromLTRB(0, 0, 0, 100) + widget.state.widget.subtitleViewConfiguration.padding);
-          }
-
-          _uiTimer?.cancel();
-          _uiTimer = Timer(Duration(milliseconds: 5500), () {
-            setState(() {
-              _uiIsActive = false;
-            });
-            widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
-          });
-        },
+        onHover: (event) => restartUi(),
         child: Stack(
           alignment: AlignmentGeometry.bottomRight,
           children: [
             Positioned.fill(
               child: GestureDetector(
-                onTap: () {
-                  widget.state.widget.controller.player.playOrPause();
+                onTapDown: (details) {
+                  if (details.kind == PointerDeviceKind.touch) {
+                    restartUi();
+                  } else if (details.kind == PointerDeviceKind.mouse) {
+                    widget.state.widget.controller.player.playOrPause();
+                  }
                 },
                 behavior: HitTestBehavior.opaque,
                 child: Container(),
@@ -345,7 +361,7 @@ class DropdownButton extends StatelessWidget {
   Widget build(BuildContext context) => IconButton(
     variance: ButtonVariance.ghost,
     onPressed: () {
-      showDropdown(context: context, builder: (context) => dropdownMenu);
+      showDropdown(context: context, consumeOutsideTaps: true, builder: (context) => dropdownMenu);
     },
     icon: icon,
   );

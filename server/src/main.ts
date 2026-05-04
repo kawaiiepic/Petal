@@ -103,7 +103,7 @@ app.get("/tmdb", async (req, res) => {
       console.log("Failed to request TMDB API");
     }
   } catch (_) {
-    res.status(300);
+    res.status(215);
   }
 });
 

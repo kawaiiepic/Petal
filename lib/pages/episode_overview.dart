@@ -58,9 +58,12 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
             child: CustomScrollView(
               slivers: [
                 SliverAppBar(
-                  expandedHeight: 500,
-                  pinned: true,
-                  backgroundColor: Colors.pink,
+                  expandedHeight: 300,
+                  collapsedHeight: 300,
+                  // pinned: false,
+                  // floating: true,
+                  // snap: true,
+                  backgroundColor: Colors.transparent,
                   flexibleSpace: material.FlexibleSpaceBar(
                     background: Stack(
                       fit: StackFit.expand,
@@ -119,7 +122,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                     borderRadius: BorderRadius.circular(16),
                                     hoverBorderRadius: BorderRadius.circular(16),
                                   ),
-                                  trailing: Text('Play now S${episode.seasonNumber}:E${episode.episodeNumber}'),
+                                  trailing: Text('S${episode.seasonNumber}:E${episode.episodeNumber}'),
                                   child: const Icon(Icons.play_arrow_rounded),
                                 ),
                               ),
@@ -193,7 +196,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                   tvShow: show,
                                   selectedSeason: show.seasons.firstWhere(
                                     (s) => s.seasonNumber == episode.seasonNumber,
-                                  ), // show.seasons[episode.seasonNumber -1]
+                                  ),
                                   onSeasonChanged: (season) {
                                     _seasons = TMDB.tvSeason(widget.tmdbId, season.seasonNumber);
                                     setState(() {});
@@ -350,13 +353,14 @@ class _IconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return IconButton.ghost(onPressed: () {},  shape: ButtonShape.circle, density: ButtonDensity.icon, icon: Icon(icon, color: Colors.pink,));
     return ClipRRect(
-      borderRadius: BorderRadius.circular(50),
+      // borderRadius: BorderRadius.circular(50),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: SizedBox(
-          width: 48,
-          height: 48,
+          width: 35,
+          height: 35,
           child: Button.outline(
             onPressed: onTap,
             // style: OutlinedButton.styleFrom(
@@ -364,7 +368,7 @@ class _IconBtn extends StatelessWidget {
             //   backgroundColor: Colors.white.withOpacity(0.05),
             //   side: BorderSide(color: Colors.white.withAlpha(50), width: 0.2),
             // ),
-            child: Icon(icon, size: 20),
+            child: Center(child: Icon(icon, fill: 0.01)),
           ),
         ),
       ),

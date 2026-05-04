@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/custom_model.dart';
@@ -79,6 +80,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     return Scaffold(
       child: Video(controller: controller, controls: (state) => customVideoControls(state, widget)),
     );

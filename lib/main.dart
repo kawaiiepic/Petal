@@ -37,29 +37,4 @@ class _PetalState extends State<PetalApp> {
     routerConfig: AppRouter.appRouter,
     theme: ThemeData(colorScheme: LegacyColorSchemes.darkRose(), radius: 0.7),
   );
-
-  // @override
-  // Widget build(BuildContext context) => MaterialApp(
-  //   theme: ThemeData.light(),
-  //   darkTheme: ThemeData.dark(),
-  //   themeMode: ThemeMode.system,
-  //   showPerformanceOverlay: true,
-  //   home: ValueListenableBuilder(
-  //     valueListenable: Api.healthy,
-  //     builder: (context, healthy, child) {
-  //       if (!healthy) {
-  //         return Offline();
-  //       } else {
-  //         return ValueListenableBuilder<bool>(
-  //           valueListenable: TraktApi.validSession,
-  //           builder: (_, validSession, _) {
-  //             if (!validSession) return TraktLoginPage();
-
-  //             return const Navigation();
-  //           },
-  //         );
-  //       }
-  //     },
-  //   ),
-  // );
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:petal/api/catalog_helper.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/main.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/settings.dart';
@@ -50,6 +51,11 @@ class Api {
     } catch (_) {
       return false;
     }
+  }
+
+  static bool isMobile() {
+    var shortestSide = MediaQuery.sizeOf(PetalApp.rootNavigatorKey.currentContext!).shortestSide;
+    return shortestSide < 550;
   }
 
   static Future<Settings?> userSettings() async {
