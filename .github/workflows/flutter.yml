@@ -1,0 +1,128 @@
+name: Flutter action
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    
+jobs:
+  android-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.7
+          cache: true
+          pub-cache: true
+      - run: flutter pub get
+      - run: flutter build apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          archive: false
+  ios-build:
+    runs-on: macos-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.7
+          cache: true
+          pub-cache: true
+      - run: flutter pub get
+      - name: Build Flutter IPA
+        run: |
+          flutter build ios --release --no-codesign
+          cd build/ios/iphoneos
+          mkdir Payload
+          cd Payload
+          ln -s ../Runner.app
+          cd ..
+          zip -r bookadapt_unsigned.ipa Payload
+      - name: Upload IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-ios_ipa
+          path: build/ios/iphoneos/*.ipa
+          archive: false
+  linux-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.7
+          cache: true
+          pub-cache: true
+      - run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ninja-build libgtk-3-dev libmpv-dev
+      - run: flutter build linux
+      - name: Upload Linux-build
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-linux
+          path: build/linux/x64/release/bundle/
+          archive: true
+      
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.7
+          cache: true
+          pub-cache: true
+      - run: flutter build windows
+      - name: Upload EXE
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-exe
+          path: build/windows/x64/runner/Release/blssmpetal.exe
+          archive: false
+
+  release:
+    needs: [android-build, ios-build, linux-build, windows-build]
+    runs-on: ubuntu-latest
+    # Only release on pushes to main, not on PRs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts/
+          skip-decompress: true
+      - name: Display structure of downloaded files
+        run: ls -R artifacts/
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "Build #${{ github.run_number }}"
+          draft: false
+          prerelease: true
+          files: |
+            artifacts/app-release.apk/app-release.apk
+            artifacts/bookadapt_unsigned.ipa/bookadapt_unsigned.ipa
+            artifacts/release-linux/release-linux.zip
+            artifacts/blssmpetal.exe/blssmpetal.exe
