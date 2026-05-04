@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:petal/api/api.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/custom_model.dart';
@@ -82,7 +83,25 @@ class _StreamPlayerState extends State<StreamPlayer> {
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     return Scaffold(
-      child: Video(controller: controller, controls: (state) => customVideoControls(state, widget)),
+      child: Video(
+        controller: controller,
+        fit: BoxFit.cover,
+        subtitleViewConfiguration: SubtitleViewConfiguration(
+          style: const TextStyle(
+            height: 1.4,
+            fontSize: 35.0,
+            letterSpacing: 0.0,
+            wordSpacing: 0.0,
+            color: Color(0xffffffff),
+            fontWeight: FontWeight.w500,
+            backgroundColor: Color.fromARGB(20, 0, 0, 0),
+          ),
+          textAlign: TextAlign.center,
+          textScaler: TextScaler.linear(Api.isMobile() ? 1.5 : 1),
+          padding: const EdgeInsets.all(24.0),
+        ),
+        controls: (state) => customVideoControls(state, widget),
+      ),
     );
   }
 }

@@ -12,6 +12,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:pip_plugin/pip_plugin.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:sizer/sizer.dart';
 import 'package:window_manager/window_manager.dart';
 
 Widget customVideoControls(VideoState state, StreamPlayer widget) {
@@ -21,6 +22,10 @@ Widget customVideoControls(VideoState state, StreamPlayer widget) {
 class PlayerControls extends StatefulWidget {
   final VideoState state;
   final StreamPlayer widget;
+
+  static final normalTextStyle = TextStyle(fontSize: 15.sp.clamp(14, 20));
+  static final normalIconSize = 15.px.clamp(14, 20).toDouble();
+
   const PlayerControls({super.key, required this.state, required this.widget});
 
   @override
@@ -28,7 +33,7 @@ class PlayerControls extends StatefulWidget {
 }
 
 class _PlayerControls extends State<PlayerControls> {
-  bool _uiIsActive = false;
+  bool _uiIsActive = true;
   late Player player;
   bool isPlaying = false;
   bool isBuffering = true;
@@ -114,7 +119,15 @@ class _PlayerControls extends State<PlayerControls> {
     super.dispose();
   }
 
-  void restartUi() {
+  void restartUi({bool toggle = false}) {
+    if (toggle && _uiIsActive == true) {
+      setState(() {
+        _uiIsActive = false;
+      });
+
+      widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
+      _uiTimer?.cancel();
+    }
     if (_uiIsActive == false) {
       setState(() {
         _uiIsActive = true;
@@ -181,7 +194,12 @@ class _PlayerControls extends State<PlayerControls> {
                           onPressed: () {
                             context.pop();
                           },
-                          icon: const Row(children: [Icon(Icons.arrow_back_ios_new_rounded), Text("Return")]),
+                          icon: Row(
+                            children: [
+                              Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded),
+                              Text(style: PlayerControls.normalTextStyle, "Return"),
+                            ],
+                          ),
                         ),
                         if (isShow)
                           FutureBuilder(
@@ -189,17 +207,21 @@ class _PlayerControls extends State<PlayerControls> {
                             builder: (context, snapshot) => Column(
                               spacing: 8,
                               children: [
-                                Text(snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
-                                Text(snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name'),
+                                Text(style: PlayerControls.normalTextStyle, snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
+                                Text(
+                                  style: PlayerControls.normalTextStyle,
+                                  snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name',
+                                ),
                               ],
                             ).asSkeleton(snapshot: snapshot),
                           )
                         else
                           FutureBuilder(
                             future: movie,
-                            builder: (context, snapshot) => snapshot.hasData ? Text((snapshot.data! as TmdbMovie).title) : const SizedBox.shrink(),
+                            builder: (context, snapshot) =>
+                                snapshot.hasData ? Text(style: PlayerControls.normalTextStyle, (snapshot.data! as TmdbMovie).title) : const SizedBox.shrink(),
                           ),
-                        const ControlButton(icon: Icon(Icons.info_outline_rounded)),
+                        ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.info_outline_rounded)),
                       ],
                     ),
                     Center(
@@ -217,7 +239,10 @@ class _PlayerControls extends State<PlayerControls> {
                         Row(
                           children: [
                             RepaintBoundary(
-                              child: ControlButton(onTap: () => player.playOrPause(), icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded)),
+                              child: ControlButton(
+                                onTap: () => player.playOrPause(),
+                                icon: Icon(size: PlayerControls.normalIconSize, isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                              ),
                             ),
                             VolumeButton(player: player),
                             _PositionDisplay(player: player),
@@ -230,7 +255,13 @@ class _PlayerControls extends State<PlayerControls> {
                                 decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                               ),
                               const SizedBox(width: 10),
-                              Row(spacing: 8, children: [Text('S${widget.widget.episode!.seasonNumber}'), Text('E${widget.widget.episode!.episodeNumber}')]),
+                              Row(
+                                spacing: 8,
+                                children: [
+                                  Text(style: PlayerControls.normalTextStyle, 'S${widget.widget.episode!.seasonNumber}'),
+                                  Text(style: PlayerControls.normalTextStyle, 'E${widget.widget.episode!.episodeNumber}'),
+                                ],
+                              ),
                             ],
 
                             const Spacer(),
@@ -250,7 +281,7 @@ class _PlayerControls extends State<PlayerControls> {
                                     position: OverlayPosition.right,
                                   );
                                 },
-                                icon: const Icon(Icons.amp_stories_rounded),
+                                icon: Icon(size: PlayerControls.normalIconSize, Icons.amp_stories_rounded),
                               ),
                               ControlButton(
                                 onTap: () async {
@@ -261,7 +292,7 @@ class _PlayerControls extends State<PlayerControls> {
                                     );
                                   }
                                 },
-                                icon: const Icon(Icons.skip_next_rounded),
+                                icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
                               ),
                             ],
                             DropdownButton(
@@ -290,36 +321,36 @@ class _PlayerControls extends State<PlayerControls> {
                                   ),
                                 ],
                               ),
-                              icon: const Icon(Icons.subtitles_rounded),
+                              icon: Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
                             ),
-                            const DropdownButton(
+                            DropdownButton(
                               dropdownMenu: DropdownMenu(
                                 children: [
                                   MenuLabel(
                                     child: Row(
                                       children: [
                                         ControlButton(icon: Icon(Icons.arrow_back_ios_new_rounded)),
-                                        Icon(Icons.settings_rounded),
+                                        Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
                                         Text('Settings'),
                                       ],
                                     ),
                                   ),
                                 ],
                               ),
-                              icon: Icon(Icons.settings_rounded),
+                              icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
                             ),
                             ControlButton(
                               onTap: () {
                                 pip.setupPip();
                                 pip.startPip();
                               },
-                              icon: const Icon(Icons.picture_in_picture_alt_rounded),
+                              icon: Icon(size: PlayerControls.normalIconSize, Icons.picture_in_picture_alt_rounded),
                             ),
                             ControlButton(
                               onTap: () async {
                                 windowManager.setFullScreen(!(await windowManager.isFullScreen()));
                               },
-                              icon: const Icon(Icons.fullscreen_rounded),
+                              icon: Icon(size: PlayerControls.normalIconSize, Icons.fullscreen_rounded),
                             ),
                           ],
                         ),
@@ -505,6 +536,7 @@ class _VolumeButtonState extends State<VolumeButton> {
         children: [
           ControlButton(
             icon: Icon(
+              size: PlayerControls.normalIconSize,
               _volume == 0
                   ? Icons.volume_off_rounded
                   : _volume < 50
@@ -658,7 +690,14 @@ class _PositionDisplayState extends State<_PositionDisplay> {
   }
 
   @override
-  Widget build(BuildContext context) => Row(spacing: 4, children: [Text(_fmt(position)), const Text('/'), Text(_fmt(duration))]);
+  Widget build(BuildContext context) => Row(
+    spacing: 4,
+    children: [
+      Text(style: PlayerControls.normalTextStyle, _fmt(position)),
+      Text(style: PlayerControls.normalTextStyle, '/'),
+      Text(style: PlayerControls.normalTextStyle, _fmt(duration)),
+    ],
+  );
 }
 
 class _NextUpCard extends StatelessWidget {
@@ -678,81 +717,84 @@ class _NextUpCard extends StatelessWidget {
         final progress = dur.inMilliseconds > 0 ? pos.inMilliseconds / dur.inMilliseconds : 0.0;
         final nearEnd = progress > 0.93;
 
-        return AnimatedSlide(
-          offset: nearEnd ? const Offset(0, -0.10) : Offset.zero,
-          duration: const Duration(milliseconds: 500),
-          child: AnimatedOpacity(
-            opacity: nearEnd ? 1.0 : 0.0,
+        return IgnorePointer(
+          ignoring: nearEnd,
+          child: AnimatedSlide(
+            offset: nearEnd ? const Offset(0, -0.10) : Offset.zero,
             duration: const Duration(milliseconds: 500),
-            child: AnimatedSlide(
-              duration: const Duration(milliseconds: 200),
-              offset: uiIsActive ? const Offset(0, -0.20) : Offset.zero,
-              child: FutureBuilder(
-                future: nextEpisode,
-                builder: (context, snapshot) => ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: 300,
-                    height: 170,
-                    child: Stack(
-                      children: [
-                        snapshot.hasData
-                            ? CachedNetworkImage(imageUrl: 'https://image.tmdb.org/t/p/w300${snapshot.data!.stillPath}', fit: BoxFit.cover)
-                            : const SizedBox.shrink(),
-                        Container(color: Colors.black.withAlpha(120)),
-                        Center(
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withAlpha(40),
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
-                          ),
-                        ),
-                        if (snapshot.hasData)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
+            child: AnimatedOpacity(
+              opacity: nearEnd ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 500),
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 200),
+                offset: uiIsActive ? const Offset(0, -0.20) : Offset.zero,
+                child: FutureBuilder(
+                  future: nextEpisode,
+                  builder: (context, snapshot) => ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 300,
+                      height: 170,
+                      child: Stack(
+                        children: [
+                          snapshot.hasData
+                              ? CachedNetworkImage(imageUrl: 'https://image.tmdb.org/t/p/w300${snapshot.data!.stillPath}', fit: BoxFit.cover)
+                              : const SizedBox.shrink(),
+                          Container(color: Colors.black.withAlpha(120)),
+                          Center(
                             child: Container(
-                              padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
+                              width: 44,
+                              height: 44,
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                  colors: [Colors.black.withAlpha(230), Colors.transparent],
+                                shape: BoxShape.circle,
+                                color: Colors.white.withAlpha(40),
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
+                            ),
+                          ),
+                          if (snapshot.hasData)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [Colors.black.withAlpha(230), Colors.transparent],
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      "Up Next",
+                                      style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.w600),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      snapshot.data!.name,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      "S${snapshot.data!.seasonNumber}:E${snapshot.data!.episodeNumber} · ${snapshot.data!.name}",
+                                      style: const TextStyle(fontSize: 11, color: Colors.white),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    LinearProgressIndicator(value: progress, minHeight: 8, color: Colors.pink, backgroundColor: Colors.white.withAlpha(60)),
+                                  ],
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    "Up Next",
-                                    style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    snapshot.data!.name,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    "S${snapshot.data!.seasonNumber}:E${snapshot.data!.episodeNumber} · ${snapshot.data!.name}",
-                                    style: const TextStyle(fontSize: 11, color: Colors.white),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  LinearProgressIndicator(value: progress, minHeight: 8, color: Colors.pink, backgroundColor: Colors.white.withAlpha(60)),
-                                ],
-                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
