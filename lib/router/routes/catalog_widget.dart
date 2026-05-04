@@ -1,7 +1,7 @@
-import 'package:blssmpetal/api/api_cache.dart';
-import 'package:blssmpetal/pages/catalog_row.dart';
-import 'package:blssmpetal/pages/empty_sliver.dart';
-import 'package:blssmpetal/pages/trakt_widget.dart';
+import 'package:petal/api/api_cache.dart';
+import 'package:petal/pages/catalog_row.dart';
+import 'package:petal/pages/empty_sliver.dart';
+import 'package:petal/pages/trakt_widget.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class CatalogWidget extends StatefulWidget {

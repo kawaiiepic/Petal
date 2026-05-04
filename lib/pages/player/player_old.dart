@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:blssmpetal/api/stream_helper.dart';
-import 'package:blssmpetal/api/tmdb/tmdb.dart';
-import 'package:blssmpetal/models/custom_model.dart';
-import 'package:blssmpetal/models/stream.dart';
-import 'package:blssmpetal/pages/player/player_controls.dart';
+import 'package:petal/api/stream_helper.dart';
+import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/models/custom_model.dart';
+import 'package:petal/models/stream.dart';
+import 'package:petal/pages/player/player_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';

@@ -1,8 +1,8 @@
-import 'package:blssmpetal/api/tmdb/tmdb.dart';
-import 'package:blssmpetal/api/trakt/trakt_class.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
-import 'package:blssmpetal/pages/catalog_item.dart';
-import 'package:blssmpetal/pages/scrollable_widget.dart';
+import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/trakt/trakt_class.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/pages/catalog_item.dart';
+import 'package:petal/pages/scrollable_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 

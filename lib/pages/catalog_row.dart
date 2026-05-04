@@ -1,7 +1,7 @@
-import 'package:blssmpetal/models/catalog.dart';
-import 'package:blssmpetal/models/catalog_item.dart';
-import 'package:blssmpetal/pages/catalog_item.dart';
-import 'package:blssmpetal/pages/scrollable_widget.dart';
+import 'package:petal/models/catalog.dart';
+import 'package:petal/models/catalog_item.dart';
+import 'package:petal/pages/catalog_item.dart';
+import 'package:petal/pages/scrollable_widget.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class CatalogRow extends StatefulWidget {

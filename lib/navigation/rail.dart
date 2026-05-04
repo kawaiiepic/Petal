@@ -1,7 +1,7 @@
-import 'package:blssmpetal/navigation/profile.dart';
-import 'package:blssmpetal/pages/addons.dart';
-import 'package:blssmpetal/pages/dashboard/dashboard.dart';
-import 'package:blssmpetal/pages/settings.dart';
+import 'package:petal/navigation/profile.dart';
+import 'package:petal/pages/addons.dart';
+import 'package:petal/pages/dashboard/dashboard.dart';
+import 'package:petal/pages/settings.dart';
 import 'package:flutter/material.dart';
 
 class Rail extends StatefulWidget {

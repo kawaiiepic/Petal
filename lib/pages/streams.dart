@@ -1,9 +1,9 @@
-import 'package:blssmpetal/api/stream_helper.dart';
-import 'package:blssmpetal/api/tmdb/tmdb.dart';
-import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
-import 'package:blssmpetal/models/custom_model.dart';
+import 'package:petal/api/stream_helper.dart';
+import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/models/custom_model.dart';
 
-import 'package:blssmpetal/models/stream.dart';
+import 'package:petal/models/stream.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

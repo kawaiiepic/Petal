@@ -1,12 +1,12 @@
 import 'dart:convert';
-import 'package:blssmpetal/api/api_cache.dart';
-import 'package:blssmpetal/models/addon.dart';
-import 'package:blssmpetal/models/catalog.dart';
-import 'package:blssmpetal/models/catalog_item.dart';
-import 'package:blssmpetal/models/custom_model.dart';
+import 'package:petal/api/api_cache.dart';
+import 'package:petal/models/addon.dart';
+import 'package:petal/models/catalog.dart';
+import 'package:petal/models/catalog_item.dart';
+import 'package:petal/models/custom_model.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:blssmpetal/models/stream.dart';
+import 'package:petal/models/stream.dart';
 
 class StreamApi {
   static Future<List<StreamItem>> fetchStreams(String imdbId, Episode? episode) async {

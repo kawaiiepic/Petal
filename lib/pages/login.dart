@@ -1,5 +1,5 @@
-import 'package:blssmpetal/api/api.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/api.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

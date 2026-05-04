@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:blssmpetal/api/catalog_helper.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
-import 'package:blssmpetal/models/addon.dart';
-import 'package:blssmpetal/models/catalog.dart';
-import 'package:blssmpetal/models/settings.dart';
+import 'package:petal/api/catalog_helper.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/models/addon.dart';
+import 'package:petal/models/catalog.dart';
+import 'package:petal/models/settings.dart';
 import 'package:flutter/material.dart';
 
 class Api {

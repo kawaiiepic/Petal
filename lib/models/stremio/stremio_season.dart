@@ -1,4 +1,4 @@
-import 'package:blssmpetal/models/stremio/stremio_episode.dart';
+import 'package:petal/models/stremio/stremio_episode.dart';
 
 class StremioSeason {
   final int number;

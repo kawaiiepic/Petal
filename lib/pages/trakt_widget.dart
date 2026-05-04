@@ -1,5 +1,5 @@
-import 'package:blssmpetal/models/catalog_item.dart';
-import 'package:blssmpetal/pages/trakt_next_up.dart';
+import 'package:petal/models/catalog_item.dart';
+import 'package:petal/pages/trakt_next_up.dart';
 import 'package:flutter/material.dart';
 
 typedef ItemHoverCallback = void Function(CatalogItem? item, String? background);

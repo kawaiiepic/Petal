@@ -1,5 +1,5 @@
-import 'package:blssmpetal/models/stremio/stremio_episode.dart';
-import 'package:blssmpetal/models/stremio/stremio_season.dart';
+import 'package:petal/models/stremio/stremio_episode.dart';
+import 'package:petal/models/stremio/stremio_season.dart';
 import 'trailer.dart';
 
 class CatalogItem {

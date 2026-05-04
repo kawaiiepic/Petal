@@ -1,5 +1,5 @@
-import 'package:blssmpetal/api/api.dart';
-import 'package:blssmpetal/router/router.dart';
+import 'package:petal/api/api.dart';
+import 'package:petal/router/router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';

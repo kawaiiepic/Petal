@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:blssmpetal/models/resource.dart';
+import 'package:petal/models/resource.dart';
 import 'package:http/http.dart' as http;
 
 class Addon {
@@ -20,7 +20,7 @@ class Addon {
     required this.baseUrl,
     this.manifest,
     Set<String>? enabledResources,
-    required this.forced
+    required this.forced,
   }) : enabledResources = enabledResources ?? {};
 
   factory Addon.fromJson(Map<String, dynamic> json) {

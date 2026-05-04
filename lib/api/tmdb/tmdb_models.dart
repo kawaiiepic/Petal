@@ -1,4 +1,4 @@
-import 'package:blssmpetal/api/tmdb/tmdb.dart';
+import 'package:petal/api/tmdb/tmdb.dart';
 
 class Images {
   List<Backdrops>? backdrops;

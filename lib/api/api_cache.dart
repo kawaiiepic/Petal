@@ -1,16 +1,16 @@
 import 'dart:typed_data';
 
-import 'package:blssmpetal/api/api.dart';
-import 'package:blssmpetal/api/catalog_helper.dart';
-import 'package:blssmpetal/api/tmdb/tmdb.dart';
-import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
-import 'package:blssmpetal/api/trakt/models.dart';
-import 'package:blssmpetal/api/trakt/trakt_class.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
-import 'package:blssmpetal/models/addon.dart';
-import 'package:blssmpetal/models/catalog.dart';
-import 'package:blssmpetal/models/catalog_item.dart';
-import 'package:blssmpetal/models/trakt/enum/media_type.dart';
+import 'package:petal/api/api.dart';
+import 'package:petal/api/catalog_helper.dart';
+import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/api/trakt/models.dart';
+import 'package:petal/api/trakt/trakt_class.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/models/addon.dart';
+import 'package:petal/models/catalog.dart';
+import 'package:petal/models/catalog_item.dart';
+import 'package:petal/models/trakt/enum/media_type.dart';
 
 class ApiCache {
   static Future<List<Addon>>? _addonsFuture;
@@ -49,7 +49,7 @@ class ApiCache {
   }
 
   static Future<TmdbSearchResult> getTmdbSearch(String imdbId) {
-    return _tmdbSearchResult.putIfAbsent(imdbId , () => TMDB.search(imdbId));
+    return _tmdbSearchResult.putIfAbsent(imdbId, () => TMDB.search(imdbId));
   }
 
   static Future<List<TraktWatchedShowWithProgress>> getTraktWatched() {

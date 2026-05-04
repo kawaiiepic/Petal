@@ -1,6 +1,6 @@
-import 'package:blssmpetal/pages/addons.dart';
-import 'package:blssmpetal/pages/dashboard/dashboard.dart';
-import 'package:blssmpetal/pages/settings.dart';
+import 'package:petal/pages/addons.dart';
+import 'package:petal/pages/dashboard/dashboard.dart';
+import 'package:petal/pages/settings.dart';
 import 'package:flutter/material.dart';
 
 class Bar extends StatefulWidget {
@@ -25,9 +25,10 @@ class _BarState extends State<Bar> {
       extendBodyBehindAppBar: true,
       body: IndexedStack(index: _selectedIndex, children: const [Dashboard(), Addons(), Settings()]),
       bottomNavigationBar: BottomNavigationBar(
-        items: [BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_filled), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_filled), label: 'Addons'),
-        BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Settings'),
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_filled), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_filled), label: 'Addons'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Settings'),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

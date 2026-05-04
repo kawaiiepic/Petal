@@ -1,4 +1,4 @@
-import 'package:blssmpetal/api/trakt/models.dart';
+import 'package:petal/api/trakt/models.dart';
 
 class TraktWatchedShowWithProgress {
   final TraktShow? watchedShow;

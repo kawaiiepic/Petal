@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:ui';
-import 'package:blssmpetal/api/api_cache.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
-import 'package:blssmpetal/models/addon.dart';
-import 'package:blssmpetal/api/api.dart';
+import 'package:petal/api/api_cache.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/models/addon.dart';
+import 'package:petal/api/api.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -173,12 +173,14 @@ class _AddonTileState extends State<AddonTile> {
   @override
   void initState() {
     super.initState();
-    _image = widget.addon.manifest?['logo'] != null ? CachedNetworkImage(
-      imageUrl: Api.proxyImage(widget.addon.manifest?['logo']),
-      imageBuilder: (context, imageProvider) => CircleAvatar(foregroundImage: imageProvider, backgroundColor: Colors.transparent),
-      progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
-      errorWidget: (context, url, error) => CircleAvatar(child: Icon(Icons.extension)),
-    ) : null;
+    _image = widget.addon.manifest?['logo'] != null
+        ? CachedNetworkImage(
+            imageUrl: Api.proxyImage(widget.addon.manifest?['logo']),
+            imageBuilder: (context, imageProvider) => CircleAvatar(foregroundImage: imageProvider, backgroundColor: Colors.transparent),
+            progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+            errorWidget: (context, url, error) => CircleAvatar(child: Icon(Icons.extension)),
+          )
+        : null;
   }
 
   @override

@@ -1,4 +1,4 @@
-import 'package:blssmpetal/models/addon.dart';
+import 'package:petal/models/addon.dart';
 
 class StreamItem {
   final String name;

@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'package:blssmpetal/api/api_cache.dart';
-import 'package:blssmpetal/api/stream_helper.dart';
-import 'package:blssmpetal/models/addon.dart';
-import 'package:blssmpetal/models/catalog_item.dart';
+import 'package:petal/api/api_cache.dart';
+import 'package:petal/api/stream_helper.dart';
+import 'package:petal/models/addon.dart';
+import 'package:petal/models/catalog_item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';

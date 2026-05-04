@@ -1,5 +1,5 @@
-import 'package:blssmpetal/api/api.dart';
-import 'package:blssmpetal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/api.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
 
 class TraktAuth {
   /// Step 1: Request device code

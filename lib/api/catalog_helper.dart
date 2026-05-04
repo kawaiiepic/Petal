@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:blssmpetal/models/catalog.dart';
-import 'package:blssmpetal/models/catalog_item.dart';
+import 'package:petal/models/catalog.dart';
+import 'package:petal/models/catalog_item.dart';
 import 'package:http/http.dart' as http;
 
 class CatalogApi {

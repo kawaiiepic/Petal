@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:blssmpetal/api/api.dart';
-import 'package:blssmpetal/api/tmdb/tmdb_models.dart';
-import 'package:blssmpetal/models/trakt/enum/media_type.dart';
+import 'package:petal/api/api.dart';
+import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
