@@ -117,10 +117,11 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: "Build #${{ github.run_number }}"
+          generate_release_notes: true
           draft: false
           prerelease: true
           files: |
             artifacts/app-release.apk/app-release.apk
             artifacts/bookadapt_unsigned.ipa/bookadapt_unsigned.ipa
-            artifacts/release-linux/release-linux.zip
+            artifacts/release-linux
             artifacts/blssmpetal.exe/blssmpetal.exe
