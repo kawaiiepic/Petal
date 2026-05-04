@@ -10,7 +10,7 @@
 [![Dart](https://img.shields.io/badge/Dart-3.10+-0175C2?style=flat-square&logo=dart&logoColor=white)](https://dart.dev)
 [![License](https://img.shields.io/badge/License-MIT-pink?style=flat-square)](LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/kawaiiepic/Petal/flutter.yml?style=flat-square&label=build)](https://github.com/kawaiiepic/Petal/actions)
-[![Release](https://img.shields.io/github/v/release/kawaiiepic/Petal?style=flat-square&color=ff69b4)](https://github.com/kawaiiepic/Petal/releases)
+[![Release](https://img.shields.io/github/v/release/kawaiiepic/Petal?include_prereleases&style=flat-square&color=%23FFC0CB)](https://github.com/kawaiiepic/Petal/releases)
 
 [**Download**](#-download) · [**Features**](#-features) · [**Screenshots**](#-screenshots) · [**Building**](#-building-from-source)
 
