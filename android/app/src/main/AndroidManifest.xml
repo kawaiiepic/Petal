@@ -3,7 +3,7 @@
     <application
         android:label="blssmpetal"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/petal_app">
         <activity
             android:name=".MainActivity"
             android:exported="true"
