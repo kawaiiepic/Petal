@@ -1,6 +1,5 @@
 import Flutter
 import UIKit
-import PipPlayerViewFactory
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {

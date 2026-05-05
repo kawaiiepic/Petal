@@ -1,6 +1,5 @@
 import Flutter
 import UIKit
-import PipPlayerView
 
 class PipPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
 
