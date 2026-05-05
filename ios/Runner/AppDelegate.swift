@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import AVKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
