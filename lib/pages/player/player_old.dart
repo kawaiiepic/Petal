@@ -19,13 +19,14 @@ class StreamPlayer extends StatefulWidget {
   const StreamPlayer({super.key, required this.showId, required this.movieId, required this.episode, this.stream});
 
   @override
-  State<StatefulWidget> createState() => _StreamPlayerState();
+  State<StatefulWidget> createState() => StreamPlayerState();
 }
 
-class _StreamPlayerState extends State<StreamPlayer> {
+class StreamPlayerState extends State<StreamPlayer> {
   late final player = Player();
   late final controller = VideoController(player);
   late final StreamItem selectedStream;
+  bool zoomVideo = false;
 
   @override
   void initState() {
@@ -85,7 +86,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
     return Scaffold(
       child: Video(
         controller: controller,
-        fit: BoxFit.cover,
+        fit: zoomVideo ? BoxFit.cover : BoxFit.contain,
         subtitleViewConfiguration: SubtitleViewConfiguration(
           style: const TextStyle(
             height: 1.4,
@@ -100,7 +101,7 @@ class _StreamPlayerState extends State<StreamPlayer> {
           textScaler: TextScaler.linear(Api.isMobile() ? 1.5 : 1),
           padding: const EdgeInsets.all(24.0),
         ),
-        controls: (state) => customVideoControls(state, widget),
+        controls: (state) => customVideoControls(state, this),
       ),
     );
   }

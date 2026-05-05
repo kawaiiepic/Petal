@@ -22,6 +22,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
   late Future<TmdbSeason> _seasons;
 
   Episode episode = Episode(seasonNumber: 1, episodeNumber: 1);
+  final scrollController = ScrollController();
 
   @override
   void initState() {
@@ -56,6 +57,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
           return Container(
             color: Theme.of(context).colorScheme.background,
             child: CustomScrollView(
+              controller: scrollController,
               slivers: [
                 SliverAppBar(
                   expandedHeight: 300,
@@ -216,6 +218,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                     if (snapshot.hasData && snapshot.data!.episodes.isNotEmpty)
                                       ListView(
                                         shrinkWrap: true,
+                                        controller: scrollController,
                                         children: snapshot.data!.episodes
                                             .map(
                                               (episode) => Padding(

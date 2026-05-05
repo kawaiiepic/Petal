@@ -9,24 +9,24 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:pip_plugin/pip_plugin.dart';
+import 'package:pip/pip.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 import 'package:window_manager/window_manager.dart';
 
-Widget customVideoControls(VideoState state, StreamPlayer widget) {
-  return PlayerControls(state: state, widget: widget);
+Widget customVideoControls(VideoState state, StreamPlayerState widgetState) {
+  return PlayerControls(state: state, widgetState: widgetState);
 }
 
 class PlayerControls extends StatefulWidget {
   final VideoState state;
-  final StreamPlayer widget;
+  final StreamPlayerState widgetState;
 
   static final normalTextStyle = TextStyle(fontSize: 15.sp.clamp(14, 20));
   static final normalIconSize = 15.px.clamp(14, 20).toDouble();
 
-  const PlayerControls({super.key, required this.state, required this.widget});
+  const PlayerControls({super.key, required this.state, required this.widgetState});
 
   @override
   State<StatefulWidget> createState() => _PlayerControls();
@@ -50,7 +50,7 @@ class _PlayerControls extends State<PlayerControls> {
   Duration buffer = Duration();
   Duration duration = Duration();
 
-  PipPlugin pip = PipPlugin();
+  final _pip = Pip();
 
   int? _selectedSeason;
   late Future<TmdbEpisode?> _nextEpisode;
@@ -59,19 +59,56 @@ class _PlayerControls extends State<PlayerControls> {
   void initState() {
     super.initState();
 
+    final options = PipOptions(
+      autoEnterEnabled: true, // Enable/disable auto-enter PiP mode
+      // Android specific options
+      aspectRatioX: 16, // Aspect ratio X value
+      aspectRatioY: 9, // Aspect ratio Y value
+      sourceRectHintLeft: 0, // Source rectangle left position
+      sourceRectHintTop: 0, // Source rectangle top position
+      sourceRectHintRight: 1080, // Source rectangle right position
+      sourceRectHintBottom: 720, // Source rectangle bottom position
+      // iOS specific options
+      sourceContentView: 0, // Source content view
+      contentView: 0, // Content view to be displayed in PiP
+      preferredContentWidth: 480, // Preferred content width
+      preferredContentHeight: 270, // Preferred content height
+      controlStyle: 2, // Control style for PiP window
+    );
+
+    _pip.setup(options);
+
+    _pip.registerStateChangedObserver(
+      PipStateChangedObserver(
+        onPipStateChanged: (state, error) {
+          switch (state) {
+            case PipState.pipStateStarted:
+              print('PiP started successfully');
+              break;
+            case PipState.pipStateStopped:
+              print('PiP stopped');
+              break;
+            case PipState.pipStateFailed:
+              print('PiP failed: $error');
+              break;
+          }
+        },
+      ),
+    );
+
     player = widget.state.widget.controller.player;
 
-    isShow = widget.widget.showId != null;
+    isShow = widget.widgetState.widget.showId != null;
 
     if (isShow) {
-      _selectedSeason = widget.widget.episode!.seasonNumber;
+      _selectedSeason = widget.widgetState.widget.episode!.seasonNumber;
       _showData = Future.wait([
-        TMDB.tvShow(widget.widget.showId!),
-        TMDB.tvEpisode(widget.widget.showId!, widget.widget.episode!.seasonNumber, widget.widget.episode!.episodeNumber),
+        TMDB.tvShow(widget.widgetState.widget.showId!),
+        TMDB.tvEpisode(widget.widgetState.widget.showId!, widget.widgetState.widget.episode!.seasonNumber, widget.widgetState.widget.episode!.episodeNumber),
       ]);
       _nextEpisode = nextUpEpisode();
     } else {
-      movie = TMDB.movie(widget.widget.movieId!);
+      movie = TMDB.movie(widget.widgetState.widget.movieId!);
     }
 
     player.stream.buffering.listen((buffering) {
@@ -98,9 +135,9 @@ class _PlayerControls extends State<PlayerControls> {
   }
 
   Future<TmdbEpisode?> nextUpEpisode() async {
-    var showId = widget.widget.showId;
-    var season = widget.widget.episode!.seasonNumber;
-    var episode = widget.widget.episode!.episodeNumber;
+    var showId = widget.widgetState.widget.showId;
+    var season = widget.widgetState.widget.episode!.seasonNumber;
+    var episode = widget.widgetState.widget.episode!.episodeNumber;
     TmdbShow show = (await _showData)[0];
     if (show.seasons[season].episodeCount <= episode) {
       if (show.seasons.length <= season) {
@@ -167,7 +204,7 @@ class _PlayerControls extends State<PlayerControls> {
               child: GestureDetector(
                 onTapDown: (details) {
                   if (details.kind == PointerDeviceKind.touch) {
-                    restartUi();
+                    restartUi(toggle: true);
                   } else if (details.kind == PointerDeviceKind.mouse) {
                     widget.state.widget.controller.player.playOrPause();
                   }
@@ -258,8 +295,8 @@ class _PlayerControls extends State<PlayerControls> {
                               Row(
                                 spacing: 8,
                                 children: [
-                                  Text(style: PlayerControls.normalTextStyle, 'S${widget.widget.episode!.seasonNumber}'),
-                                  Text(style: PlayerControls.normalTextStyle, 'E${widget.widget.episode!.episodeNumber}'),
+                                  Text(style: PlayerControls.normalTextStyle, 'S${widget.widgetState.widget.episode!.seasonNumber}'),
+                                  Text(style: PlayerControls.normalTextStyle, 'E${widget.widgetState.widget.episode!.episodeNumber}'),
                                 ],
                               ),
                             ],
@@ -273,7 +310,7 @@ class _PlayerControls extends State<PlayerControls> {
                                     builder: (context) => _EpisodeDrawer(
                                       showData: _showData,
                                       initialSeason: _selectedSeason,
-                                      tmdbId: widget.widget.showId!,
+                                      tmdbId: widget.widgetState.widget.showId!,
                                       onSeasonChanged: (season) {
                                         setState(() => _selectedSeason = season);
                                       },
@@ -288,7 +325,7 @@ class _PlayerControls extends State<PlayerControls> {
                                   TmdbEpisode? nextEpisode = await _nextEpisode;
                                   if (nextEpisode != null) {
                                     context.pushReplacement(
-                                      '/player?show=${widget.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
+                                      '/player?show=${widget.widgetState.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
                                     );
                                   }
                                 },
@@ -341,14 +378,17 @@ class _PlayerControls extends State<PlayerControls> {
                             ),
                             ControlButton(
                               onTap: () {
-                                pip.setupPip();
-                                pip.startPip();
+                                _pip.start();
                               },
                               icon: Icon(size: PlayerControls.normalIconSize, Icons.picture_in_picture_alt_rounded),
                             ),
                             ControlButton(
                               onTap: () async {
-                                windowManager.setFullScreen(!(await windowManager.isFullScreen()));
+                                setState(() {
+                                  widget.widgetState.zoomVideo = !widget.widgetState.zoomVideo;
+                                });
+
+                                // windowManager.setFullScreen(!(await windowManager.isFullScreen()));
                               },
                               icon: Icon(size: PlayerControls.normalIconSize, Icons.fullscreen_rounded),
                             ),
@@ -718,7 +758,7 @@ class _NextUpCard extends StatelessWidget {
         final nearEnd = progress > 0.93;
 
         return IgnorePointer(
-          ignoring: nearEnd,
+          ignoring: !nearEnd,
           child: AnimatedSlide(
             offset: nearEnd ? const Offset(0, -0.10) : Offset.zero,
             duration: const Duration(milliseconds: 500),

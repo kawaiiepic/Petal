@@ -5,7 +5,6 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   media_kit_libs_windows_video
   media_kit_video
-  pip_plugin
   screen_retriever_windows
   url_launcher_windows
   window_manager

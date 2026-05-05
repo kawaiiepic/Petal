@@ -645,14 +645,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.4"
-  pip_plugin:
+  pip:
     dependency: "direct main"
     description:
-      name: pip_plugin
-      sha256: "0c708949cb2a72675707fb4fddf7c3fe576bf58c00f5bc52428b5252dddfded7"
+      name: pip
+      sha256: f3c0890458a1e7ea3597fd2432841fb82565d66e4aa5b4931326a2ec052b3505
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.1+2"
+    version: "0.0.3"
   platform:
     dependency: transitive
     description:
@@ -757,14 +757,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.52"
-  simple_pip_mode:
-    dependency: transitive
-    description:
-      name: simple_pip_mode
-      sha256: "9266896e719e0c877cf02ed8641e82c529112cfcb8c49682569e8a46c2cc381e"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   sizer:
     dependency: "direct main"
     description:
