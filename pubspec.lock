@@ -858,6 +858,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.0"
+  tcic_native_plugin:
+    dependency: "direct main"
+    description:
+      name: tcic_native_plugin
+      sha256: cd86c5c417e424801e651782dc6bf1f4db15519d940e84e60aa8aeddf6d4a0e5
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
   term_glyph:
     dependency: transitive
     description:

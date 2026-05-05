@@ -13,6 +13,7 @@ import 'package:pip/pip.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
+import 'package:tcic_native_plugin/native_plugin.dart';
 import 'package:window_manager/window_manager.dart';
 
 Widget customVideoControls(VideoState state, StreamPlayerState widgetState) {
@@ -51,6 +52,9 @@ class _PlayerControls extends State<PlayerControls> {
   Duration duration = Duration();
 
   final _pip = Pip();
+  final _nativePlugin = NativePlugin();
+  int _playerView = 0;
+  int _pipContentView = 0;
 
   int? _selectedSeason;
   late Future<TmdbEpisode?> _nextEpisode;
@@ -59,42 +63,7 @@ class _PlayerControls extends State<PlayerControls> {
   void initState() {
     super.initState();
 
-    final options = PipOptions(
-      autoEnterEnabled: true, // Enable/disable auto-enter PiP mode
-      // Android specific options
-      aspectRatioX: 16, // Aspect ratio X value
-      aspectRatioY: 9, // Aspect ratio Y value
-      sourceRectHintLeft: 0, // Source rectangle left position
-      sourceRectHintTop: 0, // Source rectangle top position
-      sourceRectHintRight: 1080, // Source rectangle right position
-      sourceRectHintBottom: 720, // Source rectangle bottom position
-      // iOS specific options
-      sourceContentView: 0, // Source content view
-      contentView: 0, // Content view to be displayed in PiP
-      preferredContentWidth: 480, // Preferred content width
-      preferredContentHeight: 270, // Preferred content height
-      controlStyle: 2, // Control style for PiP window
-    );
-
-    _pip.setup(options);
-
-    _pip.registerStateChangedObserver(
-      PipStateChangedObserver(
-        onPipStateChanged: (state, error) {
-          switch (state) {
-            case PipState.pipStateStarted:
-              print('PiP started successfully');
-              break;
-            case PipState.pipStateStopped:
-              print('PiP stopped');
-              break;
-            case PipState.pipStateFailed:
-              print('PiP failed: $error');
-              break;
-          }
-        },
-      ),
-    );
+    _setupPip();
 
     player = widget.state.widget.controller.player;
 
@@ -126,6 +95,31 @@ class _PlayerControls extends State<PlayerControls> {
         isPlaying = playing;
       });
     });
+  }
+
+  Widget _buildPlayerView() {
+    return UiKitView(
+      viewType: 'pip_player_view',
+      onPlatformViewCreated: (id) {
+        setState(() {
+          _playerView = id;
+        });
+        print("PlayerView ready: $id");
+      },
+    );
+  }
+
+  Future<void> _setupPip() async {
+    _pipContentView = await _nativePlugin.createPipContentView();
+    print('[createPipContentView]: $_pipContentView');
+
+    setState(() {
+      _pipContentView = _pipContentView;
+    });
+
+    final options = PipOptions(contentView: _pipContentView, sourceContentView: _playerView);
+
+    await _pip.setup(options);
   }
 
   String formatDurationShort(Duration duration) {
@@ -200,6 +194,8 @@ class _PlayerControls extends State<PlayerControls> {
         child: Stack(
           alignment: AlignmentGeometry.bottomRight,
           children: [
+            _buildPlayerView(),
+
             Positioned.fill(
               child: GestureDetector(
                 onTapDown: (details) {
