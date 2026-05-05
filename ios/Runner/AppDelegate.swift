@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import PipPlayerViewFactory
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -15,7 +16,7 @@ import UIKit
       factory,
       withId: "pip_player_view"
     )
-    
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
