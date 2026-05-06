@@ -27,6 +27,11 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+dependency_overrides:
+  media_kit:
+    git:
+      url: https://github.com/kawaiiepic/media-kit.git
+      path: media_kit
 dependencies:
   flutter:
     sdk: flutter
