@@ -32,6 +32,9 @@ class StreamPlayerState extends State<StreamPlayer> {
   void initState() {
     super.initState();
     _startStream();
+
+    controller.enablePictureInPicture();
+    controller.enableAutoPictureInPicture();
   }
 
   Future<void> _startStream() async {

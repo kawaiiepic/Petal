@@ -9,11 +9,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:pip/pip.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
-import 'package:tcic_native_plugin/native_plugin.dart';
 import 'package:window_manager/window_manager.dart';
 
 Widget customVideoControls(VideoState state, StreamPlayerState widgetState) {
@@ -51,19 +49,12 @@ class _PlayerControls extends State<PlayerControls> {
   Duration buffer = Duration();
   Duration duration = Duration();
 
-  final _pip = Pip();
-  final _nativePlugin = NativePlugin();
-  int _playerView = 0;
-  int _pipContentView = 0;
-
   int? _selectedSeason;
   late Future<TmdbEpisode?> _nextEpisode;
 
   @override
   void initState() {
     super.initState();
-
-    _setupPip();
 
     player = widget.state.widget.controller.player;
 
@@ -95,31 +86,6 @@ class _PlayerControls extends State<PlayerControls> {
         isPlaying = playing;
       });
     });
-  }
-
-  Widget _buildPlayerView() {
-    return UiKitView(
-      viewType: 'pip_player_view',
-      onPlatformViewCreated: (id) {
-        setState(() {
-          _playerView = id;
-        });
-        print("PlayerView ready: $id");
-      },
-    );
-  }
-
-  Future<void> _setupPip() async {
-    _pipContentView = await _nativePlugin.createPipContentView();
-    print('[createPipContentView]: $_pipContentView');
-
-    setState(() {
-      _pipContentView = _pipContentView;
-    });
-
-    final options = PipOptions(contentView: _pipContentView, sourceContentView: _playerView);
-
-    await _pip.setup(options);
   }
 
   String formatDurationShort(Duration duration) {
@@ -194,8 +160,6 @@ class _PlayerControls extends State<PlayerControls> {
         child: Stack(
           alignment: AlignmentGeometry.bottomRight,
           children: [
-            _buildPlayerView(),
-
             Positioned.fill(
               child: GestureDetector(
                 onTapDown: (details) {
@@ -374,7 +338,6 @@ class _PlayerControls extends State<PlayerControls> {
                             ),
                             ControlButton(
                               onTap: () {
-                                _pip.start();
                               },
                               icon: Icon(size: PlayerControls.normalIconSize, Icons.picture_in_picture_alt_rounded),
                             ),
