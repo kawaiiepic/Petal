@@ -30,7 +30,7 @@ environment:
 dependency_overrides:
   media_kit:
     git:
-      url: https://github.com/mdikcinar/media-kit.git
+      url: https://github.com/kawaiiepic/media-kit.git
       ref: feat/pip
       path: media_kit
 dependencies:
@@ -45,27 +45,27 @@ dependencies:
   # media_kit: ^1.2.6
   media_kit:
     git:
-      url: https://github.com/mdikcinar/media-kit.git
+      url: https://github.com/kawaiiepic/media-kit.git
       ref: feat/pip
       path: media_kit
   media_kit_video:
     git:
-      url: https://github.com/mdikcinar/media-kit.git
+      url: https://github.com/kawaiiepic/media-kit.git
       ref: feat/pip
       path: media_kit_video
   media_kit_libs_ios_video:
     git:
-      url: https://github.com/mdikcinar/media-kit.git
+      url: https://github.com/kawaiiepic/media-kit.git
       ref: feat/pip
       path: libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
-      url: https://github.com/mdikcinar/media-kit.git
+      url: https://github.com/kawaiiepic/media-kit.git
       ref: feat/pip
       path: libs/android/media_kit_libs_android_video
   media_kit_libs_linux:
     git:
-      url: https://github.com/mdikcinar/media-kit.git
+      url: https://github.com/kawaiiepic/media-kit.git
       ref: feat/pip
       path: libs/linux/media_kit_libs_linux
 
