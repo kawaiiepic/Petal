@@ -473,36 +473,36 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: HEAD
-      resolved-ref: "330d7a96599eae332d668f5df2c35e2e833c90c7"
-      url: "https://github.com/kawaiiepic/media-kit.git"
+      ref: "feat/pip"
+      resolved-ref: "46f311dc25c4673bde5da708aa3ae45fee6d6a21"
+      url: "https://github.com/mdikcinar/media-kit.git"
     source: git
     version: "1.2.6"
   media_kit_libs_ios_video:
     dependency: "direct main"
     description:
       path: "libs/ios/media_kit_libs_ios_video"
-      ref: HEAD
-      resolved-ref: "330d7a96599eae332d668f5df2c35e2e833c90c7"
-      url: "https://github.com/kawaiiepic/media-kit.git"
+      ref: "feat/pip"
+      resolved-ref: "46f311dc25c4673bde5da708aa3ae45fee6d6a21"
+      url: "https://github.com/mdikcinar/media-kit.git"
     source: git
     version: "1.1.4"
   media_kit_libs_linux:
     dependency: "direct main"
     description:
       path: "libs/linux/media_kit_libs_linux"
-      ref: HEAD
-      resolved-ref: "330d7a96599eae332d668f5df2c35e2e833c90c7"
-      url: "https://github.com/kawaiiepic/media-kit.git"
+      ref: "feat/pip"
+      resolved-ref: "46f311dc25c4673bde5da708aa3ae45fee6d6a21"
+      url: "https://github.com/mdikcinar/media-kit.git"
     source: git
     version: "1.2.1"
   media_kit_video:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: HEAD
-      resolved-ref: "330d7a96599eae332d668f5df2c35e2e833c90c7"
-      url: "https://github.com/kawaiiepic/media-kit.git"
+      ref: "feat/pip"
+      resolved-ref: "46f311dc25c4673bde5da708aa3ae45fee6d6a21"
+      url: "https://github.com/mdikcinar/media-kit.git"
     source: git
     version: "2.0.1"
   meta:

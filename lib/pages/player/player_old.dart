@@ -32,9 +32,6 @@ class StreamPlayerState extends State<StreamPlayer> {
   void initState() {
     super.initState();
     _startStream();
-
-    controller.enablePictureInPicture();
-    controller.enableAutoPictureInPicture();
   }
 
   Future<void> _startStream() async {
@@ -89,6 +86,10 @@ class StreamPlayerState extends State<StreamPlayer> {
     return Scaffold(
       child: Video(
         controller: controller,
+        pip: const PipConfig(autoEnter: true),
+         onPipEvent: (event) {
+          // Optional: observe lifecycle + play/pause events.
+        },
         fit: zoomVideo ? BoxFit.cover : BoxFit.contain,
         subtitleViewConfiguration: SubtitleViewConfiguration(
           style: const TextStyle(
