@@ -3,6 +3,7 @@ import 'package:petal/models/catalog_item.dart';
 import 'package:petal/pages/catalog_item.dart';
 import 'package:petal/pages/scrollable_widget.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:sizer/sizer.dart';
 
 class CatalogRow extends StatefulWidget {
   final Catalog catalog;
@@ -27,7 +28,7 @@ class _CatalogRowState extends State<CatalogRow> {
   Widget build(BuildContext context) {
     final Catalog catalog = widget.catalog;
     final List<CatalogItem> catalogItems = widget.catalogItems.toList();
-    final style = TextStyle(fontSize: 18);
+    final style = TextStyle(fontSize: 16.px);
 
     return Column(
       spacing: 8,
@@ -41,8 +42,9 @@ class _CatalogRowState extends State<CatalogRow> {
             Text(catalog.type[0].toUpperCase() + catalog.type.substring(1), style: style),
           ],
         ),
+
         SizedBox(
-          height: 250,
+          height: 25.h,
           child: ScrollableWidget(
             controller: _controller,
             child: ListView.builder(

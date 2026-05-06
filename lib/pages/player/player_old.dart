@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/models/custom_model.dart';
 import 'package:petal/models/stream.dart';
+import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/pages/player/player_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
@@ -53,24 +55,8 @@ class StreamPlayerState extends State<StreamPlayer> {
       selectedStream = stream;
       print("Best Stream found: ${selectedStream.url}");
       await player.open(Media(selectedStream.url));
-
-      showToast(
-        context: context,
-        builder: (context, overlay) => SurfaceCard(
-          child: Basic(title: Text('Trakt'), subtitle: Text('${selectedStream.title} set as currently-watching.'), trailingAlignment: Alignment.center),
-        ),
-        location: ToastLocation.bottomRight,
-      );
     } else {
       context.pop();
-
-      showToast(
-        context: context,
-        builder: (context, overlay) => const SurfaceCard(
-          child: Basic(title: Text('Stream'), subtitle: Text('No Streams available'), trailingAlignment: Alignment.center),
-        ),
-        location: ToastLocation.bottomRight,
-      );
     }
   }
 
@@ -83,18 +69,19 @@ class StreamPlayerState extends State<StreamPlayer> {
   @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
     return Scaffold(
       child: Video(
         controller: controller,
-        pip: const PipConfig(autoEnter: true),
-         onPipEvent: (event) {
+        pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
+        onPipEvent: (event) {
           // Optional: observe lifecycle + play/pause events.
         },
-        fit: zoomVideo ? BoxFit.cover : BoxFit.contain,
+        fit: BoxFit.cover,
         subtitleViewConfiguration: SubtitleViewConfiguration(
           style: const TextStyle(
             height: 1.4,
-            fontSize: 35.0,
+            fontSize: 20.0,
             letterSpacing: 0.0,
             wordSpacing: 0.0,
             color: Color(0xffffffff),
@@ -102,7 +89,7 @@ class StreamPlayerState extends State<StreamPlayer> {
             backgroundColor: Color.fromARGB(20, 0, 0, 0),
           ),
           textAlign: TextAlign.center,
-          textScaler: TextScaler.linear(Api.isMobile() ? 1.5 : 1),
+          textScaler: TextScaler.linear(1),
           padding: const EdgeInsets.all(24.0),
         ),
         controls: (state) => customVideoControls(state, this),

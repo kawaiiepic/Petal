@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/router/router.dart';
 import 'package:go_router/go_router.dart';
@@ -34,10 +35,14 @@ class _PetalState extends State<PetalApp> {
   }
 
   @override
-  Widget build(BuildContext context) => Sizer(
-    builder: (context, orientation, screenType) => ShadcnApp.router(
-      routerConfig: AppRouter.appRouter,
-      theme: ThemeData(colorScheme: LegacyColorSchemes.darkRose(), radius: 0.7),
-    ),
-  );
+  Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    return Sizer(
+      builder: (context, orientation, screenType) => ShadcnApp.router(
+        routerConfig: AppRouter.appRouter,
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(colorScheme: LegacyColorSchemes.darkRose(), radius: 0.7),
+      ),
+    );
+  }
 }

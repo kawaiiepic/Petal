@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/pages/player/player_old.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
@@ -49,7 +52,7 @@ class _PlayerControls extends State<PlayerControls> {
   Duration buffer = Duration();
   Duration duration = Duration();
 
-  int? _selectedSeason;
+  SeasonSummary? _selectedSeason;
   late Future<TmdbEpisode?> _nextEpisode;
 
   @override
@@ -61,11 +64,21 @@ class _PlayerControls extends State<PlayerControls> {
     isShow = widget.widgetState.widget.showId != null;
 
     if (isShow) {
-      _selectedSeason = widget.widgetState.widget.episode!.seasonNumber;
       _showData = Future.wait([
         TMDB.tvShow(widget.widgetState.widget.showId!),
         TMDB.tvEpisode(widget.widgetState.widget.showId!, widget.widgetState.widget.episode!.seasonNumber, widget.widgetState.widget.episode!.episodeNumber),
       ]);
+
+      _showData.then((showData) {
+        _selectedSeason = ((showData[0] as TmdbShow).seasons.firstWhere((s) => s.seasonNumber == widget.widgetState.widget.episode!.seasonNumber));
+        TraktApi.startWatching(MediaType.show, {
+          "progress": 0.0,
+          "episode": {
+            "ids": {"trakt": (showData[1] as TmdbEpisode).id},
+          },
+        });
+      });
+
       _nextEpisode = nextUpEpisode();
     } else {
       movie = TMDB.movie(widget.widgetState.widget.movieId!);
@@ -124,6 +137,7 @@ class _PlayerControls extends State<PlayerControls> {
 
       widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
       _uiTimer?.cancel();
+      return;
     }
     if (_uiIsActive == false) {
       setState(() {
@@ -189,6 +203,8 @@ class _PlayerControls extends State<PlayerControls> {
                         IconButton(
                           variance: ButtonVariance.ghost,
                           onPressed: () {
+                            SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+                            SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
                             context.pop();
                           },
                           icon: Row(
@@ -241,7 +257,7 @@ class _PlayerControls extends State<PlayerControls> {
                                 icon: Icon(size: PlayerControls.normalIconSize, isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
                               ),
                             ),
-                            VolumeButton(player: player),
+                            if (!Api.isMobile()) VolumeButton(player: player),
                             _PositionDisplay(player: player),
 
                             if (isShow) ...[
@@ -295,26 +311,53 @@ class _PlayerControls extends State<PlayerControls> {
                             DropdownButton(
                               dropdownMenu: DropdownMenu(
                                 children: [
-                                  const MenuLabel(
+                                  MenuLabel(
                                     child: Row(
                                       children: [
-                                        ControlButton(icon: Icon(Icons.arrow_back_ios_new_rounded)),
-                                        Icon(Icons.subtitles_rounded),
-                                        Text('Subtitles'),
-                                        Spacer(),
-                                        ControlButton(icon: Icon(Icons.upload_rounded)),
+                                        ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
+                                        Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+                                        Text(style: PlayerControls.normalTextStyle, 'Subtitles'),
+                                        const Spacer(),
+                                        ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.upload_rounded)),
                                       ],
                                     ),
                                   ),
                                   const MenuDivider(),
-                                  const MenuLabel(child: Text('Subtitle')),
-                                  ...player.state.tracks.subtitle.map(
-                                    (e) => MenuButton(onPressed: (context) => player.setSubtitleTrack(e), child: Text(e.language ?? e.id)),
+                                  MenuLabel(
+                                    child: Collapsible(
+                                      children: [
+                                        CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Subtitles')),
+                                        Text(style: PlayerControls.normalTextStyle, player.state.track.subtitle.language ?? 'None').withPadding(left: 30),
+                                        ...player.state.tracks.subtitle.map(
+                                          (e) => CollapsibleContent(
+                                            child: MenuButton(
+                                              onPressed: (context) => setState(() {
+                                                player.setSubtitleTrack(e);
+                                              }),
+                                              child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-
-                                  const MenuLabel(child: Text('Audio')),
-                                  ...player.state.tracks.audio.map(
-                                    (e) => MenuButton(onPressed: (context) => player.setAudioTrack(e), child: Text(e.language ?? e.id)),
+                                  MenuLabel(
+                                    child: Collapsible(
+                                      children: [
+                                        CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Audio Track')),
+                                        Text(style: PlayerControls.normalTextStyle, player.state.track.audio.language ?? 'None').withPadding(left: 30),
+                                        ...player.state.tracks.audio.map(
+                                          (e) => CollapsibleContent(
+                                            child: MenuButton(
+                                              onPressed: (context) => setState(() {
+                                                player.setAudioTrack(e);
+                                              }),
+                                              child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -325,21 +368,17 @@ class _PlayerControls extends State<PlayerControls> {
                                 children: [
                                   MenuLabel(
                                     child: Row(
+                                      spacing: 8,
                                       children: [
-                                        ControlButton(icon: Icon(Icons.arrow_back_ios_new_rounded)),
+                                        ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
                                         Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
-                                        Text('Settings'),
+                                        Text(style: PlayerControls.normalTextStyle, 'Settings'),
                                       ],
                                     ),
                                   ),
                                 ],
                               ),
                               icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
-                            ),
-                            ControlButton(
-                              onTap: () {
-                              },
-                              icon: Icon(size: PlayerControls.normalIconSize, Icons.picture_in_picture_alt_rounded),
                             ),
                             ControlButton(
                               onTap: () async {
@@ -391,7 +430,7 @@ class DropdownButton extends StatelessWidget {
   Widget build(BuildContext context) => IconButton(
     variance: ButtonVariance.ghost,
     onPressed: () {
-      showDropdown(context: context, consumeOutsideTaps: true, builder: (context) => dropdownMenu);
+      showPopover(context: context, consumeOutsideTaps: true, alignment: Alignment.topCenter, builder: (context) => dropdownMenu);
     },
     icon: icon,
   );
@@ -399,9 +438,9 @@ class DropdownButton extends StatelessWidget {
 
 class _EpisodeDrawer extends StatefulWidget {
   final Future<List<dynamic>> showData;
-  final int? initialSeason;
+  final SeasonSummary? initialSeason;
   final int tmdbId;
-  final void Function(int) onSeasonChanged;
+  final void Function(SeasonSummary) onSeasonChanged;
 
   const _EpisodeDrawer({required this.showData, required this.initialSeason, required this.onSeasonChanged, required this.tmdbId});
 
@@ -410,7 +449,7 @@ class _EpisodeDrawer extends StatefulWidget {
 }
 
 class _EpisodeDrawerState extends State<_EpisodeDrawer> {
-  late int? _selectedSeason;
+  SeasonSummary? _selectedSeason;
   final Map<int, Future<TmdbSeason>> _loadedSeasons = {};
 
   @override
@@ -430,19 +469,26 @@ class _EpisodeDrawerState extends State<_EpisodeDrawer> {
           FutureBuilder(
             future: widget.showData,
             builder: (context, snapshot) {
-              return Select<int>(
-                itemBuilder: (context, item) => Text(snapshot.hasData ? (snapshot.data![0] as TmdbShow).seasons[item].name : ''),
+              return Select<SeasonSummary>(
+                itemBuilder: (context, item) => Text(style: PlayerControls.normalTextStyle, _selectedSeason?.name ?? ''),
                 popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
                 onChanged: (value) {
                   setState(() => _selectedSeason = value);
                   widget.onSeasonChanged(value!);
                 },
                 value: _selectedSeason,
-                placeholder: const Text('Select a season'),
+                placeholder: Text(style: PlayerControls.normalTextStyle, 'Select a season'),
                 popup: SelectPopup(
                   items: SelectItemList(
                     children: snapshot.hasData
-                        ? (snapshot.data![0] as TmdbShow).seasons.map((s) => SelectItemButton(value: s.seasonNumber, child: Text(s.name))).toList()
+                        ? (snapshot.data![0] as TmdbShow).seasons
+                              .map(
+                                (s) => SelectItemButton(
+                                  value: s,
+                                  child: Text(style: PlayerControls.normalTextStyle, s.name),
+                                ),
+                              )
+                              .toList()
                         : [],
                   ),
                 ).call,
@@ -450,7 +496,7 @@ class _EpisodeDrawerState extends State<_EpisodeDrawer> {
             },
           ),
           FutureBuilder(
-            future: _loadedSeasons.putIfAbsent(_selectedSeason ?? 0, () => TMDB.tvSeason(widget.tmdbId, _selectedSeason ?? 0)),
+            future: _loadedSeasons.putIfAbsent(_selectedSeason?.seasonNumber ?? 0, () => TMDB.tvSeason(widget.tmdbId, _selectedSeason?.seasonNumber ?? 0)),
             builder: (context, snapshot) {
               return snapshot.hasData
                   ? Expanded(
@@ -482,8 +528,13 @@ class _EpisodeDrawerState extends State<_EpisodeDrawer> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           spacing: 8,
                                           children: [
-                                            Text('${episode.episodeNumber}. ${episode.name}', style: const TextStyle(fontSize: 15)),
-                                            Text(episode.overview, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                                            Text(style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp), '${episode.episodeNumber}. ${episode.name}'),
+                                            Text(
+                                              style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp),
+                                              episode.overview,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ],
                                         ),
                                       ),

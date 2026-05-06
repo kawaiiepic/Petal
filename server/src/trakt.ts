@@ -136,25 +136,24 @@ export abstract class Trakt {
 
   public static async startWatching(app: express.Express) {
     app.post("/trakt/start_watching", async (req, res) => {
-      if (req.cookies.token != undefined) {
-        const accessToken = this.accessToken(req.cookies.token);
+      if (!req.cookies.auth) return res.sendStatus(300);
 
-        const response = await fetch("https://api.trakt.tv/scrobble/start", {
-          method: "POST",
-          headers: {
-            ...this._header,
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(req.body),
-        });
+      var verify = Login.verifyToken(req.cookies.auth) as jwt.JwtPayload;
+      const accessToken = this.accessToken(req.cookies.auth) as string;
 
-        if (response.ok) {
-          res.json(await response.json());
-        } else {
-          res.status(await response.status);
-        }
+      const response = await fetch("https://api.trakt.tv/scrobble/start", {
+        method: "POST",
+        headers: {
+          ...this._header,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(req.body),
+      });
+
+      if (response.ok) {
+        res.json(await response.json());
       } else {
-        res.status(300);
+        res.status(await response.status);
       }
     });
   }

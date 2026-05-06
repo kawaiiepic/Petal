@@ -4,6 +4,7 @@ import 'package:petal/pages/catalog_row.dart';
 import 'package:petal/pages/empty_sliver.dart';
 import 'package:petal/pages/trakt_widget.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:sizer/sizer.dart';
 
 class CatalogWidget extends StatefulWidget {
   const CatalogWidget({super.key});
@@ -15,9 +16,6 @@ class CatalogWidget extends StatefulWidget {
 class _CatalogWidget extends State<CatalogWidget> {
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
 
     return Scaffold(
       child: SafeArea(
@@ -36,7 +34,7 @@ class _CatalogWidget extends State<CatalogWidget> {
                       final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
 
                       return SliverFixedExtentList(
-                        itemExtent: 300,
+                        itemExtent: 31.h,
                         delegate: SliverChildBuilderDelegate((context, index) {
                           final catalog = catalogs[index];
 

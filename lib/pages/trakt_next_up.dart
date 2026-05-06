@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/trakt/trakt_class.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
@@ -5,6 +6,7 @@ import 'package:petal/pages/catalog_item.dart';
 import 'package:petal/pages/scrollable_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:sizer/sizer.dart';
 
 class TraktNextUp extends StatefulWidget {
   const TraktNextUp({super.key});
@@ -30,7 +32,7 @@ class _TraktNextUp extends State<TraktNextUp> {
     return Column(
       spacing: 8,
       children: [
-        Text('Next Up', style: style),
+        Text('Next Ups', style: style),
         FutureBuilder(
           future: _watchedFuture,
           builder: (context, snapshot) {
@@ -41,6 +43,7 @@ class _TraktNextUp extends State<TraktNextUp> {
                 offset: -80,
                 child: ListView.builder(
                   controller: _controller,
+                  itemExtent: 300,
                   scrollDirection: Axis.horizontal,
                   key: PageStorageKey<String>('unique_key_for_this_list'),
 
@@ -111,21 +114,41 @@ class _TraktNextUpItem extends State<TraktNextUpItem> {
               child: Column(
                 spacing: 8,
                 children: [
-                  // CachedNetworkImage(
-                  //   imageUrl: 'https://wallpapers-clan.com/wp-content/uploads/2025/05/pensive-anime-girl-neon-lights-desktop-wallpaper-preview.jpg',
-                  //   width: 100,
-                  // ),
-                  HoverableItem(
-                    orientation: Orientation.landscape,
-                    image: CachedNetworkImage(imageUrl: tmdbPosterSnapshot.data!, fit: BoxFit.cover),
+                  ContextMenu(
+                    items: [
+                      MenuButton(
+                        onPressed: (context) => context.push(
+                          '/streams?show=${widget.show.watchedShow!.show.ids.tmdb}&s=${widget.show.showProgress.nextEpisode!.season}&e=${widget.show.showProgress.nextEpisode!.number}',
+                        ),
+                        child: Text('Select Source'),
+                      ),
+                      MenuButton(child: Text('View Show')),
+                      MenuButton(child: Text('Mark as Watched')),
+                    ],
+                    child: HoverableItem(
+                      orientation: Orientation.landscape,
+                      onTap: () {
+                        context.push(
+                          '/player?show=${widget.show.watchedShow!.show.ids.tmdb}&s=${widget.show.showProgress.nextEpisode!.season}&e=${widget.show.showProgress.nextEpisode!.number}',
+                        );
+                      },
+                      image: CachedNetworkImage(imageUrl: tmdbPosterSnapshot.data!, fit: BoxFit.cover),
+                    ),
                   ),
+
                   Text(
+                    style: TextStyle(fontSize: 15.px),
                     "${widget.show.showProgress.nextEpisode!.season}x${widget.show.showProgress.nextEpisode!.number} ${widget.show.watchedShow!.show.title}",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  Text(widget.show.showProgress.nextEpisode!.title!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    style: TextStyle(fontSize: 15.px),
+                    widget.show.showProgress.nextEpisode!.title!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             );
