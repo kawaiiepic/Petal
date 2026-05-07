@@ -28,6 +28,8 @@ class TraktAuth {
 
         print(data);
 
+        TraktApi.authState.setTraktLoggedIn(true);
+
         return;
 
         //Save

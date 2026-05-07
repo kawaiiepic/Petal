@@ -102,6 +102,7 @@ export class Trakt {
                 console.log("Token expired");
                 return await this.refreshToken(trakt_user);
             }
+            return true;
         }
         return false;
     }

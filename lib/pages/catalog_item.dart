@@ -75,7 +75,7 @@ class _HoverableItem extends State<HoverableItem> {
         child: Container(
           color: Colors.transparent,
           child: AspectRatio(
-            aspectRatio: 3 / 4,
+            aspectRatio: widget.orientation == Orientation.portrait ? 3 / 4 : 16 / 9,
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(color: _isHovering ? Colors.white : Colors.transparent),

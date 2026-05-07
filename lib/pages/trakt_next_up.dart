@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/trakt/trakt_class.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
@@ -37,13 +38,13 @@ class _TraktNextUp extends State<TraktNextUp> {
           future: _watchedFuture,
           builder: (context, snapshot) {
             return SizedBox(
-              height: 230,
+              height: 25.h,
               child: ScrollableWidget(
                 controller: _controller,
-                offset: -80,
+                offset: -25,
                 child: ListView.builder(
                   controller: _controller,
-                  itemExtent: 300,
+                  itemExtent: 400,
                   scrollDirection: Axis.horizontal,
                   key: PageStorageKey<String>('unique_key_for_this_list'),
 
@@ -109,8 +110,51 @@ class _TraktNextUpItem extends State<TraktNextUpItem> {
               return Text('Error: ${widget.show.watchedShow!.show.title}');
             }
 
+            return ContextMenu(
+              items: [
+                MenuButton(
+                  onPressed: (context) => context.push(
+                    '/streams?show=${widget.show.watchedShow!.show.ids.tmdb}&s=${widget.show.showProgress.nextEpisode!.season}&e=${widget.show.showProgress.nextEpisode!.number}',
+                  ),
+                  child: Text('Select Source'),
+                ),
+                MenuButton(child: Text('View Show')),
+                MenuButton(child: Text('Mark as Watched')),
+              ],
+              child: Column(
+                spacing: 8,
+                children: [
+                  Expanded(
+                    child: HoverableItem(
+                      orientation: Orientation.landscape,
+                      image: CachedNetworkImage(imageUrl: tmdbPosterSnapshot.data!, fit: BoxFit.cover),
+                      onTap: () {
+                        context.push(
+                          '/player?show=${widget.show.watchedShow!.show.ids.tmdb}&s=${widget.show.showProgress.nextEpisode!.season}&e=${widget.show.showProgress.nextEpisode!.number}',
+                        );
+                      },
+                    ),
+                  ),
+                  Text(
+                    style: TextStyle(fontSize: 15.px),
+                    "${widget.show.showProgress.nextEpisode!.season}x${widget.show.showProgress.nextEpisode!.number} ${widget.show.watchedShow!.show.title}",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  Text(
+                    style: TextStyle(fontSize: 15.px),
+                    widget.show.showProgress.nextEpisode!.title!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 5),
+                ],
+              ),
+            );
+
             return SizedBox(
-              width: 300,
+              height: 100,
               child: Column(
                 spacing: 8,
                 children: [

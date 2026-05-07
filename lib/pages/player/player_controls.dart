@@ -190,7 +190,7 @@ class _PlayerControls extends State<PlayerControls> {
 
             // Controls overlay
             IgnorePointer(
-              ignoring: _uiIsActive,
+              ignoring: !_uiIsActive,
               child: AnimatedOpacity(
                 opacity: _uiIsActive ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
