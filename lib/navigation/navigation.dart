@@ -26,13 +26,9 @@ class _Navigation extends State<Navigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       headers: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            SvgPicture.asset('assets/images/logo-clean.svg', height: 50),
-          Search()
-        ],)
-
+        SafeArea(
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [SvgPicture.asset('assets/images/logo-clean.svg', height: 50), Search()]),
+        ),
       ],
       footers: [
         const Divider(),

@@ -44,7 +44,7 @@ class _TraktNextUp extends State<TraktNextUp> {
                 offset: -25,
                 child: ListView.builder(
                   controller: _controller,
-                  itemExtent: 400,
+                  itemExtent: 38.w,
                   scrollDirection: Axis.horizontal,
                   key: PageStorageKey<String>('unique_key_for_this_list'),
 
