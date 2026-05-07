@@ -71,12 +71,14 @@ class _PlayerControls extends State<PlayerControls> {
 
       _showData.then((showData) {
         _selectedSeason = ((showData[0] as TmdbShow).seasons.firstWhere((s) => s.seasonNumber == widget.widgetState.widget.episode!.seasonNumber));
-        TraktApi.startWatching(MediaType.show, {
-          "progress": 0.0,
-          "episode": {
-            "ids": {"tmdb": (showData[1] as TmdbEpisode).id},
-          },
-        });
+        if (TraktApi.authState.traktConnected) {
+          TraktApi.startWatching(MediaType.show, {
+            "progress": 0.0,
+            "episode": {
+              "ids": {"tmdb": (showData[1] as TmdbEpisode).id},
+            },
+          });
+        }
       });
 
       _nextEpisode = nextUpEpisode();
