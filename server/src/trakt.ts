@@ -117,9 +117,11 @@ export abstract class Trakt {
       var json = await response.json();
       DB.syncTrakt(trakt_user.user_email, { access_token: json.access_token, refresh_token: json.refresh_token, expires_in: json.expires_in });
       console.log("Obtained new access token");
+      return true;
     } else {
       console.log("Refresh token isn't valid" + response.status + " " + response.statusText);
-      console.log(response.headers);
+      console.log(await response.text());
+      return false;
     }
   }
 
@@ -129,9 +131,10 @@ export abstract class Trakt {
     if (trakt_user != undefined) {
       if (Date.now() > trakt_user?.expires_at) {
         console.log("Token expired");
-        this.refreshToken(trakt_user);
+        return await this.refreshToken(trakt_user);
       }
     }
+    return false;
   }
 
   public static async startWatching(app: express.Express) {

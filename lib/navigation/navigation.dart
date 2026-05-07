@@ -1,5 +1,7 @@
 import 'package:collection/collection.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petal/pages/dashboard/search_widget.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Navigation extends StatefulWidget {
@@ -16,7 +18,6 @@ class _Navigation extends State<Navigation> {
     _NavItem(key: ValueKey(0), icon: Icons.home_rounded, label: 'Home', route: '/'),
     _NavItem(key: ValueKey(1), icon: Icons.download, label: 'Addons', route: '/addons', popUp: true),
     _NavItem(key: ValueKey(2), icon: Icons.settings, label: 'Settings', route: '/settings', popUp: true),
-    _NavItem(key: ValueKey(3), icon: Icons.search_rounded, label: 'Search', route: '/search', popUp: true),
   ];
 
   Key? selected = const ValueKey(0);
@@ -24,6 +25,15 @@ class _Navigation extends State<Navigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      headers: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            SvgPicture.asset('assets/images/logo-clean.svg', height: 50),
+          Search()
+        ],)
+
+      ],
       footers: [
         const Divider(),
         NavigationBar(
@@ -34,7 +44,8 @@ class _Navigation extends State<Navigation> {
           onSelected: (key) {
             setState(() {
               selected = key;
-              context.go(_navItems.firstWhere((i) => i.key == key).route);
+              var selectedNavItem = _navItems.firstWhere((i) => i.key == key);
+              selectedNavItem.popUp ? context.push(selectedNavItem.route) : context.go(selectedNavItem.route);
             });
           },
           children: _navItems

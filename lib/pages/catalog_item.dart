@@ -25,20 +25,23 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
   }
 
   @override
-  Widget build(BuildContext context) => HoverableItem(
-    image: CachedNetworkImage(
-      imageUrl: catalogItem.poster,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(color: Colors.pink.withAlpha(1)).asSkeleton(leaf: true),
-      errorWidget: (context, url, error) => Icon(Icons.error),
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
+    child: HoverableItem(
+      image: CachedNetworkImage(
+        imageUrl: catalogItem.poster,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(color: Colors.pink.withAlpha(1)).asSkeleton(leaf: true),
+        errorWidget: (context, url, error) => Icon(Icons.error),
+      ),
+      onTap: () async {
+        print("Getting TmdbSearch");
+        final searchResults = await ApiCache.getTmdbSearch(catalogItem.id);
+        final tmdbItem = catalogItem.type == "series" ? searchResults.tv[0] : searchResults.movies[0];
+        print(tmdbItem.id);
+        context.push('/${catalogItem.type}/${tmdbItem.id}');
+      },
     ),
-    onTap: () async {
-      print("Getting TmdbSearch");
-      final searchResults = await ApiCache.getTmdbSearch(catalogItem.id);
-      final tmdbItem = catalogItem.type == "series" ? searchResults.tv[0] : searchResults.movies[0];
-      print(tmdbItem.id);
-      context.push('/${catalogItem.type}/${tmdbItem.id}');
-    },
   );
 }
 
@@ -71,12 +74,8 @@ class _HoverableItem extends State<HoverableItem> {
 
         child: Container(
           color: Colors.transparent,
-          // width: widget.orientation == Orientation.portrait ? 200 : 300,
-          // height: widget.orientation == Orientation.portrait ? 300 : 150,
-          width: widget.orientation == Orientation.portrait ? 40.w : 300,
-          // height: widget.orientation == Orientation.portrait ? 5 : 150,
-          child: Padding(
-            padding: EdgeInsetsGeometry.fromLTRB(12, 0, 12, 0),
+          child: AspectRatio(
+            aspectRatio: 3 / 4,
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(color: _isHovering ? Colors.white : Colors.transparent),

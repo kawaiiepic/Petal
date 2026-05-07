@@ -65,7 +65,6 @@ export class Trakt {
     static accessToken(auth) {
         try {
             var verify = Login.verifyToken(auth);
-            console.log(`Email: ${verify.email}`);
             return DB.getTraktAccessToken(verify.email);
         }
         catch (err) {
@@ -88,10 +87,12 @@ export class Trakt {
             var json = await response.json();
             DB.syncTrakt(trakt_user.user_email, { access_token: json.access_token, refresh_token: json.refresh_token, expires_in: json.expires_in });
             console.log("Obtained new access token");
+            return true;
         }
         else {
             console.log("Refresh token isn't valid" + response.status + " " + response.statusText);
-            console.log(response.headers);
+            console.log(await response.text());
+            return false;
         }
     }
     static async verifySession(user) {
@@ -99,31 +100,30 @@ export class Trakt {
         if (trakt_user != undefined) {
             if (Date.now() > trakt_user?.expires_at) {
                 console.log("Token expired");
-                this.refreshToken(trakt_user);
+                return await this.refreshToken(trakt_user);
             }
         }
+        return false;
     }
     static async startWatching(app) {
         app.post("/trakt/start_watching", async (req, res) => {
-            if (req.cookies.token != undefined) {
-                const accessToken = this.accessToken(req.cookies.token);
-                const response = await fetch("https://api.trakt.tv/scrobble/start", {
-                    method: "POST",
-                    headers: {
-                        ...this._header,
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                    body: JSON.stringify(req.body),
-                });
-                if (response.ok) {
-                    res.json(await response.json());
-                }
-                else {
-                    res.status(await response.status);
-                }
+            if (!req.cookies.auth)
+                return res.sendStatus(300);
+            var verify = Login.verifyToken(req.cookies.auth);
+            const accessToken = this.accessToken(req.cookies.auth);
+            const response = await fetch("https://api.trakt.tv/scrobble/start", {
+                method: "POST",
+                headers: {
+                    ...this._header,
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify(req.body),
+            });
+            if (response.ok) {
+                res.json(await response.json());
             }
             else {
-                res.status(300);
+                res.status(await response.status);
             }
         });
     }

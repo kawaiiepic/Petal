@@ -189,212 +189,217 @@ class _PlayerControls extends State<PlayerControls> {
             ),
 
             // Controls overlay
-            AnimatedOpacity(
-              opacity: _uiIsActive ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              child: Padding(
-                padding: const EdgeInsets.all(15),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          variance: ButtonVariance.ghost,
-                          onPressed: () {
-                            SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-                            SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-                            context.pop();
-                          },
-                          icon: Row(
-                            children: [
-                              Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded),
-                              Text(style: PlayerControls.normalTextStyle, "Return"),
-                            ],
-                          ),
-                        ),
-                        if (isShow)
-                          FutureBuilder(
-                            future: _showData,
-                            builder: (context, snapshot) => Column(
-                              spacing: 8,
+            IgnorePointer(
+              ignoring: _uiIsActive,
+              child: AnimatedOpacity(
+                opacity: _uiIsActive ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            variance: ButtonVariance.ghost,
+                            onPressed: () {
+                              SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+                              SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+                              context.pop();
+                            },
+                            icon: Row(
                               children: [
-                                Text(style: PlayerControls.normalTextStyle, snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
-                                Text(
-                                  style: PlayerControls.normalTextStyle,
-                                  snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name',
-                                ),
+                                Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded),
+                                Text(style: PlayerControls.normalTextStyle, "Return"),
                               ],
-                            ).asSkeleton(snapshot: snapshot),
-                          )
-                        else
-                          FutureBuilder(
-                            future: movie,
-                            builder: (context, snapshot) =>
-                                snapshot.hasData ? Text(style: PlayerControls.normalTextStyle, (snapshot.data! as TmdbMovie).title) : const SizedBox.shrink(),
-                          ),
-                        ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.info_outline_rounded)),
-                      ],
-                    ),
-                    Center(
-                      child: RepaintBoundary(
-                        child: ControlButton(
-                          onTap: () => player.playOrPause(),
-                          icon: isBuffering ? CircularProgressIndicator(size: 50) : Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
-                        ),
-                      ),
-                    ),
-                    Column(
-                      spacing: 8,
-                      children: [
-                        _Slider(player: player),
-                        Row(
-                          children: [
-                            RepaintBoundary(
-                              child: ControlButton(
-                                onTap: () => player.playOrPause(),
-                                icon: Icon(size: PlayerControls.normalIconSize, isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                              ),
                             ),
-                            if (!Api.isMobile()) VolumeButton(player: player),
-                            _PositionDisplay(player: player),
-
-                            if (isShow) ...[
-                              const SizedBox(width: 10),
-                              Container(
-                                width: 4,
-                                height: 4,
-                                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                              ),
-                              const SizedBox(width: 10),
-                              Row(
+                          ),
+                          if (isShow)
+                            FutureBuilder(
+                              future: _showData,
+                              builder: (context, snapshot) => Column(
                                 spacing: 8,
                                 children: [
-                                  Text(style: PlayerControls.normalTextStyle, 'S${widget.widgetState.widget.episode!.seasonNumber}'),
-                                  Text(style: PlayerControls.normalTextStyle, 'E${widget.widgetState.widget.episode!.episodeNumber}'),
+                                  Text(style: PlayerControls.normalTextStyle, snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
+                                  Text(
+                                    style: PlayerControls.normalTextStyle,
+                                    snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name',
+                                  ),
                                 ],
+                              ).asSkeleton(snapshot: snapshot),
+                            )
+                          else
+                            FutureBuilder(
+                              future: movie,
+                              builder: (context, snapshot) =>
+                                  snapshot.hasData ? Text(style: PlayerControls.normalTextStyle, (snapshot.data! as TmdbMovie).title) : const SizedBox.shrink(),
+                            ),
+                          ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.info_outline_rounded)),
+                        ],
+                      ),
+                      Center(
+                        child: RepaintBoundary(
+                          child: ControlButton(
+                            onTap: () => player.playOrPause(),
+                            icon: isBuffering
+                                ? CircularProgressIndicator(size: 50)
+                                : Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
+                          ),
+                        ),
+                      ),
+                      Column(
+                        spacing: 8,
+                        children: [
+                          _Slider(player: player),
+                          Row(
+                            children: [
+                              RepaintBoundary(
+                                child: ControlButton(
+                                  onTap: () => player.playOrPause(),
+                                  icon: Icon(size: PlayerControls.normalIconSize, isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                                ),
                               ),
-                            ],
+                              if (!Api.isMobile()) VolumeButton(player: player),
+                              _PositionDisplay(player: player),
 
-                            const Spacer(),
-                            if (isShow) ...[
-                              ControlButton(
-                                onTap: () {
-                                  openDrawer(
-                                    context: context,
-                                    builder: (context) => _EpisodeDrawer(
-                                      showData: _showData,
-                                      initialSeason: _selectedSeason,
-                                      tmdbId: widget.widgetState.widget.showId!,
-                                      onSeasonChanged: (season) {
-                                        setState(() => _selectedSeason = season);
-                                      },
+                              if (isShow) ...[
+                                const SizedBox(width: 10),
+                                Container(
+                                  width: 4,
+                                  height: 4,
+                                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 10),
+                                Row(
+                                  spacing: 8,
+                                  children: [
+                                    Text(style: PlayerControls.normalTextStyle, 'S${widget.widgetState.widget.episode!.seasonNumber}'),
+                                    Text(style: PlayerControls.normalTextStyle, 'E${widget.widgetState.widget.episode!.episodeNumber}'),
+                                  ],
+                                ),
+                              ],
+
+                              const Spacer(),
+                              if (isShow) ...[
+                                ControlButton(
+                                  onTap: () {
+                                    openDrawer(
+                                      context: context,
+                                      builder: (context) => _EpisodeDrawer(
+                                        showData: _showData,
+                                        initialSeason: _selectedSeason,
+                                        tmdbId: widget.widgetState.widget.showId!,
+                                        onSeasonChanged: (season) {
+                                          setState(() => _selectedSeason = season);
+                                        },
+                                      ),
+                                      position: OverlayPosition.right,
+                                    );
+                                  },
+                                  icon: Icon(size: PlayerControls.normalIconSize, Icons.amp_stories_rounded),
+                                ),
+                                ControlButton(
+                                  onTap: () async {
+                                    TmdbEpisode? nextEpisode = await _nextEpisode;
+                                    if (nextEpisode != null) {
+                                      context.pushReplacement(
+                                        '/player?show=${widget.widgetState.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
+                                      );
+                                    }
+                                  },
+                                  icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
+                                ),
+                              ],
+                              DropdownButton(
+                                dropdownMenu: DropdownMenu(
+                                  children: [
+                                    MenuLabel(
+                                      child: Row(
+                                        children: [
+                                          ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
+                                          Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+                                          Text(style: PlayerControls.normalTextStyle, 'Subtitles'),
+                                          const Spacer(),
+                                          ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.upload_rounded)),
+                                        ],
+                                      ),
                                     ),
-                                    position: OverlayPosition.right,
-                                  );
-                                },
-                                icon: Icon(size: PlayerControls.normalIconSize, Icons.amp_stories_rounded),
+                                    const MenuDivider(),
+                                    MenuLabel(
+                                      child: Collapsible(
+                                        children: [
+                                          CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Subtitles')),
+                                          Text(style: PlayerControls.normalTextStyle, player.state.track.subtitle.language ?? 'None').withPadding(left: 30),
+                                          ...player.state.tracks.subtitle.map(
+                                            (e) => CollapsibleContent(
+                                              child: MenuButton(
+                                                onPressed: (context) => setState(() {
+                                                  player.setSubtitleTrack(e);
+                                                }),
+                                                child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    MenuLabel(
+                                      child: Collapsible(
+                                        children: [
+                                          CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Audio Track')),
+                                          Text(style: PlayerControls.normalTextStyle, player.state.track.audio.language ?? 'None').withPadding(left: 30),
+                                          ...player.state.tracks.audio.map(
+                                            (e) => CollapsibleContent(
+                                              child: MenuButton(
+                                                onPressed: (context) => setState(() {
+                                                  player.setAudioTrack(e);
+                                                }),
+                                                child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                icon: Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+                              ),
+                              DropdownButton(
+                                dropdownMenu: DropdownMenu(
+                                  children: [
+                                    MenuLabel(
+                                      child: Row(
+                                        spacing: 8,
+                                        children: [
+                                          ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
+                                          Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
+                                          Text(style: PlayerControls.normalTextStyle, 'Settings'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
                               ),
                               ControlButton(
                                 onTap: () async {
-                                  TmdbEpisode? nextEpisode = await _nextEpisode;
-                                  if (nextEpisode != null) {
-                                    context.pushReplacement(
-                                      '/player?show=${widget.widgetState.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
-                                    );
-                                  }
+                                  setState(() {
+                                    widget.widgetState.zoomVideo = !widget.widgetState.zoomVideo;
+                                  });
+
+                                  // windowManager.setFullScreen(!(await windowManager.isFullScreen()));
                                 },
-                                icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
+                                icon: Icon(size: PlayerControls.normalIconSize, Icons.fullscreen_rounded),
                               ),
                             ],
-                            DropdownButton(
-                              dropdownMenu: DropdownMenu(
-                                children: [
-                                  MenuLabel(
-                                    child: Row(
-                                      children: [
-                                        ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
-                                        Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
-                                        Text(style: PlayerControls.normalTextStyle, 'Subtitles'),
-                                        const Spacer(),
-                                        ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.upload_rounded)),
-                                      ],
-                                    ),
-                                  ),
-                                  const MenuDivider(),
-                                  MenuLabel(
-                                    child: Collapsible(
-                                      children: [
-                                        CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Subtitles')),
-                                        Text(style: PlayerControls.normalTextStyle, player.state.track.subtitle.language ?? 'None').withPadding(left: 30),
-                                        ...player.state.tracks.subtitle.map(
-                                          (e) => CollapsibleContent(
-                                            child: MenuButton(
-                                              onPressed: (context) => setState(() {
-                                                player.setSubtitleTrack(e);
-                                              }),
-                                              child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  MenuLabel(
-                                    child: Collapsible(
-                                      children: [
-                                        CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Audio Track')),
-                                        Text(style: PlayerControls.normalTextStyle, player.state.track.audio.language ?? 'None').withPadding(left: 30),
-                                        ...player.state.tracks.audio.map(
-                                          (e) => CollapsibleContent(
-                                            child: MenuButton(
-                                              onPressed: (context) => setState(() {
-                                                player.setAudioTrack(e);
-                                              }),
-                                              child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              icon: Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
-                            ),
-                            DropdownButton(
-                              dropdownMenu: DropdownMenu(
-                                children: [
-                                  MenuLabel(
-                                    child: Row(
-                                      spacing: 8,
-                                      children: [
-                                        ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
-                                        Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
-                                        Text(style: PlayerControls.normalTextStyle, 'Settings'),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
-                            ),
-                            ControlButton(
-                              onTap: () async {
-                                setState(() {
-                                  widget.widgetState.zoomVideo = !widget.widgetState.zoomVideo;
-                                });
-
-                                // windowManager.setFullScreen(!(await windowManager.isFullScreen()));
-                              },
-                              icon: Icon(size: PlayerControls.normalIconSize, Icons.fullscreen_rounded),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -674,6 +679,7 @@ class _SliderState extends State<_Slider> {
           value: SliderValue.single(value),
           onChanged: duration.inMilliseconds > 0
               ? (v) {
+                  widget.player.seek(Duration(milliseconds: (v.value * duration.inMilliseconds).toInt()));
                   setState(() {
                     _dragValue = v.value;
                   });

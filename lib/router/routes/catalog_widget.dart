@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:petal/api/api_cache.dart';
+import 'package:petal/api/authstate.dart';
+import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/pages/catalog_row.dart';
 import 'package:petal/pages/empty_sliver.dart';
 import 'package:petal/pages/trakt_widget.dart';
@@ -16,12 +18,11 @@ class CatalogWidget extends StatefulWidget {
 class _CatalogWidget extends State<CatalogWidget> {
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       child: SafeArea(
         child: CustomScrollView(
           slivers: [
-            NextUpRow(),
+            if (TraktApi.authState.traktConnected) NextUpRow(),
             FutureBuilder(
               future: ApiCache.getAddons(),
               builder: (context, addonsSnapshot) {
@@ -34,7 +35,7 @@ class _CatalogWidget extends State<CatalogWidget> {
                       final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
 
                       return SliverFixedExtentList(
-                        itemExtent: 31.h,
+                        itemExtent: 28.h,
                         delegate: SliverChildBuilderDelegate((context, index) {
                           final catalog = catalogs[index];
 

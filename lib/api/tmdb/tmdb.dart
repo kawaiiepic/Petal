@@ -57,6 +57,8 @@ class TMDB {
   static Future<TmdbMovie> movie(int tmdbId) async {
     final response = await http.get(apiCall('/movie/$tmdbId?append_to_response=images,external_ids'), headers: _headers);
 
+    print("Movie status code ${response.body}");
+
     if (response.statusCode != 200) throw Exception('Search failed');
 
     return TmdbMovie.fromJson(jsonDecode(response.body));

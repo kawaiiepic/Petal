@@ -88,17 +88,18 @@ class _MovieOverviewState extends State<MovieOverview> {
                         ),
 
                         // Logo — bottom left
-                        Positioned(
-                          bottom: 80,
-                          left: 24,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 200, maxHeight: 80),
-                            child: Image.network(
-                              'https://image.tmdb.org/t/p/original${movie.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
-                              fit: BoxFit.contain,
+                        if (movie.images?.logos.isNotEmpty ?? false)
+                          Positioned(
+                            bottom: 80,
+                            left: 24,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 200, maxHeight: 80),
+                              child: Image.network(
+                                'https://image.tmdb.org/t/p/original${movie.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull?.filePath}',
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
-                        ),
 
                         Positioned(
                           bottom: 24,

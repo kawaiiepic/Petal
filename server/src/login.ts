@@ -105,9 +105,9 @@ export abstract class Login {
 
         if (user != undefined && verify.key == user.key) {
 
-          Trakt.verifySession(user);
+          var traktVerified = await Trakt.verifySession(user);
           console.log("User verified");
-          res.status(200).json({ status: "success" });
+          res.status(200).json({ status: "success", trakt: traktVerified });
           return;
         }
 

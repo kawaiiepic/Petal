@@ -59,6 +59,7 @@ class TraktApi {
 
       if (response.data["status"] == "success") {
         authState.setLoggedIn(true);
+        authState.setTraktLoggedIn(response.data["trakt"] == true);
       }
     }
   }
@@ -113,7 +114,7 @@ class TraktApi {
 
   static Future<void> startWatching(MediaType mediaType, Object object) async {
     var url = '${Api.ServerUrl}/trakt/start_watching';
-    await dio.post(url, data: jsonEncode(object));
+    await dio.post(url, data: object);
   }
 
   static Future<List<TraktShow>> fetchWatched(MediaType mediaType) async {

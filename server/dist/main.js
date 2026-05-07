@@ -78,7 +78,7 @@ app.get("/tmdb", async (req, res) => {
         }
     }
     catch (_) {
-        res.status(300);
+        res.status(215);
     }
 });
 // simple in-memory cache

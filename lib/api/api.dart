@@ -9,7 +9,7 @@ import 'package:petal/models/settings.dart';
 import 'package:flutter/material.dart';
 
 class Api {
-  static bool dev = false;
+  static bool dev = true;
   static bool traktLoggedIn = false;
   static bool loggedIn = false;
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/stream_helper.dart';
+import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -15,7 +16,7 @@ class SearchControllerModel extends ChangeNotifier {
   Timer? _debounce;
   String _currentQuery = "";
 
-  List<CatalogItem> results = [];
+  List<SearchResult> results = [];
   bool loading = false;
 
   Future<void> search(String query, List<Addon> addons) async {
@@ -37,13 +38,71 @@ class SearchControllerModel extends ChangeNotifier {
       notifyListeners();
 
       try {
-        results = await StreamApi.searchCatalogItems(query, addons);
+        final raw = (await StreamApi.searchCatalogItems(query, addons)).take(5);
+        final enriched = await Future.wait(
+          raw.map((item) async {
+            final search = await ApiCache.getTmdbSearch(item.id);
+            final tmdbResults = item.type == "series" ? search.tv : search.movies;
+            if (tmdbResults.isEmpty) return null;
+            return SearchResult(
+              id: item.id,
+              name: item.name,
+              type: item.type,
+              slug: item.slug,
+              poster: item.poster,
+              background: item.background,
+              logo: item.logo,
+              description: item.description,
+              year: item.year,
+              runtime: item.runtime,
+              imdbRating: item.imdbRating,
+              awards: item.awards,
+              country: item.country,
+              releaseInfo: item.releaseInfo,
+              genres: item.genres,
+              cast: item.cast,
+              directors: item.directors,
+              writers: item.writers,
+              trailers: item.trailers,
+              seasons: item.seasons,
+              tmdbMedia: tmdbResults.first,
+            );
+          }),
+        );
+        results = enriched.whereType<SearchResult>().toList();
       } finally {
         loading = false;
         notifyListeners();
       }
     });
   }
+}
+
+class SearchResult extends CatalogItem {
+  final TmdbMedia tmdbMedia;
+  SearchResult({
+    required super.id,
+    required super.name,
+    required super.type,
+    required super.slug,
+    required super.poster,
+    required super.background,
+    required super.logo,
+    required super.description,
+    required super.year,
+    required super.runtime,
+    required super.imdbRating,
+    required super.awards,
+    required super.country,
+    required super.releaseInfo,
+    required super.genres,
+    required super.cast,
+    required super.directors,
+    required super.writers,
+    required super.trailers,
+    required super.seasons,
+    required this.tmdbMedia,
+  });
 }
 
 class Search extends StatefulWidget {
@@ -155,12 +214,10 @@ class _SearchState extends State<Search> {
                                     style: ButtonVariance.card,
                                     onPressed: () async {
                                       if (mounted) {
-                                        final searchSnapshot = await ApiCache.getTmdbSearch(choice.id);
-                                        final tmdbItem = choice.type == "series" ? searchSnapshot.tv[0] : searchSnapshot.movies[0];
 
-                                        print(tmdbItem.id);
+                                        print("ID: ${choice.tmdbMedia.id} Type: ${choice.type}");
                                         context.pop();
-                                        context.push('/${choice.type}/${tmdbItem.id}');
+                                        context.push('/${choice.type}/${choice.tmdbMedia.id}');
                                       }
                                     },
 
