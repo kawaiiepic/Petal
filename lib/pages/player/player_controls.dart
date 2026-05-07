@@ -74,7 +74,7 @@ class _PlayerControls extends State<PlayerControls> {
         TraktApi.startWatching(MediaType.show, {
           "progress": 0.0,
           "episode": {
-            "ids": {"trakt": (showData[1] as TmdbEpisode).id},
+            "ids": {"tmdb": (showData[1] as TmdbEpisode).id},
           },
         });
       });
