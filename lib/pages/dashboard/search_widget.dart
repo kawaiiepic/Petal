@@ -41,6 +41,7 @@ class SearchControllerModel extends ChangeNotifier {
         final raw = (await StreamApi.searchCatalogItems(query, addons)).take(5);
         final enriched = await Future.wait(
           raw.map((item) async {
+            print("Searching: ${query}");
             final search = await ApiCache.getTmdbSearch(item.id);
             final tmdbResults = item.type == "series" ? search.tv : search.movies;
             if (tmdbResults.isEmpty) return null;
@@ -214,7 +215,6 @@ class _SearchState extends State<Search> {
                                     style: ButtonVariance.card,
                                     onPressed: () async {
                                       if (mounted) {
-
                                         print("ID: ${choice.tmdbMedia.id} Type: ${choice.type}");
                                         context.pop();
                                         context.push('/${choice.type}/${choice.tmdbMedia.id}');

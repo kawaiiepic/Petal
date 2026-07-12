@@ -160,9 +160,9 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                   style: TextStyle(color: Colors.white, fontSize: 13),
                                 ),
                                 if (show.episodeRunTime.isNotEmpty)
-                                  Text(show.episodeRunTime[0].toString(), style: TextStyle(color: Colors.white, fontSize: 13)),
+                                  Text("${show.episodeRunTime[0]} mins", style: TextStyle(color: Colors.white, fontSize: 13)),
                                 if (show.episodeRunTime.isEmpty && show.lastEpisodeToAir != null)
-                                  Text(_formatRuntime(show.lastEpisodeToAir!.runtime), style: TextStyle(color: Colors.white, fontSize: 13)),
+                                  Text("${_formatRuntime(show.lastEpisodeToAir!.runtime)} mins", style: TextStyle(color: Colors.white, fontSize: 13)),
                               ],
                             ),
                             const SizedBox(height: 20),

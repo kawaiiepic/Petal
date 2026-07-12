@@ -18,7 +18,7 @@ class TMDB {
   static Map<String, String> get _headers => {'accept': 'application/json', 'Authorization': 'Bearer $accessToken'};
 
   static Uri apiCall(String url) {
-    return Uri.parse("${Api.ServerUrl}/tmdb?url=$url");
+    return Uri.parse("${Api.ServerUrl}/tmdb/proxy?url=$url");
   }
 
   static Future<TmdbSearchResult> search(String searchedId) async {

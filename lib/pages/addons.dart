@@ -175,7 +175,7 @@ class _AddonTileState extends State<AddonTile> {
     super.initState();
     _image = widget.addon.manifest?['logo'] != null
         ? CachedNetworkImage(
-            imageUrl: Api.proxyImage(widget.addon.manifest?['logo']),
+            imageUrl: widget.addon.manifest?['logo'],
             imageBuilder: (context, imageProvider) => CircleAvatar(foregroundImage: imageProvider, backgroundColor: Colors.transparent),
             progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
             errorWidget: (context, url, error) => CircleAvatar(child: Icon(Icons.extension)),
@@ -199,7 +199,7 @@ class _AddonTileState extends State<AddonTile> {
               index: 0, // ignored when using builder
               child: _image ?? CircleAvatar(child: Icon(Icons.extension)),
             ),
-            title: Text(widget.addon.name),
+            title: Text(widget.addon.manifest?["name"] ?? 'Name Here'),
             subtitle: Wrap(
               spacing: 8,
               runSpacing: 4,

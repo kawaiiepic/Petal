@@ -29,11 +29,18 @@ class AppRouter {
     refreshListenable: TraktApi.authState,
     redirect: (context, state) {
       final loggingIn = state.matchedLocation == '/login';
+      final onOffline = state.matchedLocation == '/offline';
 
-      if (!Api.healthy.value) return '/offline';
+      if (TraktApi.authState.initializing) {
+        // Still checking session — hold on the offline/loading screen
+        return onOffline ? null : '/offline';
+      }
 
-      if (!TraktApi.authState.loggedIn) return '/login';
-      if (TraktApi.authState.loggedIn && loggingIn) return '/';
+      // if (!Api.healthy.value) return '/offline';
+
+      // if (!TraktApi.authState.loggedIn && !loggingIn) return '/login';
+
+      if (TraktApi.authState.loggedIn && onOffline) return '/';
 
       return null;
     },

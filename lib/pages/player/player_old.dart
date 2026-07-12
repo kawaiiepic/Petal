@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'package:petal/api/api.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/models/custom_model.dart';
 import 'package:petal/models/stream.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/pages/player/player_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
@@ -81,7 +78,7 @@ class StreamPlayerState extends State<StreamPlayer> {
         subtitleViewConfiguration: SubtitleViewConfiguration(
           style: const TextStyle(
             height: 1.4,
-            fontSize: 20.0,
+            fontSize: 30.0,
             letterSpacing: 0.0,
             wordSpacing: 0.0,
             color: Color(0xffffffff),

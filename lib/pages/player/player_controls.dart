@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:petal/api/api.dart';
+import 'package:petal/api/discord.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
@@ -15,7 +16,6 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
-import 'package:window_manager/window_manager.dart';
 
 Widget customVideoControls(VideoState state, StreamPlayerState widgetState) {
   return PlayerControls(state: state, widgetState: widgetState);
@@ -85,6 +85,16 @@ class _PlayerControls extends State<PlayerControls> {
     } else {
       movie = TMDB.movie(widget.widgetState.widget.movieId!);
     }
+
+    player.stream.position.listen((position) {
+      if (isShow) {
+        _showData.then((data) {
+          final TmdbShow tmdbShow = data[0];
+          final TmdbEpisode tmdbEpisode = data[1];
+          Discord.updateStatus(tmdbShow.name, tmdbEpisode.name, position, duration, tmdbShow.posterUrl!);
+        });
+      }
+    });
 
     player.stream.buffering.listen((buffering) {
       setState(() {

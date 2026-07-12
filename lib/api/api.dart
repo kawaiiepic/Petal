@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:go_router/go_router.dart';
 import 'package:petal/api/catalog_helper.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/main.dart';
@@ -9,17 +10,20 @@ import 'package:petal/models/settings.dart';
 import 'package:flutter/material.dart';
 
 class Api {
-  static bool dev = false;
   static bool traktLoggedIn = false;
+  static bool devMode = true;
   static bool loggedIn = false;
 
   static String proxyImage(String url) {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
   }
 
-  static final ServerUrl = dev ? 'http://10.0.0.105:3000' : 'https://petal.blossomvale.dev/api';
+  static final ServerUrl = devMode ? 'http://localhost:8787' : 'https://petal-backend.blossomvale.dev';
 
   static final ValueNotifier<bool> healthy = ValueNotifier(false);
+  Timer healthyTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    healthCheck();
+  });
 
   static Future<void> initApi() async {
     await TraktApi.init();
@@ -36,8 +40,12 @@ class Api {
     healthy.value = ok;
   }
 
-  static void _onBackendRecovered() {
-    TraktApi.verifySession();
+  static Future<void> _onBackendRecovered() async {
+    if (await TraktApi.verifySession()) {
+      TraktApi.authState.setLoggedIn(true);
+    } else {
+      print("Failed to verify!!!!");
+    }
     CatalogApi.clearCache();
   }
 
@@ -92,7 +100,7 @@ class Api {
         }
       }
 
-      catalogs.add(Catalog(name: cat['name'], type: type, id: id, extra: extras, url: '$baseUrl/$id/catalog/$type/$id.json'));
+      catalogs.add(Catalog(name: cat['name'], type: type, id: id, extra: extras, url: '$baseUrl/catalog/$type/$id.json'));
     }
 
     return catalogs;

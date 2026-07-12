@@ -39,40 +39,39 @@ class TraktApi {
     dio.interceptors.add(CookieManager(cookieJar));
   }
 
-  static Future<void> verifySession() async {
+  static Future<bool> verifySession() async {
     print("Verifying session");
-    if (kIsWeb) {
-      try {
-        final response = await dio.get("${Api.ServerUrl}/trakt/verify_session");
-
-        if (response.statusCode == 200) {
-          print('Session verified');
-          validSession.value = true;
-        }
-      } catch (err) {
-        print('Failed to verify session');
-      }
-    } else {
-      final response = await dio.get("${Api.ServerUrl}/login/verify");
+    try {
+      final response = await dio.get("${Api.ServerUrl}/users/verify");
       print("Response code for verify.");
       print(response.data);
 
-      if (response.data["status"] == "success") {
-        authState.setLoggedIn(true);
-        authState.setTraktLoggedIn(response.data["trakt"] == true);
+      if (response.data["success"] == true) {
+        TraktApi.authState.setTraktLoggedIn(response.data["trakt"] == true);
+        authState.setInitializing(false);
+        return true;
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        // Expected case: no valid session — just treat as logged out
+        print("No valid session");
+      } else {
+        print("Error verifying session: $e");
       }
     }
+    authState.setInitializing(false);
+    return false;
   }
 
   static Future<List<Addon>> fetchUserAddons() async {
     print("Fetching user addons");
-    final url = '${Api.ServerUrl}/addons/get';
+    final url = '${Api.ServerUrl}/addons';
     final response = await dio.get(url);
 
     if (response.statusCode == 200) {
       print("Addons: ${response.data}");
       final data = response.data;
-      final addonsJson = data['addons'] as List;
+      final addonsJson = data['result'] as List;
 
       // map to list of futures
       final futures = addonsJson.map((json) async {

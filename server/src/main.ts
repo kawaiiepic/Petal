@@ -167,7 +167,8 @@ app.get("/user/settings", (req, res) => {
   }
 });
 
-app.post("/user/settings", (req, res) => {});
+app.post("/user/settings", (req, res) => { });
+
 // Save addons for a user
 app.post("/addons/set", (req, res) => {
   console.log(req.body);

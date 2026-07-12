@@ -1,6 +1,4 @@
-import 'package:flutter/services.dart';
 import 'package:petal/api/api_cache.dart';
-import 'package:petal/api/authstate.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/pages/catalog_row.dart';
 import 'package:petal/pages/empty_sliver.dart';
@@ -30,7 +28,8 @@ class _CatalogWidget extends State<CatalogWidget> {
                   case ConnectionState.active:
                   case ConnectionState.done:
                     {
-                      final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
+                      // final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
+                      final addons = addonsSnapshot.data!.where((addon) => addon.id == "7a7eb1e6-c9fd-483b-b2e6-459549393c22");
 
                       final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
 

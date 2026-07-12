@@ -133,7 +133,7 @@ class StreamTile extends StatelessWidget {
       leading: stream.external ? const Icon(Icons.play_circle) : const Icon(Icons.play_circle_outline),
       title: Text(stream.name),
       subtitle: Text(stream.title),
-      trailing: Text(stream.addon.name),
+      trailing: Text(stream.addon.id),
       onTap: () {
         if (stream.external) {
           launchUrl(Uri.parse(stream.url));

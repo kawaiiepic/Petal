@@ -27,9 +27,9 @@ class _LoginState extends State<Login> {
     try {
       final email = emailController.text;
       final password = passwordController.text;
-      final response = await TraktApi.dio.post("${Api.ServerUrl}/login/signin", data: {"email": email, "password": password});
+      final response = await TraktApi.dio.post("${Api.ServerUrl}/users/login", data: {"email": email, "password": password});
       print(response.data);
-      if (response.data["status"] != "success") {
+      if (response.data["success"] != true) {
         throw Exception("Invalid credentials");
       }
       if (mounted) {

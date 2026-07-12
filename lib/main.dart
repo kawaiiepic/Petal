@@ -1,19 +1,24 @@
 import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
+import 'package:petal/api/discord.dart';
 import 'package:petal/router/router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize media_kit backend
   MediaKit.ensureInitialized();
+  Discord.init();
 
   GoRouter.optionURLReflectsImperativeAPIs = true;
   runApp(PetalApp());
+
+  await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
 }
 
 class PetalApp extends StatefulWidget {

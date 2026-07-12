@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 class Addon {
   final String id;
-  final String name;
+  final String userId;
   final String manifestUrl;
   final String baseUrl;
   Map<String, dynamic>? manifest; // full manifest JSON, may contain logo/icon
@@ -15,7 +15,7 @@ class Addon {
 
   Addon({
     required this.id,
-    required this.name,
+    required this.userId,
     required this.manifestUrl,
     required this.baseUrl,
     this.manifest,
@@ -26,10 +26,10 @@ class Addon {
   factory Addon.fromJson(Map<String, dynamic> json) {
     return Addon(
       id: json['id'],
-      name: json['name'],
-      manifestUrl: json['manifestUrl'],
-      baseUrl: json['manifestUrl'].replaceAll('/manifest.json', ''),
-      enabledResources: Set<String>.from(json['enabledResources'] ?? []),
+      userId: json['user_id'],
+      manifestUrl: json['manifest_url'],
+      baseUrl: json['manifest_url'].replaceAll('/manifest.json', ''),
+      enabledResources: Set<String>.from(json['resources']),
       forced: json['forced'] ?? 0,
     );
   }

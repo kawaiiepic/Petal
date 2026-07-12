@@ -12,7 +12,6 @@ class CatalogApi {
 
   static Future<List<CatalogItem>> fetchCatalogItems(Catalog catalog, {Map<String, String>? filters}) async {
     final uri = Uri.parse(catalog.url).replace(queryParameters: filters);
-
     if (_cache.containsKey(uri)) {
       return _cache[uri]!;
     }

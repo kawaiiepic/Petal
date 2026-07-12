@@ -1,5 +1,4 @@
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/trakt/trakt_class.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
