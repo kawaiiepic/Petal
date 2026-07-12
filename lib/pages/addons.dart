@@ -148,7 +148,27 @@ class _AddonsState extends State<Addons> {
                 ),
               ],
             ),
-            Expanded(child: addonsWidget()),
+            Column(
+              children: [
+                addonsWidget(),
+                Column(
+                  children: [
+                    Text('Recommended Widgets'),
+                    Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: ListTile(
+                        leading: CircleAvatar(child: Icon(Icons.extension)),
+                        title: Text('Name Here'),
+                        subtitle: Text('Desc for addon.'),
+                        trailing: IconButton(onPressed: () {}, icon: const Icon(Icons.add)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            // Expanded(child: addonsWidget()),
           ],
         ),
       ),

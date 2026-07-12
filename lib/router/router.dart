@@ -38,7 +38,7 @@ class AppRouter {
 
       // if (!Api.healthy.value) return '/offline';
 
-      // if (!TraktApi.authState.loggedIn && !loggingIn) return '/login';
+      if (!TraktApi.authState.loggedIn && !loggingIn) return '/login';
 
       if (TraktApi.authState.loggedIn && onOffline) return '/';
 

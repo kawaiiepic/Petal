@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 
 class Api {
   static bool traktLoggedIn = false;
-  static bool devMode = true;
+  static bool devMode = false;
   static bool loggedIn = false;
 
   static String proxyImage(String url) {

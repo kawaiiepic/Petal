@@ -11,6 +11,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  final usernameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final registrationTokenController = TextEditingController();
@@ -54,14 +55,18 @@ class _LoginState extends State<Login> {
       error = null;
     });
     try {
+      final username = usernameController.text;
       final email = emailController.text;
       final password = passwordController.text;
       final token = registrationTokenController.text;
-      final response = await TraktApi.dio.post("${Api.ServerUrl}/login/register", data: {"email": email, "password": password, "token": token});
+      final response = await TraktApi.dio.post(
+        "${Api.ServerUrl}/users/register",
+        data: {"username": username, "email": email, "full_name": username, "password": password, "token": token},
+      );
       print(response.data);
 
       if (response.data["status"] == "already-exist") throw Exception("Account already exist");
-      if (response.data["status"] != "success") {
+      if (response.data["success"] != true) {
         throw Exception("Registration failed");
       }
       if (mounted) {
@@ -92,6 +97,13 @@ class _LoginState extends State<Login> {
               children: [
                 Text(register ? "Register" : "Login", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 24),
+                if (register) ...[
+                  TextField(
+                    controller: usernameController,
+                    decoration: const InputDecoration(labelText: "Username", border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextField(
                   controller: emailController,
                   decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),

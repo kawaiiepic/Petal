@@ -17,20 +17,19 @@ class Discord {
     });
 
     // Initialize with your Discord Application ID
-    discordRPC.initialize('YOUR_APPLICATION_ID');
+    discordRPC.initialize('1525744175272951909');
   }
 
-  static void updateStatus(String details, String state, Duration position, Duration duration, String assetUrl) async {
-    final now = DateTime.now();
-    final start = now.subtract(position);
-    final end = now.add(duration - position);
+  static void updateStatus(String details, String state, Duration position, Duration duration, String assetUrl, bool isPlaying) async {
+    if (!discordRPC.isConnected) return;
 
     await discordRPC.setPresence(
       DiscordPresence(
         type: DiscordActivityType.watching,
+        statusDisplayType: DiscordStatusDisplayType.details,
         details: details,
         state: state,
-        timestamps: DiscordTimestamps.range(start, end),
+        timestamps: DiscordTimestamps.ending(DateTime.now().add(duration)),
         largeAsset: DiscordAsset(url: assetUrl, text: details),
       ),
     );

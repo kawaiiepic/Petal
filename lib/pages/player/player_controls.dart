@@ -39,7 +39,7 @@ class _PlayerControls extends State<PlayerControls> {
   late Player player;
   bool isPlaying = false;
   bool isBuffering = true;
-  bool isLoaded = false;
+  ValueNotifier<bool> isLoaded = ValueNotifier(false);
   int overlayInt = 0;
   late bool isShow;
 
@@ -62,6 +62,30 @@ class _PlayerControls extends State<PlayerControls> {
     player = widget.state.widget.controller.player;
 
     isShow = widget.widgetState.widget.showId != null;
+
+    isLoaded.addListener(() {
+      if (isLoaded.value) {
+        if (isShow) {
+          _showData.then((data) async {
+            final TmdbShow tmdbShow = data[0];
+            final TmdbEpisode tmdbEpisode = data[1];
+            print("Updating Discord Status");
+            Discord.updateStatus(tmdbShow.name, tmdbEpisode.name, player.state.position, player.state.duration, tmdbEpisode.stillUrl!, player.state.playing);
+          });
+        }
+      }
+    });
+
+    player.stream.playing.listen((playing) {
+      if (isShow) {
+        _showData.then((data) async {
+          final TmdbShow tmdbShow = data[0];
+          final TmdbEpisode tmdbEpisode = data[1];
+          print("Updating Discord Status");
+          Discord.updateStatus(tmdbShow.name, '${tmdbEpisode.seasonNumber}x${tmdbEpisode.episodeNumber} ${tmdbEpisode.name}', player.state.position, player.state.duration, tmdbEpisode.stillUrl!, player.state.playing);
+        });
+      }
+    });
 
     if (isShow) {
       _showData = Future.wait([
@@ -86,22 +110,12 @@ class _PlayerControls extends State<PlayerControls> {
       movie = TMDB.movie(widget.widgetState.widget.movieId!);
     }
 
-    player.stream.position.listen((position) {
-      if (isShow) {
-        _showData.then((data) {
-          final TmdbShow tmdbShow = data[0];
-          final TmdbEpisode tmdbEpisode = data[1];
-          Discord.updateStatus(tmdbShow.name, tmdbEpisode.name, position, duration, tmdbShow.posterUrl!);
-        });
-      }
-    });
-
     player.stream.buffering.listen((buffering) {
       setState(() {
         isBuffering = buffering;
 
-        if (!isLoaded && !buffering) {
-          isLoaded = true;
+        if (!isLoaded.value && !buffering) {
+          isLoaded.value = true;
         }
       });
     });
@@ -161,7 +175,7 @@ class _PlayerControls extends State<PlayerControls> {
 
     _uiTimer?.cancel();
     _uiTimer = Timer.periodic(Duration(milliseconds: 5500), (timer) {
-      if (isPlaying && isLoaded && overlayInt == 0) {
+      if (isPlaying && isLoaded.value && overlayInt == 0) {
         setState(() {
           _uiIsActive = false;
         });
@@ -665,13 +679,13 @@ class _SliderState extends State<_Slider> {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
-        if (position != widget.player.state.position) {
-          setState(() {
-            position = widget.player.state.position;
-            duration = widget.player.state.duration;
-            buffer = widget.player.state.buffer;
-          });
-        }
+        // if (position != widget.player.state.position) {
+        setState(() {
+          position = widget.player.state.position;
+          duration = widget.player.state.duration;
+          buffer = widget.player.state.buffer;
+        });
+        // }
       }
     });
   }
