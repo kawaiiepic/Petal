@@ -44,6 +44,7 @@ class _AddonsState extends State<Addons> {
           return Center(child: Text('No addons found'));
         } else {
           return ReorderableListView.builder(
+            shrinkWrap: true,
             onReorderStart: (index) {
               setState(() {
                 _draggingIndex = index;
@@ -88,6 +89,7 @@ class _AddonsState extends State<Addons> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          spacing: 30,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -107,34 +109,11 @@ class _AddonsState extends State<Addons> {
                               final url = _textController.text.trim();
                               if (url.isEmpty) return;
 
-                              try {
-                                final manifestRes = await http.get(Uri.parse(url));
-                                final manifest = jsonDecode(manifestRes.body);
+                              setState(() {
+                                TraktApi.addUserAddon(url, false);
+                              });
 
-                                final addon = {
-                                  "id": manifest["id"],
-                                  "name": manifest["name"],
-                                  "manifestUrl": url,
-                                  "icon": manifest["logo"],
-                                  "enabledResources": ["stream"],
-                                  "forced": 0,
-                                  "config": {},
-                                };
-
-                                await TraktApi.dio.post(
-                                  "${Api.ServerUrl}/addons/set",
-                                  queryParameters: {"Content-Type": "application/json"},
-                                  data: {
-                                    "addons": [addon],
-                                  },
-                                );
-
-                                ApiCache.refreshAddons();
-
-                                _textController.clear();
-                              } catch (e) {
-                                throw ("Addon add failed: $e");
-                              }
+                              _textController.clear();
                             },
                           ),
                         ],
@@ -148,27 +127,93 @@ class _AddonsState extends State<Addons> {
                 ),
               ],
             ),
+            addonsWidget(),
             Column(
+              spacing: 8,
               children: [
-                addonsWidget(),
-                Column(
-                  children: [
-                    Text('Recommended Widgets'),
-                    Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: ListTile(
-                        leading: CircleAvatar(child: Icon(Icons.extension)),
-                        title: Text('Name Here'),
-                        subtitle: Text('Desc for addon.'),
-                        trailing: IconButton(onPressed: () {}, icon: const Icon(Icons.add)),
-                      ),
-                    ),
-                  ],
-                ),
+                Text('Recommended Widgets'),
+                RecommendAddonTile(manfiestUrl: 'https://v3-cinemeta.strem.io/manifest.json', requireConfig: false),
+                RecommendAddonTile(manfiestUrl: 'https://comet.elfhosted.com/manifest.json', requireConfig: true),
               ],
             ),
-            // Expanded(child: addonsWidget()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RecommendAddonTile extends StatefulWidget {
+  final String manfiestUrl;
+  final bool requireConfig;
+
+  const RecommendAddonTile({super.key, required this.manfiestUrl, required this.requireConfig});
+
+  @override
+  State<StatefulWidget> createState() => _RecommendedAddonTileState();
+}
+
+class _RecommendedAddonTileState extends State<RecommendAddonTile> {
+  String name = '';
+  String desc = '';
+  String? logo;
+  bool configurable = false;
+  bool mustConfigure = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    initManifest();
+  }
+
+  Future<void> initManifest() async {
+    try {
+      final manifestRes = await http.get(Uri.parse(widget.manfiestUrl));
+      final manifest = jsonDecode(manifestRes.body);
+
+      setState(() {
+        name = manifest['name'];
+        desc = manifest['description'];
+        logo = manifest['logo'];
+        // configurable = manifest['behaviorHints']['configurable'];
+        // configurable = manifest['behaviorHints']['configurationRequired'];
+      });
+    } catch (e) {
+      throw ("Manifest failed: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: logo != null
+            ? CachedNetworkImage(
+                imageUrl: logo!,
+                imageBuilder: (context, imageProvider) => CircleAvatar(foregroundImage: imageProvider, backgroundColor: Colors.transparent),
+                progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+                errorWidget: (context, url, error) => CircleAvatar(child: Icon(Icons.extension)),
+              )
+            : CircleAvatar(child: Icon(Icons.extension)),
+        title: Text(name),
+        subtitle: Text(desc),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(onPressed: () {}, icon: const Icon(Icons.share)),
+            widget.requireConfig
+                ? IconButton(onPressed: () {}, icon: const Icon(Icons.settings))
+                : IconButton(
+                    onPressed: () {
+                      setState(() {
+                        TraktApi.addUserAddon(widget.manfiestUrl, false);
+                      });
+                    },
+                    icon: const Icon(Icons.add),
+                  ),
           ],
         ),
       ),
@@ -233,8 +278,10 @@ class _AddonTileState extends State<AddonTile> {
                     setState(() {
                       if (selected) {
                         widget.addon.enabledResources.add(resource.name);
+                        TraktApi.addAddonResource(widget.addon.id, resource.name);
                       } else {
                         widget.addon.enabledResources.remove(resource.name);
+                        TraktApi.delAddonResource(widget.addon.id, resource.name);
                       }
                     });
                   },

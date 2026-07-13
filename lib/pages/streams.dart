@@ -64,7 +64,7 @@ class _StreamsPageState extends State<StreamsPage> {
                 final streams = snapshot.data!;
                 if (streams.isEmpty) {
                   if (snapshot.data!.isEmpty) {
-                    return const Center(child: Text('No \'stream\' capable Addons'));
+                    return const Center(child: Text('No stream capable Addons'));
                   } else {
                     return const Center(child: Text('No streams found'));
                   }

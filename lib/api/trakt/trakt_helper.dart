@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:petal/api/api.dart';
+import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/authstate.dart';
 import 'package:petal/api/trakt/activity.dart';
 import 'package:petal/api/trakt/models.dart';
@@ -61,6 +62,28 @@ class TraktApi {
     }
     authState.setInitializing(false);
     return false;
+  }
+
+  static Future<void> addUserAddon(String manifestUrl, bool forced) async {
+    final addon = {"manifest_url": manifestUrl, "forced": true, "config": "string"};
+
+    await TraktApi.dio.post(
+      "${Api.ServerUrl}/addons",
+      // queryParameters: {"Content-Type": "application/json"},
+      data: addon,
+    );
+
+    ApiCache.refreshAddons();
+  }
+
+  static Future<void> addAddonResource(String addonId, String resource) async {
+    await TraktApi.dio.post(
+      "${Api.ServerUrl}/addons/$addonId/resources/$resource",
+    );
+  }
+
+    static Future<void> delAddonResource(String addonId, String resource) async {
+    await TraktApi.dio.delete("${Api.ServerUrl}/addons/$addonId/resources/$resource");
   }
 
   static Future<List<Addon>> fetchUserAddons() async {

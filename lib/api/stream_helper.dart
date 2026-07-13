@@ -35,16 +35,20 @@ class StreamApi {
       final url = '${addon.baseUrl}/stream/$type/$id.json';
       final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
+      print("Url: $url");
+
       if (res.statusCode != 200) return [];
 
       final streams = (jsonDecode(res.body)['streams'] as List? ?? []).map((s) => StreamItem.fromJson(s, addon)).toList();
 
       if (episode == null) return streams;
 
+      return streams;
+
       final tag = 'S${episode.seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')}';
-      return streams
-          .where((s) => s.season == episode.seasonNumber && s.episode == episode.episodeNumber || s.name.toUpperCase().contains(tag) || s.external)
-          .toList();
+      // return streams
+      //     .where((s) => s.season == episode.seasonNumber && s.episode == episode.episodeNumber || s.name.toUpperCase().contains(tag) || s.external)
+      //     .toList();
     } catch (_) {
       return [];
     }

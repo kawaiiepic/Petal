@@ -28,8 +28,8 @@ class _CatalogWidget extends State<CatalogWidget> {
                   case ConnectionState.active:
                   case ConnectionState.done:
                     {
-                      // final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
-                      final addons = addonsSnapshot.data!.where((addon) => addon.id == "7a7eb1e6-c9fd-483b-b2e6-459549393c22");
+                      final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
+                      // final addons = addonsSnapshot.data!.where((addon) => addon.id == "7a7eb1e6-c9fd-483b-b2e6-459549393c22");
 
                       final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
 

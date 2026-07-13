@@ -19,7 +19,7 @@ class StreamItem {
     final url = json['url'] ?? json['externalUrl'] ?? '';
     final external = json['externalUrl'] != null;
 
-    // print(json);
+    print(json);
 
     int? season;
     int? episode;
