@@ -481,9 +481,9 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: "feat/pip"
-      resolved-ref: "1eac02c8dabdc2f7be62049fbc0848bbed17dae7"
-      url: "https://github.com/mdikcinar/media-kit.git"
+      ref: master
+      resolved-ref: ebae41ce5ac1273e33d92dcd152ae0517ef4b2f8
+      url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
     version: "1.2.6"
   media_kit_libs_android_video:

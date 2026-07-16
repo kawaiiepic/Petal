@@ -30,8 +30,8 @@ environment:
 dependency_overrides:
   media_kit:
     git:
-      url: https://github.com/mdikcinar/media-kit.git
-      ref: feat/pip
+      url: https://github.com/Insight-Timer/media-kit.git
+      ref: master
       path: media_kit
 dependencies:
   flutter:
