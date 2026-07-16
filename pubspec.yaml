@@ -50,8 +50,8 @@ dependencies:
       path: media_kit
   media_kit_video:
     git:
-      url: https://github.com/mdikcinar/media-kit.git
-      ref: feat/pip
+      url: https://github.com/Insight-Timer/media-kit.git
+      ref: master
       path: media_kit_video
   media_kit_libs_ios_video:
     git:
