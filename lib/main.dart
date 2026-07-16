@@ -26,6 +26,7 @@ class PetalApp extends StatefulWidget {
 
   static final rootNavigatorKey = GlobalKey<NavigatorState>(); // ← root
   static final shellNavigatorKey = GlobalKey<NavigatorState>();
+  static final drawerNavigatorKey = GlobalKey<NavigatorState>();
 
   @override
   State<PetalApp> createState() => _PetalState();
@@ -43,10 +44,12 @@ class _PetalState extends State<PetalApp> {
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return Sizer(
+      maxTabletWidth: 500,
       builder: (context, orientation, screenType) => ShadcnApp.router(
         routerConfig: AppRouter.appRouter,
+        builder: (context, child) => DrawerOverlay(child: child!),
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(colorScheme: LegacyColorSchemes.darkRose(), radius: 0.7),
+        theme: ThemeData(colorScheme: ColorSchemes.darkGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12),
       ),
     );
   }

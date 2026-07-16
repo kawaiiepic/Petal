@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:go_router/go_router.dart';
 import 'package:petal/api/catalog_helper.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/main.dart';

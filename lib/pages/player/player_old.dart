@@ -8,6 +8,7 @@ import 'package:petal/pages/player/player_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:petal/pages/splash.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class StreamPlayer extends StatefulWidget {
@@ -23,74 +24,87 @@ class StreamPlayer extends StatefulWidget {
 
 class StreamPlayerState extends State<StreamPlayer> {
   late final player = Player();
-  late final controller = VideoController(player);
+  late final VideoController controller;
   late final StreamItem selectedStream;
   bool zoomVideo = false;
+  bool _controllerReady = false;
 
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
     _startStream();
   }
 
   Future<void> _startStream() async {
-    print("Starting stream");
-    print(widget.movieId.toString());
-    final mediaImdb = widget.showId != null ? (await TMDB.tvShow(widget.showId!)).imdbId : (await TMDB.movie(widget.movieId!)).imdbId;
+    try {
+      final mediaImdb = widget.showId != null ? (await TMDB.tvShow(widget.showId!)).imdbId : (await TMDB.movie(widget.movieId!)).imdbId;
 
-    final streams = await StreamApi.fetchStreams(mediaImdb!, widget.episode);
+      final streams = await StreamApi.fetchStreams(mediaImdb!, widget.episode);
+      final stream = widget.stream ?? StreamApi.autoSelectStream(streams);
 
-    StreamItem? stream;
+      if (stream == null) {
+        if (mounted) context.pop();
+        return;
+      }
 
-    if (widget.stream != null) {
-      stream = widget.stream;
-    } else {
-      stream = StreamApi.autoSelectStream(streams);
-    }
-
-    if (stream != null) {
       selectedStream = stream;
-      print("Best Stream found: ${selectedStream.url}");
+
+      // Fixed texture size - set once, sized to a real target resolution.
+      // 1920x1080 is a sane cap; scale down if targeting lower-end devices.
+      controller = VideoController(player, configuration: const VideoControllerConfiguration(width: 1920, height: 1080));
+
       await player.open(Media(selectedStream.url));
-    } else {
-      context.pop();
+      if (mounted) setState(() => _controllerReady = true);
+    } catch (e, st) {
+      debugPrint('Failed to start stream: $e\n$st');
+      if (mounted) context.pop();
     }
   }
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     player.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-    return Scaffold(
-      child: Video(
-        controller: controller,
-        pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
-        onPipEvent: (event) {
-          // Optional: observe lifecycle + play/pause events.
-        },
-        fit: BoxFit.cover,
-        subtitleViewConfiguration: SubtitleViewConfiguration(
-          style: const TextStyle(
-            height: 1.4,
-            fontSize: 30.0,
-            letterSpacing: 0.0,
-            wordSpacing: 0.0,
-            color: Color(0xffffffff),
-            fontWeight: FontWeight.w500,
-            backgroundColor: Color.fromARGB(20, 0, 0, 0),
-          ),
-          textAlign: TextAlign.center,
-          textScaler: TextScaler.linear(1),
-          padding: const EdgeInsets.all(24.0),
+    if (!_controllerReady) {
+      return SplashScreen();
+    }
+
+    return Stack(
+      children: [
+        Center(
+          child: zoomVideo
+              ? Positioned.fill(
+                  child: RepaintBoundary(
+                    child: Video(
+                      controller: controller,
+                      controls: NoVideoControls,
+                      pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
+                      fit: BoxFit.cover, // crops to fill entirely, no letterboxing
+                    ),
+                  ),
+                )
+              : AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: RepaintBoundary(
+                    child: Video(
+                      controller: controller,
+                      controls: NoVideoControls,
+                      pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
         ),
-        controls: (state) => customVideoControls(state, this),
-      ),
+        Positioned.fill(child: RepaintBoundary(child: customVideoControls(player, this))),
+      ],
     );
   }
 }

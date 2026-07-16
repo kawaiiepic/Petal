@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
@@ -7,6 +8,7 @@ import 'package:petal/models/stream.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StreamsPage extends StatefulWidget {
@@ -53,7 +55,7 @@ class _StreamsPageState extends State<StreamsPage> {
         future: _showData,
         builder: (context, snapshot) {
           return Scaffold(
-            appBar: AppBar(title: Text(snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Title')),
+            appBar: AppBar(title: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp), snapshot.hasData ? "${(snapshot.data![0] as TmdbShow).name} ${(snapshot.data![1] as TmdbEpisode).seasonNumber}x${(snapshot.data![1] as TmdbEpisode).episodeNumber}" : '')),
             body: FutureBuilder<List<StreamItem>>(
               future: _streamsFuture,
               builder: (context, snapshot) {
@@ -64,9 +66,9 @@ class _StreamsPageState extends State<StreamsPage> {
                 final streams = snapshot.data!;
                 if (streams.isEmpty) {
                   if (snapshot.data!.isEmpty) {
-                    return const Center(child: Text('No stream capable Addons'));
+                    return Center(child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No stream capable Addons'));
                   } else {
-                    return const Center(child: Text('No streams found'));
+                    return Center(child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No streams found'));
                   }
                 }
 
@@ -87,7 +89,7 @@ class _StreamsPageState extends State<StreamsPage> {
         future: movie,
         builder: (context, snapshot) {
           return Scaffold(
-            appBar: AppBar(title: Text(snapshot.hasData ? snapshot.data!.title : 'Example Title')),
+            appBar: AppBar(title: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp), snapshot.hasData ? snapshot.data!.title : 'Example Title')),
             body: FutureBuilder<List<StreamItem>>(
               future: _streamsFuture,
               builder: (context, snapshot) {
@@ -98,9 +100,9 @@ class _StreamsPageState extends State<StreamsPage> {
                 final streams = snapshot.data!;
                 if (streams.isEmpty) {
                   if (snapshot.data!.isEmpty) {
-                    return const Center(child: Text('No \'stream\' capable Addons'));
+                    return Center(child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No \'stream\' capable Addons'));
                   } else {
-                    return const Center(child: Text('No streams found'));
+                    return Center(child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No streams found'));
                   }
                 }
 
@@ -130,10 +132,17 @@ class StreamTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: stream.external ? const Icon(Icons.play_circle) : const Icon(Icons.play_circle_outline),
-      title: Text(stream.name),
-      subtitle: Text(stream.title),
-      trailing: Text(stream.addon.id),
+      leading: stream.external
+          ? const Icon(Icons.open_in_browser)
+          : CachedNetworkImage(
+              imageUrl: stream.addon.manifest?['logo'],
+              imageBuilder: (context, imageProvider) => CircleAvatar(foregroundImage: imageProvider, backgroundColor: Colors.transparent),
+              progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+              errorWidget: (context, url, error) => CircleAvatar(child: Icon(Icons.extension)),
+            ),
+      title: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 14.sp), stream.name),
+      subtitle: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 11.sp : 13.sp), stream.title),
+      // trailing: Text(style: TextStyle(fontSize: 13.sp), stream.addon.manifest?['name'] ?? ''),
       onTap: () {
         if (stream.external) {
           launchUrl(Uri.parse(stream.url));

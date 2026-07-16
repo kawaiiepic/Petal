@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/models/addon.dart';
-import 'package:petal/api/api.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -45,6 +44,7 @@ class _AddonsState extends State<Addons> {
         } else {
           return ReorderableListView.builder(
             shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             onReorderStart: (index) {
               setState(() {
                 _draggingIndex = index;
@@ -82,11 +82,11 @@ class _AddonsState extends State<Addons> {
     },
   );
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Addons")),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           spacing: 30,

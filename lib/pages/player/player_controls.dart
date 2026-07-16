@@ -1,144 +1,276 @@
 import 'dart:async';
-import 'dart:ui';
 
+import 'package:flutter/material.dart' as Material;
 import 'package:petal/api/api.dart';
-import 'package:petal/api/discord.dart';
+import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/pages/player/player_old.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
-Widget customVideoControls(VideoState state, StreamPlayerState widgetState) {
-  return PlayerControls(state: state, widgetState: widgetState);
+Widget customVideoControls(Player player, StreamPlayerState widgetState) {
+  return PlayerControls(player: player, widgetState: widgetState);
 }
 
 class PlayerControls extends StatefulWidget {
-  final VideoState state;
+  final Player player;
   final StreamPlayerState widgetState;
 
   static final normalTextStyle = TextStyle(fontSize: 15.sp.clamp(14, 20));
   static final normalIconSize = 15.px.clamp(14, 20).toDouble();
 
-  const PlayerControls({super.key, required this.state, required this.widgetState});
+  const PlayerControls({super.key, required this.player, required this.widgetState});
 
   @override
   State<StatefulWidget> createState() => _PlayerControls();
 }
 
 class _PlayerControls extends State<PlayerControls> {
-  bool _uiIsActive = true;
-  late Player player;
-  bool isPlaying = false;
-  bool isBuffering = true;
-  ValueNotifier<bool> isLoaded = ValueNotifier(false);
-  int overlayInt = 0;
-  late bool isShow;
+  bool _showControls = true;
+  late bool _isShow;
+  late Future<(TmdbShow, TmdbEpisode)> _showData;
+  late Future<TmdbMovie> _movie;
+  Timer? _hideTimer;
 
-  late Future<List<dynamic>> _showData;
-  late Future movie;
-  Timer? _positonTimer;
-  Timer? _uiTimer;
+  int _leftSeekSeconds = 0;
+  int _rightSeekSeconds = 0;
+  bool _showLeftSeek = false;
+  bool _showRightSeek = false;
+  Timer? _leftSeekTimer;
+  Timer? _rightSeekTimer;
 
-  Duration position = Duration();
-  Duration buffer = Duration();
-  Duration duration = Duration();
+  void _seekBackward() {
+    final newPosition = widget.player.state.position - const Duration(seconds: 10);
+    widget.player.seek(newPosition < Duration.zero ? Duration.zero : newPosition);
 
-  SeasonSummary? _selectedSeason;
-  late Future<TmdbEpisode?> _nextEpisode;
+    setState(() {
+      _leftSeekSeconds += 10;
+      _showLeftSeek = true;
+    });
+
+    _leftSeekTimer?.cancel();
+    _leftSeekTimer = Timer(const Duration(milliseconds: 700), () {
+      if (mounted) {
+        setState(() {
+          _showLeftSeek = false;
+          _leftSeekSeconds = 0;
+        });
+      }
+    });
+  }
+
+  void _seekForward() {
+    final duration = widget.player.state.duration;
+    final newPosition = widget.player.state.position + const Duration(seconds: 10);
+    widget.player.seek(newPosition > duration ? duration : newPosition);
+
+    setState(() {
+      _rightSeekSeconds += 10;
+      _showRightSeek = true;
+    });
+
+    _rightSeekTimer?.cancel();
+    _rightSeekTimer = Timer(const Duration(milliseconds: 700), () {
+      if (mounted) {
+        setState(() {
+          _showRightSeek = false;
+          _rightSeekSeconds = 0;
+        });
+      }
+    });
+  }
+
+  void _playNextEpisode() async {
+    TmdbEpisode? nextEpisode = await nextUpEpisode();
+    if (nextEpisode != null) {
+      context.pushReplacement('/player?show=${widget.widgetState.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}');
+    }
+  }
+
+  // bool _uiIsActive = true;
+  // late Player player;
+  // bool isPlaying = false;
+  // bool isBuffering = true;
+  // ValueNotifier<bool> isLoaded = ValueNotifier(false);
+  // int overlayInt = 0;
+  // late bool isShow;
+
+  // late Future<List<dynamic>> _showData;
+  // late Future movie;
+  // Timer? _positonTimer;
+  // Timer? _uiTimer;
+
+  // Duration position = Duration();
+  // Duration buffer = Duration();
+  // Duration duration = Duration();
+
+  // SeasonSummary? _selectedSeason;
+  // late Future<TmdbEpisode?> _nextEpisode;
 
   @override
   void initState() {
     super.initState();
+    _startHideTimer();
+    _isShow = widget.widgetState.widget.showId != null;
 
-    player = widget.state.widget.controller.player;
-
-    isShow = widget.widgetState.widget.showId != null;
-
-    isLoaded.addListener(() {
-      if (isLoaded.value) {
-        if (isShow) {
-          _showData.then((data) async {
-            final TmdbShow tmdbShow = data[0];
-            final TmdbEpisode tmdbEpisode = data[1];
-            print("Updating Discord Status");
-            Discord.updateStatus(tmdbShow.name, tmdbEpisode.name, player.state.position, player.state.duration, tmdbEpisode.stillUrl!, player.state.playing);
-          });
-        }
-      }
-    });
-
-    player.stream.playing.listen((playing) {
-      if (isShow) {
-        _showData.then((data) async {
-          final TmdbShow tmdbShow = data[0];
-          final TmdbEpisode tmdbEpisode = data[1];
-          print("Updating Discord Status");
-          Discord.updateStatus(tmdbShow.name, '${tmdbEpisode.seasonNumber}x${tmdbEpisode.episodeNumber} ${tmdbEpisode.name}', player.state.position, player.state.duration, tmdbEpisode.stillUrl!, player.state.playing);
-        });
-      }
-    });
-
-    if (isShow) {
-      _showData = Future.wait([
-        TMDB.tvShow(widget.widgetState.widget.showId!),
-        TMDB.tvEpisode(widget.widgetState.widget.showId!, widget.widgetState.widget.episode!.seasonNumber, widget.widgetState.widget.episode!.episodeNumber),
-      ]);
-
-      _showData.then((showData) {
-        _selectedSeason = ((showData[0] as TmdbShow).seasons.firstWhere((s) => s.seasonNumber == widget.widgetState.widget.episode!.seasonNumber));
-        if (TraktApi.authState.traktConnected) {
-          TraktApi.startWatching(MediaType.show, {
-            "progress": 0.0,
-            "episode": {
-              "ids": {"tmdb": (showData[1] as TmdbEpisode).id},
-            },
-          });
-        }
-      });
-
-      _nextEpisode = nextUpEpisode();
+    if (_isShow) {
+      final show = widget.widgetState.widget;
+      final episode = show.episode!;
+      _showData = (TMDB.tvShow(show.showId!), TMDB.tvEpisode(show.showId!, episode.seasonNumber, episode.episodeNumber)).wait;
     } else {
-      movie = TMDB.movie(widget.widgetState.widget.movieId!);
+      _movie = TMDB.movie(widget.widgetState.widget.movieId!);
     }
 
-    player.stream.buffering.listen((buffering) {
-      setState(() {
-        isBuffering = buffering;
+    // player = widget.state.widget.controller.player;
 
-        if (!isLoaded.value && !buffering) {
-          isLoaded.value = true;
-        }
-      });
-    });
+    // isShow = widget.widgetState.widget.showId != null;
 
-    player.stream.playing.listen((playing) {
-      setState(() {
-        isPlaying = playing;
-      });
+    // isLoaded.addListener(() {
+    //   if (isLoaded.value) {
+    //     if (isShow) {
+    //       _showData.then((data) async {
+    //         final TmdbShow tmdbShow = data[0];
+    //         final TmdbEpisode tmdbEpisode = data[1];
+    //         print("Updating Discord Status");
+    //         Discord.updateStatus(tmdbShow.name, tmdbEpisode.name, player.state.position, player.state.duration, tmdbEpisode.stillUrl!, player.state.playing);
+    //       });
+    //     }
+    //   }
+    // });
+
+    // player.stream.playing.listen((playing) {
+    //   if (isShow) {
+    //     _showData.then((data) async {
+    //       final TmdbShow tmdbShow = data[0];
+    //       final TmdbEpisode tmdbEpisode = data[1];
+    //       print("Updating Discord Status");
+    //       Discord.updateStatus(
+    //         tmdbShow.name,
+    //         '${tmdbEpisode.seasonNumber}x${tmdbEpisode.episodeNumber} ${tmdbEpisode.name}',
+    //         player.state.position,
+    //         player.state.duration,
+    //         tmdbEpisode.stillUrl!,
+    //         player.state.playing,
+    //       );
+    //     });
+    //   }
+    // });
+
+    // if (isShow) {
+    //   _showData = Future.wait([
+    //     TMDB.tvShow(widget.widgetState.widget.showId!),
+    //     TMDB.tvEpisode(widget.widgetState.widget.showId!, widget.widgetState.widget.episode!.seasonNumber, widget.widgetState.widget.episode!.episodeNumber),
+    //   ]);
+
+    //   _showData.then((showData) {
+    //     _selectedSeason = ((showData[0] as TmdbShow).seasons.firstWhere((s) => s.seasonNumber == widget.widgetState.widget.episode!.seasonNumber));
+    //     if (TraktApi.authState.traktConnected) {
+    //       TraktApi.startWatching(MediaType.show, {
+    //         "progress": 0.0,
+    //         "episode": {
+    //           "ids": {"tmdb": (showData[1] as TmdbEpisode).id},
+    //         },
+    //       });
+    //     }
+    //   });
+
+    //   _nextEpisode = nextUpEpisode();
+    // } else {
+    //   movie = TMDB.movie(widget.widgetState.widget.movieId!);
+    // }
+
+    // player.stream.buffering.listen((buffering) {
+    //   setState(() {
+    //     isBuffering = buffering;
+
+    //     if (!isLoaded.value && !buffering) {
+    //       isLoaded.value = true;
+    //     }
+    //   });
+    // });
+
+    // player.stream.playing.listen((playing) {
+    //   setState(() {
+    //     isPlaying = playing;
+    //   });
+    // });
+  }
+
+  void _startHideTimer() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => _showControls = false);
+      }
     });
   }
 
-  String formatDurationShort(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+  void _onMouseMove({bool toggle = false}) {
+    if (!_showControls) {
+      setState(() => _showControls = true);
+      _startHideTimer();
+    } else if (toggle) {
+      setState(() => _showControls = false);
+      _hideTimer?.cancel();
+    }
   }
+
+  Widget _buildSeekIndicator({required bool visible, required int seconds, required bool isLeft}) {
+    return IgnorePointer(
+      child: Align(
+        alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: AnimatedScale(
+              scale: visible ? 1.0 : 0.8,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(isLeft ? Icons.replay_10_rounded : Icons.forward_10_rounded, color: Colors.white, size: 28),
+                    if (seconds > 10) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '${seconds}s',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // String formatDurationShort(Duration duration) {
+  //   final minutes = duration.inMinutes;
+  //   final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+  //   return '$minutes:$seconds';
+  // }
 
   Future<TmdbEpisode?> nextUpEpisode() async {
     var showId = widget.widgetState.widget.showId;
     var season = widget.widgetState.widget.episode!.seasonNumber;
     var episode = widget.widgetState.widget.episode!.episodeNumber;
-    TmdbShow show = (await _showData)[0];
-    if (show.seasons[season].episodeCount <= episode) {
+
+    TmdbShow show = (await _showData).$1;
+    var realSeason = show.seasons.firstWhere((s) => s.seasonNumber == season);
+    if (realSeason.episodeCount <= episode) {
       if (show.seasons.length <= season) {
         return null;
       }
@@ -150,297 +282,543 @@ class _PlayerControls extends State<PlayerControls> {
 
   @override
   void dispose() {
-    _positonTimer?.cancel();
-    _uiTimer?.cancel();
+    // _positonTimer?.cancel();
+    // _uiTimer?.cancel();
+    _leftSeekTimer?.cancel();
+    _rightSeekTimer?.cancel();
+    _hideTimer?.cancel();
     super.dispose();
   }
 
-  void restartUi({bool toggle = false}) {
-    if (toggle && _uiIsActive == true) {
-      setState(() {
-        _uiIsActive = false;
-      });
+  // void restartUi({bool toggle = false}) {
+  //   if (toggle && _uiIsActive == true) {
+  //     setState(() {
+  //       _uiIsActive = false;
+  //     });
 
-      widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
-      _uiTimer?.cancel();
-      return;
-    }
-    if (_uiIsActive == false) {
-      setState(() {
-        _uiIsActive = true;
-      });
+  //     widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
+  //     _uiTimer?.cancel();
+  //     return;
+  //   }
+  //   if (_uiIsActive == false) {
+  //     setState(() {
+  //       _uiIsActive = true;
+  //     });
 
-      widget.state.setSubtitleViewPadding(EdgeInsets.fromLTRB(0, 0, 0, 100) + widget.state.widget.subtitleViewConfiguration.padding);
-    }
+  //     widget.state.setSubtitleViewPadding(EdgeInsets.fromLTRB(0, 0, 0, 100) + widget.state.widget.subtitleViewConfiguration.padding);
+  //   }
 
-    _uiTimer?.cancel();
-    _uiTimer = Timer.periodic(Duration(milliseconds: 5500), (timer) {
-      if (isPlaying && isLoaded.value && overlayInt == 0) {
-        setState(() {
-          _uiIsActive = false;
-        });
-        widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
-        timer.cancel();
-      }
-    });
-  }
+  //   _uiTimer?.cancel();
+  //   _uiTimer = Timer.periodic(Duration(milliseconds: 5500), (timer) {
+  //     if (isPlaying && isLoaded.value && overlayInt == 0) {
+  //       setState(() {
+  //         _uiIsActive = false;
+  //       });
+  //       widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
+  //       timer.cancel();
+  //     }
+  //   });
+  // }
 
   @override
-  Widget build(BuildContext context) => CallbackShortcuts(
-    bindings: <ShortcutActivator, VoidCallback>{
-      const SingleActivator(LogicalKeyboardKey.space): () => widget.state.widget.controller.player.playOrPause(),
-      const SingleActivator(LogicalKeyboardKey.arrowLeft): () => player.seek(player.state.position - Duration(seconds: 30)),
-      const SingleActivator(LogicalKeyboardKey.arrowRight): () => player.seek(player.state.position + Duration(seconds: 30)),
-    },
-    child: Focus(
-      autofocus: true,
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTapDown: (details) {
+        final width = context.size?.width ?? MediaQuery.of(context).size.width;
+        final tapX = details.localPosition.dx;
+
+        if (tapX < width / 2) {
+          _seekBackward();
+        } else {
+          _seekForward();
+        }
+      },
+      onTapDown: (details) {
+        _onMouseMove(toggle: true);
+      },
       child: MouseRegion(
-        cursor: _uiIsActive ? SystemMouseCursors.basic : SystemMouseCursors.none,
-        onHover: (event) => restartUi(),
+        onHover: (event) => _onMouseMove(),
+        onEnter: (_) => setState(() => _showControls = true),
         child: Stack(
-          alignment: AlignmentGeometry.bottomRight,
           children: [
-            Positioned.fill(
-              child: GestureDetector(
-                onTapDown: (details) {
-                  if (details.kind == PointerDeviceKind.touch) {
-                    restartUi(toggle: true);
-                  } else if (details.kind == PointerDeviceKind.mouse) {
-                    widget.state.widget.controller.player.playOrPause();
-                  }
-                },
-                behavior: HitTestBehavior.opaque,
-                child: Container(),
-              ),
+            AnimatedOpacity(
+              opacity: _showControls ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: TickerMode(enabled: _showControls, child: _buildControlsBar()),
             ),
-
-            // Controls overlay
-            IgnorePointer(
-              ignoring: !_uiIsActive,
-              child: AnimatedOpacity(
-                opacity: _uiIsActive ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 300),
-                child: Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            variance: ButtonVariance.ghost,
-                            onPressed: () {
-                              SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-                              SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-                              context.pop();
-                            },
-                            icon: Row(
-                              children: [
-                                Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded),
-                                Text(style: PlayerControls.normalTextStyle, "Return"),
-                              ],
-                            ),
-                          ),
-                          if (isShow)
-                            FutureBuilder(
-                              future: _showData,
-                              builder: (context, snapshot) => Column(
-                                spacing: 8,
-                                children: [
-                                  Text(style: PlayerControls.normalTextStyle, snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
-                                  Text(
-                                    style: PlayerControls.normalTextStyle,
-                                    snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name',
-                                  ),
-                                ],
-                              ).asSkeleton(snapshot: snapshot),
-                            )
-                          else
-                            FutureBuilder(
-                              future: movie,
-                              builder: (context, snapshot) =>
-                                  snapshot.hasData ? Text(style: PlayerControls.normalTextStyle, (snapshot.data! as TmdbMovie).title) : const SizedBox.shrink(),
-                            ),
-                          ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.info_outline_rounded)),
-                        ],
-                      ),
-                      Center(
-                        child: RepaintBoundary(
-                          child: ControlButton(
-                            onTap: () => player.playOrPause(),
-                            icon: isBuffering
-                                ? CircularProgressIndicator(size: 50)
-                                : Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
-                          ),
-                        ),
-                      ),
-                      Column(
-                        spacing: 8,
-                        children: [
-                          _Slider(player: player),
-                          Row(
-                            children: [
-                              RepaintBoundary(
-                                child: ControlButton(
-                                  onTap: () => player.playOrPause(),
-                                  icon: Icon(size: PlayerControls.normalIconSize, isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                                ),
-                              ),
-                              if (!Api.isMobile()) VolumeButton(player: player),
-                              _PositionDisplay(player: player),
-
-                              if (isShow) ...[
-                                const SizedBox(width: 10),
-                                Container(
-                                  width: 4,
-                                  height: 4,
-                                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                                ),
-                                const SizedBox(width: 10),
-                                Row(
-                                  spacing: 8,
-                                  children: [
-                                    Text(style: PlayerControls.normalTextStyle, 'S${widget.widgetState.widget.episode!.seasonNumber}'),
-                                    Text(style: PlayerControls.normalTextStyle, 'E${widget.widgetState.widget.episode!.episodeNumber}'),
-                                  ],
-                                ),
-                              ],
-
-                              const Spacer(),
-                              if (isShow) ...[
-                                ControlButton(
-                                  onTap: () {
-                                    openDrawer(
-                                      context: context,
-                                      builder: (context) => _EpisodeDrawer(
-                                        showData: _showData,
-                                        initialSeason: _selectedSeason,
-                                        tmdbId: widget.widgetState.widget.showId!,
-                                        onSeasonChanged: (season) {
-                                          setState(() => _selectedSeason = season);
-                                        },
-                                      ),
-                                      position: OverlayPosition.right,
-                                    );
-                                  },
-                                  icon: Icon(size: PlayerControls.normalIconSize, Icons.amp_stories_rounded),
-                                ),
-                                ControlButton(
-                                  onTap: () async {
-                                    TmdbEpisode? nextEpisode = await _nextEpisode;
-                                    if (nextEpisode != null) {
-                                      context.pushReplacement(
-                                        '/player?show=${widget.widgetState.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
-                                      );
-                                    }
-                                  },
-                                  icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
-                                ),
-                              ],
-                              DropdownButton(
-                                dropdownMenu: DropdownMenu(
-                                  children: [
-                                    MenuLabel(
-                                      child: Row(
-                                        children: [
-                                          ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
-                                          Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
-                                          Text(style: PlayerControls.normalTextStyle, 'Subtitles'),
-                                          const Spacer(),
-                                          ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.upload_rounded)),
-                                        ],
-                                      ),
-                                    ),
-                                    const MenuDivider(),
-                                    MenuLabel(
-                                      child: Collapsible(
-                                        children: [
-                                          CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Subtitles')),
-                                          Text(style: PlayerControls.normalTextStyle, player.state.track.subtitle.language ?? 'None').withPadding(left: 30),
-                                          ...player.state.tracks.subtitle.map(
-                                            (e) => CollapsibleContent(
-                                              child: MenuButton(
-                                                onPressed: (context) => setState(() {
-                                                  player.setSubtitleTrack(e);
-                                                }),
-                                                child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    MenuLabel(
-                                      child: Collapsible(
-                                        children: [
-                                          CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Audio Track')),
-                                          Text(style: PlayerControls.normalTextStyle, player.state.track.audio.language ?? 'None').withPadding(left: 30),
-                                          ...player.state.tracks.audio.map(
-                                            (e) => CollapsibleContent(
-                                              child: MenuButton(
-                                                onPressed: (context) => setState(() {
-                                                  player.setAudioTrack(e);
-                                                }),
-                                                child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                icon: Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
-                              ),
-                              DropdownButton(
-                                dropdownMenu: DropdownMenu(
-                                  children: [
-                                    MenuLabel(
-                                      child: Row(
-                                        spacing: 8,
-                                        children: [
-                                          ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
-                                          Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
-                                          Text(style: PlayerControls.normalTextStyle, 'Settings'),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
-                              ),
-                              ControlButton(
-                                onTap: () async {
-                                  setState(() {
-                                    widget.widgetState.zoomVideo = !widget.widgetState.zoomVideo;
-                                  });
-
-                                  // windowManager.setFullScreen(!(await windowManager.isFullScreen()));
-                                },
-                                icon: Icon(size: PlayerControls.normalIconSize, Icons.fullscreen_rounded),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            if (isShow)
+            _buildSeekIndicator(visible: _showLeftSeek, seconds: _leftSeekSeconds, isLeft: true),
+            _buildSeekIndicator(visible: _showRightSeek, seconds: _rightSeekSeconds, isLeft: false),
+            if (_isShow)
               Positioned(
                 right: 20,
                 bottom: 40,
-                child: _NextUpCard(player: player, nextEpisode: _nextEpisode, uiIsActive: _uiIsActive),
+                child: _NextUpCard(player: widget.player, nextEpisode: nextUpEpisode(), uiIsActive: _showControls, playNextEpisode: _playNextEpisode),
               ),
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
+
+  Widget _buildControlsBar() {
+    return Padding(
+      padding: EdgeInsetsGeometry.all(8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    variance: ButtonVariance.ghost,
+                    onPressed: () => context.pop(),
+                    icon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded),
+                        Text(style: PlayerControls.normalTextStyle, "Return"),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Center(
+                  child: FutureBuilder(
+                    future: _isShow ? _showData : _movie,
+                    builder: (context, snapshot) {
+                      return Column(
+                        spacing: 8,
+                        children: [
+                          Text(
+                            style: PlayerControls.normalTextStyle,
+                            snapshot.hasData
+                                ? _isShow
+                                      ? (snapshot.data! as (TmdbShow, TmdbEpisode)).$1.name
+                                      : (snapshot.data! as TmdbMovie).title
+                                : "Example Media Name",
+                          ),
+                          if (_isShow)
+                            Text(
+                              style: PlayerControls.normalTextStyle,
+                              snapshot.hasData
+                                  ? "${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.seasonNumber}x${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.episodeNumber} ${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.name}"
+                                  : "Example Episode Name",
+                            ),
+                        ],
+                      ).asSkeleton(snapshot: snapshot);
+                    },
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.info_outline_rounded)),
+                ),
+              ),
+            ],
+          ),
+          Center(child: _PlayPauseButton(player: widget.player)),
+
+          Column(
+            spacing: 8,
+            children: [
+              RepaintBoundary(
+                child: _Slider(player: widget.player, visible: _showControls),
+              ),
+              Row(
+                spacing: 8,
+                children: [
+                  ControlButton(
+                    onTap: () => setState(() {
+                      widget.player.playOrPause();
+                    }),
+                    icon: Icon(size: PlayerControls.normalIconSize, widget.player.state.playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                  ),
+                  if (!Api.isMobile()) VolumeButton(player: widget.player),
+                  _PositionDisplay(player: widget.player, visible: _showControls),
+                  if (_isShow) ...[
+                    const SizedBox(width: 2),
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 2),
+                    Row(
+                      spacing: 8,
+                      children: [
+                        Text(style: PlayerControls.normalTextStyle, 'S${widget.widgetState.widget.episode!.seasonNumber}'),
+                        Text(style: PlayerControls.normalTextStyle, 'E${widget.widgetState.widget.episode!.episodeNumber}'),
+                      ],
+                    ),
+
+                    const Spacer(),
+
+                    _EpisodeDrawer(showData: _showData, tmdbId: widget.widgetState.widget.showId!),
+                    ControlButton(
+                      onTap: () async {
+                        _playNextEpisode();
+                      },
+                      icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
+                    ),
+                  ],
+
+                  DropdownButton(
+                    dropdownMenu: DropdownMenu(
+                      children: [
+                        MenuLabel(
+                          child: Row(
+                            children: [
+                              ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
+                              Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+                              Text(style: PlayerControls.normalTextStyle, 'Subtitles'),
+                              const Spacer(),
+                              ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.upload_rounded)),
+                            ],
+                          ),
+                        ),
+                        const MenuDivider(),
+                        MenuLabel(
+                          child: Collapsible(
+                            children: [
+                              CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Subtitles')),
+                              Text(style: PlayerControls.normalTextStyle, widget.player.state.track.subtitle.language ?? 'None').withPadding(left: 30),
+                              ...widget.player.state.tracks.subtitle.map(
+                                (e) => CollapsibleContent(
+                                  child: MenuButton(
+                                    onPressed: (context) => setState(() {
+                                      widget.player.setSubtitleTrack(e);
+                                    }),
+                                    child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        MenuLabel(
+                          child: Collapsible(
+                            children: [
+                              CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Audio Track')),
+                              Text(style: PlayerControls.normalTextStyle, widget.player.state.track.audio.language ?? 'None').withPadding(left: 30),
+                              ...widget.player.state.tracks.audio.map(
+                                (e) => CollapsibleContent(
+                                  child: MenuButton(
+                                    onPressed: (context) => setState(() {
+                                      widget.player.setAudioTrack(e);
+                                    }),
+                                    child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    icon: Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+                  ),
+
+                  DropdownButton(
+                    dropdownMenu: DropdownMenu(
+                      children: [
+                        MenuLabel(
+                          child: Row(
+                            spacing: 8,
+                            children: [
+                              ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
+                              Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
+                              Text(style: PlayerControls.normalTextStyle, 'Settings'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
+                  ),
+
+                  ControlButton(
+                    onTap: () {
+                      widget.widgetState.setState(() {
+                        widget.widgetState.zoomVideo = !widget.widgetState.zoomVideo;
+                      });
+                      // windowManager.setFullScreen(!(await windowManager.isFullScreen()));
+                    },
+                    icon: Icon(size: PlayerControls.normalIconSize, widget.widgetState.zoomVideo ? Icons.fullscreen_exit : Icons.fullscreen_rounded),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // @override
+  // Widget build(BuildContext context) => CallbackShortcuts(
+  //   bindings: <ShortcutActivator, VoidCallback>{
+  //     const SingleActivator(LogicalKeyboardKey.space): () => widget.state.widget.controller.player.playOrPause(),
+  //     const SingleActivator(LogicalKeyboardKey.arrowLeft): () => player.seek(player.state.position - Duration(seconds: 30)),
+  //     const SingleActivator(LogicalKeyboardKey.arrowRight): () => player.seek(player.state.position + Duration(seconds: 30)),
+  //   },
+  //   child: Focus(
+  //     autofocus: true,
+  //     child: MouseRegion(
+  //       cursor: _uiIsActive ? SystemMouseCursors.basic : SystemMouseCursors.none,
+  //       onHover: (event) => restartUi(),
+  //       child: Stack(
+  //         alignment: AlignmentGeometry.bottomRight,
+  //         children: [
+  //           Positioned.fill(
+  //             child: GestureDetector(
+  //               onTapDown: (details) {
+  //                 if (details.kind == PointerDeviceKind.touch) {
+  //                   restartUi(toggle: true);
+  //                 } else if (details.kind == PointerDeviceKind.mouse) {
+  //                   widget.state.widget.controller.player.playOrPause();
+  //                 }
+  //               },
+  //               behavior: HitTestBehavior.opaque,
+  //               child: Container(),
+  //             ),
+  //           ),
+
+  //           // Controls overlay
+  //           RepaintBoundary(
+  //             child: IgnorePointer(
+  //               ignoring: !_uiIsActive,
+  //               child: AnimatedOpacity(
+  //                 opacity: _uiIsActive ? 1.0 : 0.0,
+  //                 duration: const Duration(milliseconds: 300),
+  //                 child: Padding(
+  //                   padding: const EdgeInsets.all(15),
+  //                   child: Column(
+  //                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                     children: [
+  //                       Row(
+  //                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                         children: [
+  //                           IconButton(
+  //                             variance: ButtonVariance.ghost,
+  //                             onPressed: () {
+  //                               SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  //                               SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  //                               context.pop();
+  //                             },
+  //                             icon: Row(
+  //                               children: [
+  //                                 Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded),
+  //                                 Text(style: PlayerControls.normalTextStyle, "Return"),
+  //                               ],
+  //                             ),
+  //                           ),
+  //                           if (isShow)
+  //                             FutureBuilder(
+  //                               future: _showData,
+  //                               builder: (context, snapshot) => Column(
+  //                                 spacing: 8,
+  //                                 children: [
+  //                                   Text(style: PlayerControls.normalTextStyle, snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
+  //                                   Text(
+  //                                     style: PlayerControls.normalTextStyle,
+  //                                     snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name',
+  //                                   ),
+  //                                 ],
+  //                               ).asSkeleton(snapshot: snapshot),
+  //                             )
+  //                           else
+  //                             FutureBuilder(
+  //                               future: movie,
+  //                               builder: (context, snapshot) => snapshot.hasData
+  //                                   ? Text(style: PlayerControls.normalTextStyle, (snapshot.data! as TmdbMovie).title)
+  //                                   : const SizedBox.shrink(),
+  //                             ),
+  //                           ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.info_outline_rounded)),
+  //                         ],
+  //                       ),
+  //                       Center(
+  //                         child: RepaintBoundary(
+  //                           child: ControlButton(
+  //                             onTap: () => player.playOrPause(),
+  //                             icon: isBuffering
+  //                                 ? CircularProgressIndicator(size: 50)
+  //                                 : Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
+  //                           ),
+  //                         ),
+  //                       ),
+  //                       Column(
+  //                         spacing: 8,
+  //                         children: [
+  //                           _Slider(player: player),
+  //                           Row(
+  //                             children: [
+  //                               RepaintBoundary(
+  //                                 child: ControlButton(
+  //                                   onTap: () => player.playOrPause(),
+  //                                   icon: Icon(size: PlayerControls.normalIconSize, isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+  //                                 ),
+  //                               ),
+  //                               if (!Api.isMobile()) VolumeButton(player: player),
+  //                               _PositionDisplay(player: player),
+
+  //                               if (isShow) ...[
+  //                                 const SizedBox(width: 10),
+  //                                 Container(
+  //                                   width: 4,
+  //                                   height: 4,
+  //                                   decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+  //                                 ),
+  //                                 const SizedBox(width: 10),
+  //                                 Row(
+  //                                   spacing: 8,
+  //                                   children: [
+  //                                     Text(style: PlayerControls.normalTextStyle, 'S${widget.widgetState.widget.episode!.seasonNumber}'),
+  //                                     Text(style: PlayerControls.normalTextStyle, 'E${widget.widgetState.widget.episode!.episodeNumber}'),
+  //                                   ],
+  //                                 ),
+  //                               ],
+
+  //                               const Spacer(),
+  //                               if (isShow) ...[
+  //                                 ControlButton(
+  //                                   onTap: () {
+  //                                     openDrawer(
+  //                                       context: context,
+  //                                       builder: (context) => _EpisodeDrawer(
+  //                                         showData: _showData,
+  //                                         initialSeason: _selectedSeason,
+  //                                         tmdbId: widget.widgetState.widget.showId!,
+  //                                         onSeasonChanged: (season) {
+  //                                           setState(() => _selectedSeason = season);
+  //                                         },
+  //                                       ),
+  //                                       position: OverlayPosition.right,
+  //                                     );
+  //                                   },
+  //                                   icon: Icon(size: PlayerControls.normalIconSize, Icons.amp_stories_rounded),
+  //                                 ),
+  //                                 ControlButton(
+  //                                   onTap: () async {
+  //                                     TmdbEpisode? nextEpisode = await _nextEpisode;
+  //                                     if (nextEpisode != null) {
+  //                                       context.pushReplacement(
+  //                                         '/player?show=${widget.widgetState.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
+  //                                       );
+  //                                     }
+  //                                   },
+  //                                   icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
+  //                                 ),
+  //                               ],
+  //                               DropdownButton(
+  //                                 dropdownMenu: DropdownMenu(
+  //                                   children: [
+  //                                     MenuLabel(
+  //                                       child: Row(
+  //                                         children: [
+  //                                           ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
+  //                                           Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+  //                                           Text(style: PlayerControls.normalTextStyle, 'Subtitles'),
+  //                                           const Spacer(),
+  //                                           ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.upload_rounded)),
+  //                                         ],
+  //                                       ),
+  //                                     ),
+  //                                     const MenuDivider(),
+  //                                     MenuLabel(
+  //                                       child: Collapsible(
+  //                                         children: [
+  //                                           CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Subtitles')),
+  //                                           Text(style: PlayerControls.normalTextStyle, player.state.track.subtitle.language ?? 'None').withPadding(left: 30),
+  //                                           ...player.state.tracks.subtitle.map(
+  //                                             (e) => CollapsibleContent(
+  //                                               child: MenuButton(
+  //                                                 onPressed: (context) => setState(() {
+  //                                                   player.setSubtitleTrack(e);
+  //                                                 }),
+  //                                                 child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
+  //                                               ),
+  //                                             ),
+  //                                           ),
+  //                                         ],
+  //                                       ),
+  //                                     ),
+  //                                     MenuLabel(
+  //                                       child: Collapsible(
+  //                                         children: [
+  //                                           CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Audio Track')),
+  //                                           Text(style: PlayerControls.normalTextStyle, player.state.track.audio.language ?? 'None').withPadding(left: 30),
+  //                                           ...player.state.tracks.audio.map(
+  //                                             (e) => CollapsibleContent(
+  //                                               child: MenuButton(
+  //                                                 onPressed: (context) => setState(() {
+  //                                                   player.setAudioTrack(e);
+  //                                                 }),
+  //                                                 child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
+  //                                               ),
+  //                                             ),
+  //                                           ),
+  //                                         ],
+  //                                       ),
+  //                                     ),
+  //                                   ],
+  //                                 ),
+  //                                 icon: Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+  //                               ),
+  //                               DropdownButton(
+  //                                 dropdownMenu: DropdownMenu(
+  //                                   children: [
+  //                                     MenuLabel(
+  //                                       child: Row(
+  //                                         spacing: 8,
+  //                                         children: [
+  //                                           ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
+  //                                           Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
+  //                                           Text(style: PlayerControls.normalTextStyle, 'Settings'),
+  //                                         ],
+  //                                       ),
+  //                                     ),
+  //                                   ],
+  //                                 ),
+  //                                 icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
+  //                               ),
+  //                               ControlButton(
+  //                                 onTap: () async {
+  //                                   setState(() {
+  //                                     widget.widgetState.zoomVideo = !widget.widgetState.zoomVideo;
+  //                                   });
+
+  //                                   // windowManager.setFullScreen(!(await windowManager.isFullScreen()));
+  //                                 },
+  //                                 icon: Icon(size: PlayerControls.normalIconSize, Icons.fullscreen_rounded),
+  //                               ),
+  //                             ],
+  //                           ),
+  //                         ],
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //           ),
+
+  //           if (isShow)
+  //             Positioned(
+  //               right: 20,
+  //               bottom: 40,
+  //               child: _NextUpCard(player: player, nextEpisode: _nextEpisode, uiIsActive: _uiIsActive),
+  //             ),
+  //         ],
+  //       ),
+  //     ),
+  //   ),
+  // );
 }
 
 class ControlButton extends StatelessWidget {
@@ -461,19 +839,17 @@ class DropdownButton extends StatelessWidget {
   Widget build(BuildContext context) => IconButton(
     variance: ButtonVariance.ghost,
     onPressed: () {
-      showPopover(context: context, consumeOutsideTaps: true, alignment: Alignment.topCenter, builder: (context) => dropdownMenu);
+      showDropdown(context: context, consumeOutsideTaps: true, alignment: Alignment.topCenter, builder: (context) => dropdownMenu);
     },
     icon: icon,
   );
 }
 
 class _EpisodeDrawer extends StatefulWidget {
-  final Future<List<dynamic>> showData;
-  final SeasonSummary? initialSeason;
+  final Future<(TmdbShow, TmdbEpisode)> showData;
   final int tmdbId;
-  final void Function(SeasonSummary) onSeasonChanged;
 
-  const _EpisodeDrawer({required this.showData, required this.initialSeason, required this.onSeasonChanged, required this.tmdbId});
+  const _EpisodeDrawer({required this.showData, required this.tmdbId});
 
   @override
   State<_EpisodeDrawer> createState() => _EpisodeDrawerState();
@@ -486,102 +862,161 @@ class _EpisodeDrawerState extends State<_EpisodeDrawer> {
   @override
   void initState() {
     super.initState();
-    _selectedSeason = widget.initialSeason;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      height: 800,
-      width: 500,
-      child: Column(
-        children: [
-          FutureBuilder(
-            future: widget.showData,
-            builder: (context, snapshot) {
-              return Select<SeasonSummary>(
-                itemBuilder: (context, item) => Text(style: PlayerControls.normalTextStyle, _selectedSeason?.name ?? ''),
-                popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
-                onChanged: (value) {
-                  setState(() => _selectedSeason = value);
-                  widget.onSeasonChanged(value!);
-                },
-                value: _selectedSeason,
-                placeholder: Text(style: PlayerControls.normalTextStyle, 'Select a season'),
-                popup: SelectPopup(
-                  items: SelectItemList(
-                    children: snapshot.hasData
-                        ? (snapshot.data![0] as TmdbShow).seasons
-                              .map(
-                                (s) => SelectItemButton(
-                                  value: s,
-                                  child: Text(style: PlayerControls.normalTextStyle, s.name),
+    return ControlButton(
+      onTap: () {
+        showOverlay(
+          context,
+          DrawerConfiguration(
+            expands: true,
+            builder: (context) {
+              return Container(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    FutureBuilder(
+                      future: widget.showData,
+                      builder: (context, snapshot) {
+                        if (_selectedSeason == null && snapshot.hasData) {
+                          _selectedSeason = snapshot.data!.$1.seasons.firstWhere((s) => s.seasonNumber == snapshot.data!.$2.seasonNumber);
+                        }
+                        return Select<SeasonSummary>(
+                          itemBuilder: (context, item) => Text(style: PlayerControls.normalTextStyle, _selectedSeason?.name ?? ''),
+                          popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
+                          onChanged: (value) {
+                            setState(() => _selectedSeason = value);
+                          },
+                          value: _selectedSeason,
+                          placeholder: Text(style: PlayerControls.normalTextStyle, 'Select a season'),
+                          popup: SelectPopup(
+                            items: SelectItemList(
+                              children: snapshot.hasData
+                                  ? snapshot.data!.$1.seasons
+                                        .map(
+                                          (s) => SelectItemButton(
+                                            value: s,
+                                            child: Text(style: PlayerControls.normalTextStyle, s.name),
+                                          ),
+                                        )
+                                        .toList()
+                                  : [],
+                            ),
+                          ).call,
+                        );
+                      },
+                    ),
+                    FutureBuilder(
+                      future: _loadedSeasons.putIfAbsent(
+                        _selectedSeason?.seasonNumber ?? 0,
+                        () => TMDB.tvSeason(widget.tmdbId, _selectedSeason?.seasonNumber ?? 0),
+                      ),
+                      builder: (context, snapshot) {
+                        return snapshot.hasData
+                            ? Expanded(
+                                child: ListView(
+                                  shrinkWrap: true,
+                                  children: snapshot.data!.episodes
+                                      .map(
+                                        (episode) => Padding(
+                                          padding: EdgeInsetsGeometry.fromLTRB(0, 4, 0, 4),
+                                          child: GhostButton(
+                                            onPressed: () {
+                                              context.pushReplacement('/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                            },
+                                            child: Row(
+                                              spacing: 12,
+                                              children: [
+                                                if (episode.stillPath != null)
+                                                  ClipRRect(
+                                                    borderRadius: BorderRadius.circular(6),
+                                                    child: Image.network(
+                                                      'https://image.tmdb.org/t/p/w300${episode.stillPath}',
+                                                      width: 120,
+                                                      height: 68,
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                                  ),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    spacing: 8,
+                                                    children: [
+                                                      Text(
+                                                        style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp),
+                                                        '${episode.episodeNumber}. ${episode.name}',
+                                                      ),
+                                                      Text(
+                                                        style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp),
+                                                        episode.overview,
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
                                 ),
                               )
-                              .toList()
-                        : [],
-                  ),
-                ).call,
+                            : const Center(child: CircularProgressIndicator());
+                      },
+                    ),
+                  ],
+                ),
               );
             },
           ),
-          FutureBuilder(
-            future: _loadedSeasons.putIfAbsent(_selectedSeason?.seasonNumber ?? 0, () => TMDB.tvSeason(widget.tmdbId, _selectedSeason?.seasonNumber ?? 0)),
-            builder: (context, snapshot) {
-              return snapshot.hasData
-                  ? Expanded(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: snapshot.data!.episodes
-                            .map(
-                              (episode) => Padding(
-                                padding: EdgeInsetsGeometry.fromLTRB(0, 4, 0, 4),
-                                child: GhostButton(
-                                  onPressed: () {
-                                    context.pushReplacement('/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
-                                  },
-                                  child: Row(
-                                    spacing: 12,
-                                    children: [
-                                      if (episode.stillPath != null)
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: Image.network(
-                                            'https://image.tmdb.org/t/p/w300${episode.stillPath}',
-                                            width: 120,
-                                            height: 68,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          spacing: 8,
-                                          children: [
-                                            Text(style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp), '${episode.episodeNumber}. ${episode.name}'),
-                                            Text(
-                                              style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp),
-                                              episode.overview,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    )
-                  : const Center(child: CircularProgressIndicator());
-            },
-          ),
-        ],
-      ),
+        );
+      },
+      icon: Icon(size: PlayerControls.normalIconSize, Icons.amp_stories_rounded),
+    );
+  }
+}
+
+class _PlayPauseButton extends StatefulWidget {
+  final Player player;
+  const _PlayPauseButton({required this.player});
+
+  @override
+  State<_PlayPauseButton> createState() => _PlayPauseButtonState();
+}
+
+class _PlayPauseButtonState extends State<_PlayPauseButton> {
+  late bool _playing = widget.player.state.playing;
+  late bool _buffering = widget.player.state.buffering;
+  StreamSubscription<bool>? _playingSub;
+  StreamSubscription<bool>? _bufferingSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _playingSub = widget.player.stream.playing.listen((playing) {
+      if (mounted) setState(() => _playing = playing);
+    });
+    _bufferingSub = widget.player.stream.buffering.listen((buffering) {
+      if (mounted) setState(() => _buffering = buffering);
+    });
+  }
+
+  @override
+  void dispose() {
+    _playingSub?.cancel();
+    _bufferingSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ControlButton(
+      onTap: () => widget.player.playOrPause(), // no setState here
+      icon: _buffering ? CircularProgressIndicator(size: 50) : Icon(_playing ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
     );
   }
 }
@@ -634,7 +1069,7 @@ class _VolumeButtonState extends State<VolumeButton> {
               child: Row(
                 children: [
                   SizedBox(
-                    width: _hovered ? 60 : 0,
+                    width: _hovered ? 100 : 0,
                     child: Opacity(
                       opacity: _hovered ? 1.0 : 0.0,
                       child: Slider(
@@ -660,64 +1095,94 @@ class _VolumeButtonState extends State<VolumeButton> {
 
 class _Slider extends StatefulWidget {
   final Player player;
-
-  const _Slider({required this.player});
+  final bool visible;
+  const _Slider({required this.player, required this.visible});
 
   @override
-  State<StatefulWidget> createState() => _SliderState();
+  State<_Slider> createState() => _SliderState();
 }
 
 class _SliderState extends State<_Slider> {
-  Duration position = Duration.zero;
-  Duration duration = Duration.zero;
-  Duration buffer = Duration.zero;
-  Timer? _timer;
   double? _dragValue;
+  bool _isDragging = false;
+  Duration _position = Duration.zero;
+  Duration _buffer = Duration.zero;
+  StreamSubscription<Duration>? _sub;
+  StreamSubscription<Duration>? _bufferSub;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        // if (position != widget.player.state.position) {
-        setState(() {
-          position = widget.player.state.position;
-          duration = widget.player.state.duration;
-          buffer = widget.player.state.buffer;
-        });
-        // }
-      }
-    });
+    _position = widget.player.state.position;
+    _buffer = widget.player.state.buffer;
+    _sub = widget.player.stream.position.throttleTime(const Duration(seconds: 3)).listen(_onPosition);
+    _bufferSub = widget.player.stream.buffer.throttleTime(const Duration(seconds: 5)).listen(_onBufferPosition);
+  }
+
+  void _onPosition(Duration position) {
+    _position = position;
+    if (widget.visible && mounted) {
+      setState(() {}); // only rebuild while actually shown
+    }
+  }
+
+  void _onBufferPosition(Duration position) {
+    _buffer = position;
+    if (widget.visible && mounted) {
+      setState(() {}); // only rebuild while actually shown
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _Slider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.visible && !oldWidget.visible) {
+      setState(() {}); // catch up once, right as controls reappear
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    _bufferSub?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Duration>(
-      stream: widget.player.stream.position.throttleTime(const Duration(seconds: 1)),
-      builder: (context, snapshot) {
-        final pos = snapshot.data ?? Duration.zero;
+    final duration = widget.player.state.duration;
+    final buffer = widget.player.state.buffer;
+    double liveValue = 0;
+    double liveValueBuffer = 0;
+    if (duration.inSeconds > 0) {
+      liveValue = (_position.inSeconds / duration.inSeconds).clamp(0, 1);
+    }
+    if (buffer.inSeconds > 0) {
+      liveValueBuffer = (_buffer.inSeconds / duration.inSeconds).clamp(0, 1);
+    }
+    final displayValue = _isDragging ? (_dragValue ?? liveValue) : liveValue;
 
-        final progress = duration.inMilliseconds > 0 ? (pos.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0) : 0.0;
-
-        final value = _dragValue ?? progress;
-
-        return Slider(
-          value: SliderValue.single(value),
-          onChanged: duration.inMilliseconds > 0
-              ? (v) {
-                  widget.player.seek(Duration(milliseconds: (v.value * duration.inMilliseconds).toInt()));
-                  setState(() {
-                    _dragValue = v.value;
-                  });
-                }
-              : null,
-          onChangeEnd: (v) {
-            widget.player.seek(Duration(milliseconds: (v.value * duration.inMilliseconds).toInt()));
-            setState(() {
-              _dragValue = null;
-            });
-          },
-        );
+    return Slider(
+      value: SliderValue.single(displayValue),
+      hintValue: SliderValue.single(liveValueBuffer),
+      valueIndicatorBuilder: (context, value) {
+        return SliderValueIndicator(value: value, formatter: (value) => Misc.fmt(duration * value));
+      },
+      onChangeStart: (v) {
+        _isDragging = true;
+        _dragValue = v.value;
+      },
+      onChanged: (v) {
+        setState(() {
+          _dragValue = v.value;
+        });
+      },
+      onChangeEnd: (v) {
+        widget.player.seek(Duration(milliseconds: (v.value * duration.inMilliseconds).toInt()));
+        setState(() {
+          _isDragging = false;
+          _dragValue = null;
+        });
       },
     );
   }
@@ -726,31 +1191,93 @@ class _SliderState extends State<_Slider> {
 // Separate widget that only rebuilds itself
 class _PositionDisplay extends StatefulWidget {
   final Player player;
-  const _PositionDisplay({required this.player});
+  final bool visible;
+  const _PositionDisplay({required this.player, required this.visible});
 
   @override
   State<_PositionDisplay> createState() => _PositionDisplayState();
 }
 
 class _PositionDisplayState extends State<_PositionDisplay> {
-  Duration position = Duration.zero;
-  Duration duration = Duration.zero;
-  Duration buffer = Duration.zero;
-  Timer? _timer;
+  late Duration _position = widget.player.state.position;
+  StreamSubscription<Duration>? _sub;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        if (position != widget.player.state.position) {
-          setState(() {
-            position = widget.player.state.position;
-            duration = widget.player.state.duration;
-            buffer = widget.player.state.buffer;
-          });
-        }
+    _sub = widget.player.stream.position.throttleTime(const Duration(seconds: 1)).listen(_onPosition);
+  }
+
+  void _onPosition(Duration position) {
+    _position = position;
+    if (widget.visible && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PositionDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.visible && !oldWidget.visible) {
+      setState(() {}); // catch up once controls reappear
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: Row(
+      spacing: 4,
+      children: [
+        Text(style: PlayerControls.normalTextStyle, Misc.fmt(_position)),
+        Text(style: PlayerControls.normalTextStyle, '/'),
+        Text(style: PlayerControls.normalTextStyle, Misc.fmt(widget.player.state.duration)),
+      ],
+    ),
+  );
+}
+
+class _NextUpCard extends StatefulWidget {
+  final Player player;
+  final Future<TmdbEpisode?> nextEpisode;
+  final Function playNextEpisode;
+  final bool uiIsActive;
+
+  const _NextUpCard({required this.player, required this.nextEpisode, required this.uiIsActive, required this.playNextEpisode});
+
+  @override
+  Material.State<Material.StatefulWidget> createState() => _NextUpCardState();
+}
+
+class _NextUpCardState extends State<_NextUpCard> {
+  Timer? _timer;
+  final int _maxtime = 45;
+  int _secondsLeft = 0;
+
+  bool _started = false;
+
+  void _startCountdown() {
+    if (_started) return;
+
+    _started = true;
+    _secondsLeft = _maxtime;
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+
+      if (_secondsLeft == 1) {
+        timer.cancel();
+        widget.playNextEpisode();
       }
+
+      setState(() {
+        _secondsLeft--;
+      });
     });
   }
 
@@ -760,58 +1287,41 @@ class _PositionDisplayState extends State<_PositionDisplay> {
     super.dispose();
   }
 
-  String _fmt(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-
-    if (h > 0) {
-      return '$h:$m:$s';
-    }
-    return '${d.inMinutes}:$s';
-  }
-
-  @override
-  Widget build(BuildContext context) => Row(
-    spacing: 4,
-    children: [
-      Text(style: PlayerControls.normalTextStyle, _fmt(position)),
-      Text(style: PlayerControls.normalTextStyle, '/'),
-      Text(style: PlayerControls.normalTextStyle, _fmt(duration)),
-    ],
-  );
-}
-
-class _NextUpCard extends StatelessWidget {
-  final Player player;
-  final Future<TmdbEpisode?> nextEpisode;
-  final bool uiIsActive;
-
-  const _NextUpCard({required this.player, required this.nextEpisode, required this.uiIsActive});
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Duration>(
-      stream: player.stream.position.throttleTime(const Duration(seconds: 1)),
+      stream: widget.player.stream.position.throttleTime(const Duration(seconds: 1)),
       builder: (context, posSnapshot) {
         final pos = posSnapshot.data ?? Duration.zero;
-        final dur = player.state.duration;
+        final dur = widget.player.state.duration;
         final progress = dur.inMilliseconds > 0 ? pos.inMilliseconds / dur.inMilliseconds : 0.0;
         final nearEnd = progress > 0.93;
+        bool _dismissed = false;
+        final showCard = nearEnd && !_dismissed;
+
+        if (showCard) {
+          _startCountdown();
+        }
+
+        if (!showCard && _started) {
+          _timer?.cancel();
+          _started = true;
+          _secondsLeft = _maxtime;
+        }
 
         return IgnorePointer(
-          ignoring: !nearEnd,
+          ignoring: !showCard,
           child: AnimatedSlide(
-            offset: nearEnd ? const Offset(0, -0.10) : Offset.zero,
+            offset: showCard ? const Offset(0, -0.10) : Offset.zero,
             duration: const Duration(milliseconds: 500),
             child: AnimatedOpacity(
-              opacity: nearEnd ? 1.0 : 0.0,
+              opacity: showCard ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 500),
               child: AnimatedSlide(
                 duration: const Duration(milliseconds: 200),
-                offset: uiIsActive ? const Offset(0, -0.20) : Offset.zero,
+                offset: widget.uiIsActive ? const Offset(0, -0.20) : Offset.zero,
                 child: FutureBuilder(
-                  future: nextEpisode,
+                  future: widget.nextEpisode,
                   builder: (context, snapshot) => ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: SizedBox(
@@ -824,15 +1334,18 @@ class _NextUpCard extends StatelessWidget {
                               : const SizedBox.shrink(),
                           Container(color: Colors.black.withAlpha(120)),
                           Center(
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withAlpha(40),
-                                border: Border.all(color: Colors.white, width: 1.5),
+                            child: GestureDetector(
+                              onTap: () => widget.playNextEpisode(),
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withAlpha(40),
+                                  border: Border.all(color: Colors.white, width: 1.5),
+                                ),
+                                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
                               ),
-                              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
                             ),
                           ),
                           if (snapshot.hasData)
@@ -852,12 +1365,12 @@ class _NextUpCard extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
+                                  spacing: 8,
                                   children: [
                                     const Text(
                                       "Up Next",
                                       style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.w600),
                                     ),
-                                    const SizedBox(height: 2),
                                     Text(
                                       snapshot.data!.name,
                                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
@@ -870,11 +1383,36 @@ class _NextUpCard extends StatelessWidget {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    LinearProgressIndicator(value: progress, minHeight: 8, color: Colors.pink, backgroundColor: Colors.white.withAlpha(60)),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: LinearProgressIndicator(
+                                        value: (_maxtime - _secondsLeft) / _maxtime,
+                                        minHeight: 3,
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.pink,
+                                        backgroundColor: Colors.white,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                             ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Button(
+                              style: ButtonVariance.link,
+                              onPressed: () {
+                                print("Closing,");
+                                _timer?.cancel();
+                                setState(() {
+                                  _started = false;
+                                  _secondsLeft = _maxtime;
+                                });
+                              },
+                              child: const Icon(Icons.close, color: Colors.white, size: 18),
+                            ),
+                          ),
                         ],
                       ),
                     ),

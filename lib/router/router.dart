@@ -1,4 +1,3 @@
-import 'package:petal/api/api.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/main.dart';
 import 'package:petal/models/custom_model.dart';
@@ -19,10 +18,6 @@ import 'package:petal/router/routes/catalog_widget.dart';
 import 'package:go_router/go_router.dart';
 
 class AppRouter {
-  static final settingsRoute = GoRoute(
-    path: '/settings',
-    pageBuilder: (context, state) => DialogPage(builder: (context) => Settings()),
-  );
   static final appRouter = GoRouter(
     navigatorKey: PetalApp.rootNavigatorKey,
     initialLocation: '/',
@@ -47,9 +42,9 @@ class AppRouter {
     routes: [
       ShellRoute(
         navigatorKey: PetalApp.shellNavigatorKey,
-        builder: (context, state, child) => Navigation(child: child),
+        builder: (context, state, child) => Navigation(state: state, child: child),
         routes: [
-          GoRoute(path: '/', routes: [settingsRoute], builder: (context, state) => const CatalogWidget()),
+          GoRoute(path: '/', builder: (context, state) => const CatalogWidget()),
         ],
       ),
 
@@ -78,11 +73,15 @@ class AppRouter {
         },
       ),
 
-      settingsRoute,
       GoRoute(
-        path: '/addons',
-        pageBuilder: (context, state) => DialogPage(builder: (context) => Addons()),
+        path: '/settings',
+        builder: (context, state) => Settings(),
       ),
+      // GoRoute(
+      //   path: '/addons',
+      //   pageBuilder: (context, state) => DialogPage(builder: (context) => Addons()),
+      // ),
+      GoRoute(path: '/addons', builder: (context, state) => Addons()),
       GoRoute(
         path: '/search',
         pageBuilder: (context, state) => DialogPage(builder: (context) => Search()),

@@ -9,12 +9,14 @@ import 'package:flutter/material.dart' as material;
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:sizer/sizer.dart';
 
 enum SearchType { seriesAndMovies, series, movies, actors }
 
 class SearchControllerModel extends ChangeNotifier {
   Timer? _debounce;
   String _currentQuery = "";
+  int _requestId = 0; // NEW: tracks the latest search "generation"
 
   List<SearchResult> results = [];
   bool loading = false;
@@ -27,9 +29,11 @@ class SearchControllerModel extends ChangeNotifier {
 
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       _currentQuery = query;
+      final int thisRequestId = ++_requestId; // claim this run's ticket
+
       if (query.isEmpty) {
         results = [];
-
+        loading = false;
         notifyListeners();
         return;
       }
@@ -39,12 +43,13 @@ class SearchControllerModel extends ChangeNotifier {
 
       try {
         final raw = (await StreamApi.searchCatalogItems(query, addons)).take(5);
+
+        // A newer search started while we were awaiting — drop this one.
+        if (thisRequestId != _requestId) return;
+
         final enriched = await Future.wait(
           raw.map((item) async {
-            print("Searching: ${query}");
-            final search = await ApiCache.getTmdbSearch(item.id);
-            final tmdbResults = item.type == "series" ? search.tv : search.movies;
-            if (tmdbResults.isEmpty) return null;
+            print("Searching: $query");
             return SearchResult(
               id: item.id,
               name: item.name,
@@ -66,21 +71,25 @@ class SearchControllerModel extends ChangeNotifier {
               writers: item.writers,
               trailers: item.trailers,
               seasons: item.seasons,
-              tmdbMedia: tmdbResults.first,
             );
           }),
         );
+
+        // Check again after the second await gap before mutating state.
+        if (thisRequestId != _requestId) return;
+
         results = enriched.whereType<SearchResult>().toList();
       } finally {
-        loading = false;
-        notifyListeners();
+        if (thisRequestId == _requestId) {
+          loading = false;
+          notifyListeners();
+        }
       }
     });
   }
 }
 
 class SearchResult extends CatalogItem {
-  final TmdbMedia tmdbMedia;
   SearchResult({
     required super.id,
     required super.name,
@@ -102,7 +111,6 @@ class SearchResult extends CatalogItem {
     required super.writers,
     required super.trailers,
     required super.seasons,
-    required this.tmdbMedia,
   });
 }
 
@@ -116,153 +124,103 @@ class Search extends StatefulWidget {
 class _SearchState extends State<Search> {
   late SearchControllerModel searchModel;
   final ValueNotifier<SearchType> searchTypeNotifier = ValueNotifier(SearchType.seriesAndMovies);
+  final material.SearchController _viewController = material.SearchController();
+
+  List<Addon>? _addons;
 
   @override
   void initState() {
     super.initState();
     searchModel = SearchControllerModel();
+    ApiCache.getAddons().then((addons) {
+      if (mounted) setState(() => _addons = addons);
+    });
   }
 
-  String label(SearchType type) {
-    switch (type) {
-      case SearchType.series:
-        return "Shows";
-      case SearchType.movies:
-        return "Movies";
-      case SearchType.seriesAndMovies:
-        return "Shows & Movies";
-      case SearchType.actors:
-        return "Actors";
-    }
+  @override
+  void dispose() {
+    _viewController.dispose();
+    searchTypeNotifier.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget? cacheWidget;
     return Padding(
-      padding: EdgeInsets.all(8),
-      child: material.SearchAnchor(
-        isFullScreen: false,
-        viewHintText: 'Search TV Shows, Movies & more...',
-        viewLeading: ValueListenableBuilder<SearchType>(
-          valueListenable: searchTypeNotifier,
-          builder: (context, type, _) {
-            return material.PopupMenuButton<SearchType>(
-              icon: Row(children: [Icon(Icons.filter_list), SizedBox(width: 6), Text(label(type))]),
+      padding: const EdgeInsets.all(8),
+      child: ValueListenableBuilder<SearchType>(
+        valueListenable: searchTypeNotifier,
+        builder: (context, searchType, _) {
+          return material.SearchAnchor(
+            searchController: _viewController,
+            isFullScreen: false,
+            viewLeading: material.PopupMenuButton<SearchType>(
+              icon: Row(children: [Icon(Icons.filter_list), const SizedBox(width: 6), Text(searchType.name)]),
               onSelected: (t) => searchTypeNotifier.value = t,
-              itemBuilder: (context) => SearchType.values.map((type) => material.PopupMenuItem<SearchType>(value: type, child: Text(label(type)))).toList(),
-            );
-          },
-        ),
-        builder: (context, controller) {
-          return material.SearchBar(
-            controller: controller,
-            hintText: 'Search TV Shows, Movies & more...',
-            onTap: () => controller.openView(),
-            onChanged: (value) {
-              controller.openView();
+              itemBuilder: (context) => SearchType.values.map((type) => material.PopupMenuItem<SearchType>(value: type, child: Text(type.name))).toList(),
+            ),
+            viewTrailing: [material.IconButton(icon: const Icon(Icons.close), onPressed: () => _viewController.closeView(null))],
+            builder: (context, controller) {
+              return material.SearchBar(
+                controller: controller,
+                hintText: 'Search TV Shows, Movies & more...',
+                constraints: BoxConstraints(maxWidth: 70.w, minHeight: 48),
+                onTap: () => controller.openView(),
+                onChanged: (value) => controller.openView(),
+              );
             },
-          );
-        },
+            suggestionsBuilder: (context, controller) {
+              final addons = _addons;
+              if (addons == null) return [const SizedBox()];
 
-        suggestionsBuilder: (context, controller) {
-          return [
-            FutureBuilder(
-              future: ApiCache.getAddons(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return SizedBox();
-                }
+              searchModel.search(controller.text, addons);
 
-                searchModel.search(controller.text, snapshot.data!);
+              // ✅ this single item subscribes directly to searchModel and
+              // rebuilds itself whenever new results arrive — independent
+              // of whether SearchAnchor re-invokes suggestionsBuilder.
+              return [
+                ListenableBuilder(
+                  listenable: searchModel,
+                  builder: (context, _) {
+                    final filtered = searchModel.results.where((item) {
+                      switch (searchType) {
+                        case SearchType.series:
+                          return item.type == "series";
+                        case SearchType.movies:
+                          return item.type == "movie";
+                        case SearchType.seriesAndMovies:
+                          return item.type == "series" || item.type == "movie";
+                        case SearchType.actors:
+                          return item.type == "actor";
+                      }
+                    }).toList();
 
-                if (cacheWidget != null && searchModel._debounce != null && searchModel._debounce!.isActive) return cacheWidget!;
+                    final matches = extractTop(query: searchModel._currentQuery, choices: filtered, limit: 10, cutoff: 80, getter: (x) => x.name);
 
-                cacheWidget = ValueListenableBuilder<SearchType>(
-                  valueListenable: searchTypeNotifier,
-                  builder: (context, searchType, _) {
-                    return ListenableBuilder(
-                      listenable: searchModel,
-                      builder: (context, _) {
-                        return Column(
-                          children:
-                              extractTop(
-                                query: searchModel._currentQuery,
-                                choices: searchModel.results.where((item) {
-                                  switch (searchTypeNotifier.value) {
-                                    case SearchType.series:
-                                      return item.type == "series";
-
-                                    case SearchType.movies:
-                                      return item.type == "movie";
-
-                                    case SearchType.seriesAndMovies:
-                                      return item.type == "series" || item.type == "movie";
-
-                                    case SearchType.actors:
-                                      return item.type == "actor";
-                                  }
-                                }).toList(),
-                                limit: 10,
-                                cutoff: 80,
-                                getter: (x) => x.name,
-                              ).map((item) {
-                                final choice = item.choice;
-                                return Padding(
-                                  padding: EdgeInsetsGeometry.all(2),
-                                  child: Button(
-                                    // borderRadius: BorderRadius.circular(5),
-                                    style: ButtonVariance.card,
-                                    onPressed: () async {
-                                      if (mounted) {
-                                        print("ID: ${choice.tmdbMedia.id} Type: ${choice.type}");
-                                        context.pop();
-                                        context.push('/${choice.type}/${choice.tmdbMedia.id}');
-                                      }
-                                    },
-
-                                    child: Container(
-                                      padding: EdgeInsets.all(8),
-                                      child: Row(
-                                        spacing: 8,
-                                        children: [
-                                          SizedBox(
-                                            width: 60,
-                                            height: 100,
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadiusGeometry.circular(8),
-                                              child: CachedNetworkImage(imageUrl: choice.poster, fit: BoxFit.cover),
-                                            ),
-                                          ),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(choice.name),
-                                              Row(
-                                                spacing: 8,
-                                                children: [
-                                                  Chip(style: const ButtonStyle.outline(), child: Text(choice.type)),
-                                                  Chip(style: const ButtonStyle.outline(), child: Text(choice.releaseInfo)),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: matches.map((item) {
+                        final choice = item.choice;
+                        return Button(
+                          onPressed: () async {
+                            if (!mounted) return;
+                            final search = await ApiCache.getTmdbSearch(choice.id);
+                            final tmdbResults = choice.type == "series" ? search.tv.first : search.movies.first;
+                            print(tmdbResults.id);
+                            context.pop();
+                            context.push('/${choice.type}/${tmdbResults.id}');
+                          },
+                          style: ButtonVariance.text,
+                          child: Text('${choice.name} // ${choice.type} // ${choice.releaseInfo}', style: const TextStyle(color: Colors.white, fontSize: 13)),
                         );
-                      },
+                      }).toList(),
                     );
                   },
-                );
-
-                return cacheWidget!;
-              },
-            ),
-          ];
+                ),
+              ];
+            },
+          );
         },
       ),
     );

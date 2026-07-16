@@ -30,7 +30,7 @@ environment:
 dependency_overrides:
   media_kit:
     git:
-      url: https://github.com/kawaiiepic/media-kit.git
+      url: https://github.com/mdikcinar/media-kit.git
       ref: feat/pip
       path: media_kit
 dependencies:
@@ -45,27 +45,27 @@ dependencies:
   # media_kit: ^1.2.6
   media_kit:
     git:
-      url: https://github.com/kawaiiepic/media-kit.git
+      url: https://github.com/mdikcinar/media-kit.git
       ref: feat/pip
       path: media_kit
   media_kit_video:
     git:
-      url: https://github.com/kawaiiepic/media-kit.git
+      url: https://github.com/mdikcinar/media-kit.git
       ref: feat/pip
       path: media_kit_video
   media_kit_libs_ios_video:
     git:
-      url: https://github.com/kawaiiepic/media-kit.git
+      url: https://github.com/mdikcinar/media-kit.git
       ref: feat/pip
       path: libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
-      url: https://github.com/kawaiiepic/media-kit.git
+      url: https://github.com/mdikcinar/media-kit.git
       ref: feat/pip
       path: libs/android/media_kit_libs_android_video
   media_kit_libs_linux:
     git:
-      url: https://github.com/kawaiiepic/media-kit.git
+      url: https://github.com/mdikcinar/media-kit.git
       ref: feat/pip
       path: libs/linux/media_kit_libs_linux
 
@@ -78,7 +78,7 @@ dependencies:
   path_provider: ^2.1.5
   package_info_plus: ^9.0.0
   fuzzywuzzy: ^1.2.0
-  shadcn_flutter: ^0.0.52
+  shadcn_flutter: ^0.0.53
   flutter_native_splash: ^2.4.7
   go_router: ^17.1.0
   dio: ^5.9.2

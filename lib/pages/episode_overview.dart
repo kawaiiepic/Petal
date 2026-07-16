@@ -1,12 +1,16 @@
 import 'dart:ui';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/main.dart';
 import 'package:petal/models/custom_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petal/pages/splash.dart';
+import 'package:petal/router/router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:sizer/sizer.dart';
 
 class EpisodeOverview extends StatefulWidget {
   final int tmdbId;
@@ -53,6 +57,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
       builder: (context, showSnapshot) {
         if (showSnapshot.hasData && !showSnapshot.hasError) {
           final show = showSnapshot.data!;
+          final router = GoRouter.of(context);
 
           return Container(
             color: Theme.of(context).colorScheme.background,
@@ -62,9 +67,6 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                 SliverAppBar(
                   expandedHeight: 300,
                   collapsedHeight: 300,
-                  // pinned: false,
-                  // floating: true,
-                  // snap: true,
                   backgroundColor: Colors.transparent,
                   flexibleSpace: material.FlexibleSpaceBar(
                     background: Stack(
@@ -96,8 +98,9 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 200, maxHeight: 80),
                             child: Image.network(
-                              'https://image.tmdb.org/t/p/original${show.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+                              'https://image.tmdb.org/t/p/original${show.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull?.filePath}',
                               fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => Text(show.name),
                             ),
                           ),
                         ),
@@ -112,20 +115,29 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                 items: [
                                   MenuButton(
                                     trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
-                                    onPressed: (context) {
-                                      context.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                    onPressed: (_) {
+                                      // router.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                      AppRouter.appRouter.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
                                     },
                                     child: const Text('Select Source'),
                                   ),
                                 ],
                                 child: Button(
-                                  onPressed: () => context.push('/player?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}'),
+                                  onPressed: () => router.push('/player?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}'),
                                   style: const ButtonStyle.primary().withBorderRadius(
                                     borderRadius: BorderRadius.circular(16),
                                     hoverBorderRadius: BorderRadius.circular(16),
                                   ),
-                                  trailing: Text('S${episode.seasonNumber}:E${episode.episodeNumber}'),
-                                  child: const Icon(Icons.play_arrow_rounded),
+                                  child: Row(
+                                    spacing: 8,
+                                    children: [
+                                      Icon(Icons.play_arrow_rounded),
+                                      Text(
+                                        style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 15.sp),
+                                        'S${episode.seasonNumber}:E${episode.episodeNumber}',
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                               _IconBtn(icon: Icons.check_rounded, onTap: () {}),
@@ -152,36 +164,66 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                               children: [
                                 Text(
                                   '${(show.voteAverage * 10).toStringAsFixed(0)}% Match',
-                                  style: TextStyle(color: Colors.green[400], fontWeight: FontWeight.w600, fontSize: 13),
+                                  style: TextStyle(
+                                    color: Colors.green[400],
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp,
+                                  ),
                                 ),
-                                Text(show.firstAirDate.split('-')[0], style: TextStyle(color: Colors.white, fontSize: 13)),
+                                Text(
+                                  show.firstAirDate.split('-')[0],
+                                  style: TextStyle(color: Colors.white, fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp),
+                                ),
                                 Text(
                                   "${show.seasons.length} ${show.seasons.length > 1 ? "Seasons" : "Season"}",
-                                  style: TextStyle(color: Colors.white, fontSize: 13),
+                                  style: TextStyle(color: Colors.white, fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp),
                                 ),
                                 if (show.episodeRunTime.isNotEmpty)
-                                  Text("${show.episodeRunTime[0]} mins", style: TextStyle(color: Colors.white, fontSize: 13)),
+                                  Text(
+                                    "${show.episodeRunTime[0]} mins",
+                                    style: TextStyle(color: Colors.white, fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp),
+                                  ),
                                 if (show.episodeRunTime.isEmpty && show.lastEpisodeToAir != null)
-                                  Text("${_formatRuntime(show.lastEpisodeToAir!.runtime)} mins", style: TextStyle(color: Colors.white, fontSize: 13)),
+                                  Text(
+                                    _formatRuntime(show.lastEpisodeToAir!.runtime),
+                                    style: TextStyle(color: Colors.white, fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp),
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 20),
 
                             // Show overview
                             ...[
-                              Text('About ${show.name}').h3,
+                              Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 20.sp), 'About ${show.name}').h3,
                               const SizedBox(height: 8),
-                              Text(show.overview, style: TextStyle(fontSize: 14, height: 1.5)),
+                              Text(show.overview, style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 14.sp, height: 1.5)),
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  Chip(child: Text(show.networks[0].name)),
-                                  Chip(child: Text(show.status)),
-                                  Chip(child: Text(show.originCountry[0])),
-                                  Chip(child: Text('★ ${show.voteAverage.toStringAsFixed(1)}')),
-                                  ...show.genres.take(3).map((g) => Chip(child: Text(g.name))),
+                                  Chip(
+                                    child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 15.sp), show.networks[0].name),
+                                  ),
+                                  Chip(
+                                    child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 15.sp), show.status),
+                                  ),
+                                  Chip(
+                                    child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 15.sp), show.originCountry[0]),
+                                  ),
+                                  Chip(
+                                    child: Text(
+                                      style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 15.sp),
+                                      '★ ${show.voteAverage.toStringAsFixed(1)}',
+                                    ),
+                                  ),
+                                  ...show.genres
+                                      .take(3)
+                                      .map(
+                                        (g) => Chip(
+                                          child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 15.sp), g.name),
+                                        ),
+                                      ),
                                 ],
                               ),
                               const SizedBox(height: 24),
@@ -192,13 +234,11 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Episodes', style: TextStyle(fontSize: 20)).h3,
+                                Text('Episodes', style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 20.sp)).h3,
 
                                 _DropdownSeasons(
                                   tvShow: show,
-                                  selectedSeason: show.seasons.firstWhere(
-                                    (s) => s.seasonNumber == episode.seasonNumber,
-                                  ),
+                                  selectedSeason: show.seasons.firstWhere((s) => s.seasonNumber == episode.seasonNumber),
                                   onSeasonChanged: (season) {
                                     _seasons = TMDB.tvSeason(widget.tmdbId, season.seasonNumber);
                                     setState(() {});
@@ -206,14 +246,14 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
 
                             FutureBuilder(
                               future: _seasons,
                               builder: (context, snapshot) {
                                 return Column(
                                   children: [
-                                    if (snapshot.hasData && snapshot.data!.episodes.isEmpty) Text("There are no episodes."),
+                                    if (snapshot.hasData && snapshot.data!.episodes.isEmpty)
+                                      Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 15.sp), "There are no episodes."),
 
                                     if (snapshot.hasData && snapshot.data!.episodes.isNotEmpty)
                                       ListView(
@@ -228,16 +268,19 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                                     MenuButton(
                                                       trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
                                                       onPressed: (context) {
-                                                        context.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                                        AppRouter.appRouter.push(
+                                                          '/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
+                                                        );
                                                       },
-                                                      child: const Text('Select Source'),
+                                                      child: Text(
+                                                        style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 15.sp),
+                                                        'Select Source',
+                                                      ),
                                                     ),
                                                   ],
                                                   child: GhostButton(
                                                     onPressed: () {
-                                                      context.pushReplacement(
-                                                        '/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                                      );
+                                                      context.push('/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
                                                     },
                                                     child: Row(
                                                       spacing: 12,
@@ -257,14 +300,27 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                                             crossAxisAlignment: CrossAxisAlignment.start,
                                                             spacing: 8,
                                                             children: [
-                                                              Row(
-                                                                spacing: 8,
-                                                                children: [Text('${episode.seasonNumber}x${episode.episodeNumber}').light, Text(episode.name)],
+                                                              Text.rich(
+                                                                TextSpan(
+                                                                  children: [
+                                                                    TextSpan(
+                                                                      text: '${episode.seasonNumber}x${episode.episodeNumber}  ',
+                                                                      style: TextStyle(
+                                                                        fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 15.sp,
+                                                                        fontWeight: FontWeight.w300,
+                                                                      ), // "light" look
+                                                                    ),
+                                                                    TextSpan(
+                                                                      text: episode.name,
+                                                                      style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 15.sp),
+                                                                    ),
+                                                                  ],
+                                                                ),
                                                               ),
                                                               Text(
                                                                 episode.airDate,
                                                                 style: TextStyle(
-                                                                  fontSize: 11,
+                                                                  fontSize: Device.screenType == ScreenType.desktop ? 11.sp : 13.sp,
                                                                   color: (DateTime.tryParse(episode.airDate)?.isAfter(DateTime.now()) ?? false)
                                                                       ? Colors.red.withAlpha(200)
                                                                       : Colors.white.withAlpha(200),
@@ -274,7 +330,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                                                 episode.overview,
                                                                 maxLines: 2,
                                                                 overflow: TextOverflow.ellipsis,
-                                                                style: const TextStyle(fontSize: 12),
+                                                                style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 11.sp : 13.sp),
                                                               ),
                                                             ],
                                                           ),
@@ -301,7 +357,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
             ),
           );
         } else {
-          return SizedBox();
+          return SplashScreen();
         }
       },
     );
@@ -331,7 +387,7 @@ class _DropdownSeasonsState extends State<_DropdownSeasons> {
   @override
   material.Widget build(material.BuildContext context) {
     return Select<SeasonSummary>(
-      itemBuilder: (context, item) => Text(item.name),
+      itemBuilder: (context, item) => Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 15.sp), item.name),
       popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
       onChanged: (value) {
         setState(() => _selectedSeason = value);
@@ -356,25 +412,11 @@ class _IconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton.ghost(onPressed: () {},  shape: ButtonShape.circle, density: ButtonDensity.icon, icon: Icon(icon, color: Colors.pink,));
-    return ClipRRect(
-      // borderRadius: BorderRadius.circular(50),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: SizedBox(
-          width: 35,
-          height: 35,
-          child: Button.outline(
-            onPressed: onTap,
-            // style: OutlinedButton.styleFrom(
-            //   padding: EdgeInsets.zero,
-            //   backgroundColor: Colors.white.withOpacity(0.05),
-            //   side: BorderSide(color: Colors.white.withAlpha(50), width: 0.2),
-            // ),
-            child: Center(child: Icon(icon, fill: 0.01)),
-          ),
-        ),
-      ),
+    return IconButton.ghost(
+      onPressed: () {},
+      shape: ButtonShape.circle,
+      density: ButtonDensity.icon,
+      icon: Icon(icon, color: Colors.pink),
     );
   }
 }

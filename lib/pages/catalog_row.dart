@@ -28,7 +28,7 @@ class _CatalogRowState extends State<CatalogRow> {
   Widget build(BuildContext context) {
     final Catalog catalog = widget.catalog;
     final List<CatalogItem> catalogItems = widget.catalogItems.toList();
-    final style = TextStyle(fontSize: 16.px);
+    final style = TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp);
 
     return Column(
       spacing: 8,
@@ -44,7 +44,7 @@ class _CatalogRowState extends State<CatalogRow> {
         ),
 
         SizedBox(
-          height: 25.h,
+          height: Device.screenType == ScreenType.desktop ? 22.h : 23.h,
           child: ScrollableWidget(
             controller: _controller,
             child: ListView.builder(

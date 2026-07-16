@@ -25,6 +25,7 @@ class StreamApi {
 
     if (expanded.isEmpty) {
       print("No Streams found");
+      
     }
 
     return expanded;

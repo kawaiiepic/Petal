@@ -1,6 +1,7 @@
 import 'package:petal/api/api.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petal/pages/splash.dart';
 
 class Offline extends StatelessWidget {
   const Offline({super.key});
@@ -12,6 +13,6 @@ class Offline extends StatelessWidget {
         context.go('/');
       }
     });
-    return Scaffold(body: Center(child: Text("Server reconnecting...")));
+    return SplashScreen();
   }
 }

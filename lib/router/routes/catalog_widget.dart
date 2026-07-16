@@ -16,53 +16,49 @@ class CatalogWidget extends StatefulWidget {
 class _CatalogWidget extends State<CatalogWidget> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      child: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            if (TraktApi.authState.traktConnected) NextUpRow(),
-            FutureBuilder(
-              future: ApiCache.getAddons(),
-              builder: (context, addonsSnapshot) {
-                switch (addonsSnapshot.connectionState) {
-                  case ConnectionState.active:
-                  case ConnectionState.done:
-                    {
-                      final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
-                      // final addons = addonsSnapshot.data!.where((addon) => addon.id == "7a7eb1e6-c9fd-483b-b2e6-459549393c22");
+    return CustomScrollView(
+      slivers: [
+        if (TraktApi.authState.traktConnected) NextUpRow(),
 
-                      final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
+        FutureBuilder(
+          future: ApiCache.getAddons(),
+          builder: (context, addonsSnapshot) {
+            switch (addonsSnapshot.connectionState) {
+              case ConnectionState.active:
+              case ConnectionState.done:
+                {
+                  final addons = addonsSnapshot.data!.where((addon) => addon.enabledResources.contains("catalog"));
 
-                      return SliverFixedExtentList(
-                        itemExtent: 28.h,
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final catalog = catalogs[index];
+                  final catalogs = addons.expand((addon) => ApiCache.getCatalogs(addon)).toList();
 
-                          return FutureBuilder(
-                            future: ApiCache.getCatalogItems(catalog),
-                            builder: (context, snapshot) {
-                              switch (snapshot.connectionState) {
-                                case ConnectionState.active:
-                                case ConnectionState.done:
-                                  {
-                                    return CatalogRow(key: ValueKey(catalog.id), catalog: catalog, catalogItems: snapshot.data!);
-                                  }
-                                case _:
-                                  return SizedBox();
+                  return SliverFixedExtentList(
+                    itemExtent: Device.screenType == ScreenType.desktop ? 25.h : 28.h,
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final catalog = catalogs[index];
+
+                      return FutureBuilder(
+                        future: ApiCache.getCatalogItems(catalog),
+                        builder: (context, snapshot) {
+                          switch (snapshot.connectionState) {
+                            case ConnectionState.active:
+                            case ConnectionState.done:
+                              {
+                                return CatalogRow(key: ValueKey(catalog.id), catalog: catalog, catalogItems: snapshot.data!);
                               }
-                            },
-                          );
-                        }, childCount: catalogs.length),
+                            case _:
+                              return SizedBox();
+                          }
+                        },
                       );
-                    }
-                  case _:
-                    return EmptySliver();
+                    }, childCount: catalogs.length),
+                  );
                 }
-              },
-            ),
-          ],
+              case _:
+                return EmptySliver();
+            }
+          },
         ),
-      ),
+      ],
     );
   }
 }
