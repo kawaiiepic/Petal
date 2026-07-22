@@ -3,7 +3,7 @@ import 'package:dart_discord_presence/dart_discord_presence.dart';
 class Discord {
   static late DiscordRPC discordRPC;
 
-  static void init() {
+  static Future<void> init() async {
     if (!DiscordRPC.isAvailable) {
       print('Discord RPC not available on this platform');
       return;
@@ -17,21 +17,41 @@ class Discord {
     });
 
     // Initialize with your Discord Application ID
-    discordRPC.initialize('1525744175272951909');
+    await connect();
+  }
+
+  static Future<void> connect() async {
+    try {
+      await discordRPC.initialize('1525744175272951909');
+    } catch (e) {
+      print("Discord nto running...");
+    }
   }
 
   static void updateStatus(String details, String state, Duration position, Duration duration, String assetUrl, bool isPlaying) async {
-    if (!discordRPC.isConnected) return;
+    try {
+      if (!discordRPC.isConnected) {
+        await connect();
+      }
 
-    await discordRPC.setPresence(
-      DiscordPresence(
-        type: DiscordActivityType.watching,
-        statusDisplayType: DiscordStatusDisplayType.details,
-        details: details,
-        state: state,
-        timestamps: DiscordTimestamps.ending(DateTime.now().add(duration)),
-        largeAsset: DiscordAsset(url: assetUrl, text: details),
-      ),
-    );
+      await discordRPC.setPresence(
+        DiscordPresence(
+          type: DiscordActivityType.watching,
+          statusDisplayType: DiscordStatusDisplayType.details,
+          details: details,
+          state: state,
+          timestamps: DiscordTimestamps.ending(DateTime.now().add(duration)),
+          largeAsset: DiscordAsset(url: assetUrl, text: details),
+        ),
+      );
+    } catch (e) {
+      print("Still not connected");
+    }
+  }
+
+  static void resetStatus() {
+    if (discordRPC.isConnected) {
+      discordRPC.clearPresence();
+    }
   }
 }

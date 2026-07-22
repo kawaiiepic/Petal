@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' as Material;
 import 'package:petal/api/api.dart';
+import 'package:petal/api/discord.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
@@ -43,6 +44,8 @@ class _PlayerControls extends State<PlayerControls> {
   bool _showRightSeek = false;
   Timer? _leftSeekTimer;
   Timer? _rightSeekTimer;
+  late Future<TmdbEpisode?> _nextUpEpisode;
+  late final StreamSubscription<(bool, Duration)> _discordSub;
 
   void _seekBackward() {
     final newPosition = widget.player.state.position - const Duration(seconds: 10);
@@ -86,31 +89,11 @@ class _PlayerControls extends State<PlayerControls> {
   }
 
   void _playNextEpisode() async {
-    TmdbEpisode? nextEpisode = await nextUpEpisode();
+    TmdbEpisode? nextEpisode = await _nextUpEpisode;
     if (nextEpisode != null) {
       context.pushReplacement('/player?show=${widget.widgetState.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}');
     }
   }
-
-  // bool _uiIsActive = true;
-  // late Player player;
-  // bool isPlaying = false;
-  // bool isBuffering = true;
-  // ValueNotifier<bool> isLoaded = ValueNotifier(false);
-  // int overlayInt = 0;
-  // late bool isShow;
-
-  // late Future<List<dynamic>> _showData;
-  // late Future movie;
-  // Timer? _positonTimer;
-  // Timer? _uiTimer;
-
-  // Duration position = Duration();
-  // Duration buffer = Duration();
-  // Duration duration = Duration();
-
-  // SeasonSummary? _selectedSeason;
-  // late Future<TmdbEpisode?> _nextEpisode;
 
   @override
   void initState() {
@@ -118,12 +101,42 @@ class _PlayerControls extends State<PlayerControls> {
     _startHideTimer();
     _isShow = widget.widgetState.widget.showId != null;
 
+    _nextUpEpisode = nextUpEpisode();
+
+    widget.player.stream.log.listen((log) {
+      debugPrint('[${log.level}] ${log.prefix}: ${log.text}');
+    });
+
     if (_isShow) {
       final show = widget.widgetState.widget;
       final episode = show.episode!;
       _showData = (TMDB.tvShow(show.showId!), TMDB.tvEpisode(show.showId!, episode.seasonNumber, episode.episodeNumber)).wait;
     } else {
       _movie = TMDB.movie(widget.widgetState.widget.movieId!);
+    }
+
+    if (_isShow) {
+      _discordSub =
+          Rx.combineLatest2<bool, Duration, (bool, Duration)>(
+                widget.player.stream.playing.startWith(widget.player.state.playing),
+                widget.player.stream.duration.startWith(widget.player.state.duration),
+                (playing, duration) => (playing, duration),
+              )
+              .where((data) => data.$2 > Duration.zero) // ignore until duration is actually loaded
+              .distinct()
+              .listen((data) {
+                _showData.then((show) {
+                  print("Updating Discord Status");
+                  Discord.updateStatus(
+                    show.$1.name,
+                    '${show.$2.seasonNumber}x${show.$2.episodeNumber} ${show.$2.name}',
+                    widget.player.state.position,
+                    data.$2, // the just-loaded, real duration
+                    show.$2.stillUrl!,
+                    data.$1,
+                  );
+                });
+              });
     }
 
     // player = widget.state.widget.controller.player;
@@ -140,24 +153,6 @@ class _PlayerControls extends State<PlayerControls> {
     //         Discord.updateStatus(tmdbShow.name, tmdbEpisode.name, player.state.position, player.state.duration, tmdbEpisode.stillUrl!, player.state.playing);
     //       });
     //     }
-    //   }
-    // });
-
-    // player.stream.playing.listen((playing) {
-    //   if (isShow) {
-    //     _showData.then((data) async {
-    //       final TmdbShow tmdbShow = data[0];
-    //       final TmdbEpisode tmdbEpisode = data[1];
-    //       print("Updating Discord Status");
-    //       Discord.updateStatus(
-    //         tmdbShow.name,
-    //         '${tmdbEpisode.seasonNumber}x${tmdbEpisode.episodeNumber} ${tmdbEpisode.name}',
-    //         player.state.position,
-    //         player.state.duration,
-    //         tmdbEpisode.stillUrl!,
-    //         player.state.playing,
-    //       );
-    //     });
     //   }
     // });
 
@@ -191,12 +186,6 @@ class _PlayerControls extends State<PlayerControls> {
     //     if (!isLoaded.value && !buffering) {
     //       isLoaded.value = true;
     //     }
-    //   });
-    // });
-
-    // player.stream.playing.listen((playing) {
-    //   setState(() {
-    //     isPlaying = playing;
     //   });
     // });
   }
@@ -264,20 +253,32 @@ class _PlayerControls extends State<PlayerControls> {
   // }
 
   Future<TmdbEpisode?> nextUpEpisode() async {
+    print('Geting next episode');
     var showId = widget.widgetState.widget.showId;
     var season = widget.widgetState.widget.episode!.seasonNumber;
     var episode = widget.widgetState.widget.episode!.episodeNumber;
 
     TmdbShow show = (await _showData).$1;
+    TmdbEpisode? nextEp;
     var realSeason = show.seasons.firstWhere((s) => s.seasonNumber == season);
     if (realSeason.episodeCount <= episode) {
       if (show.seasons.length <= season) {
         return null;
       }
-      return TMDB.tvEpisode(showId!, season + 1, episode + 1);
+      nextEp = await TMDB.tvEpisode(showId!, season + 1, 1);
     } else {
-      return TMDB.tvEpisode(showId!, season, episode + 1);
+      nextEp = await TMDB.tvEpisode(showId!, season, episode + 1);
     }
+
+    final airDate = DateTime.parse(nextEp.airDate);
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+
+    if (airDate.isBefore(todayOnly)) {
+      return nextEp;
+    }
+
+    return null;
   }
 
   @override
@@ -287,6 +288,7 @@ class _PlayerControls extends State<PlayerControls> {
     _leftSeekTimer?.cancel();
     _rightSeekTimer?.cancel();
     _hideTimer?.cancel();
+    _discordSub.cancel();
     super.dispose();
   }
 
@@ -323,6 +325,7 @@ class _PlayerControls extends State<PlayerControls> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.deferToChild,
       onDoubleTapDown: (details) {
         final width = context.size?.width ?? MediaQuery.of(context).size.width;
         final tapX = details.localPosition.dx;
@@ -334,11 +337,14 @@ class _PlayerControls extends State<PlayerControls> {
         }
       },
       onTapDown: (details) {
+        print('Tessting');
         _onMouseMove(toggle: true);
       },
       child: MouseRegion(
+        // hitTestBehavior: HitTestBehavior.deferToChild,
         onHover: (event) => _onMouseMove(),
         onEnter: (_) => setState(() => _showControls = true),
+        onExit: (_) => setState(() => _showControls = false),
         child: Stack(
           children: [
             AnimatedOpacity(
@@ -352,7 +358,7 @@ class _PlayerControls extends State<PlayerControls> {
               Positioned(
                 right: 20,
                 bottom: 40,
-                child: _NextUpCard(player: widget.player, nextEpisode: nextUpEpisode(), uiIsActive: _showControls, playNextEpisode: _playNextEpisode),
+                child: _NextUpCard(player: widget.player, nextEpisode: _nextUpEpisode, uiIsActive: _showControls, playNextEpisode: _playNextEpisode),
               ),
           ],
         ),
@@ -559,266 +565,6 @@ class _PlayerControls extends State<PlayerControls> {
       ),
     );
   }
-
-  // @override
-  // Widget build(BuildContext context) => CallbackShortcuts(
-  //   bindings: <ShortcutActivator, VoidCallback>{
-  //     const SingleActivator(LogicalKeyboardKey.space): () => widget.state.widget.controller.player.playOrPause(),
-  //     const SingleActivator(LogicalKeyboardKey.arrowLeft): () => player.seek(player.state.position - Duration(seconds: 30)),
-  //     const SingleActivator(LogicalKeyboardKey.arrowRight): () => player.seek(player.state.position + Duration(seconds: 30)),
-  //   },
-  //   child: Focus(
-  //     autofocus: true,
-  //     child: MouseRegion(
-  //       cursor: _uiIsActive ? SystemMouseCursors.basic : SystemMouseCursors.none,
-  //       onHover: (event) => restartUi(),
-  //       child: Stack(
-  //         alignment: AlignmentGeometry.bottomRight,
-  //         children: [
-  //           Positioned.fill(
-  //             child: GestureDetector(
-  //               onTapDown: (details) {
-  //                 if (details.kind == PointerDeviceKind.touch) {
-  //                   restartUi(toggle: true);
-  //                 } else if (details.kind == PointerDeviceKind.mouse) {
-  //                   widget.state.widget.controller.player.playOrPause();
-  //                 }
-  //               },
-  //               behavior: HitTestBehavior.opaque,
-  //               child: Container(),
-  //             ),
-  //           ),
-
-  //           // Controls overlay
-  //           RepaintBoundary(
-  //             child: IgnorePointer(
-  //               ignoring: !_uiIsActive,
-  //               child: AnimatedOpacity(
-  //                 opacity: _uiIsActive ? 1.0 : 0.0,
-  //                 duration: const Duration(milliseconds: 300),
-  //                 child: Padding(
-  //                   padding: const EdgeInsets.all(15),
-  //                   child: Column(
-  //                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                     children: [
-  //                       Row(
-  //                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                         children: [
-  //                           IconButton(
-  //                             variance: ButtonVariance.ghost,
-  //                             onPressed: () {
-  //                               SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  //                               SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  //                               context.pop();
-  //                             },
-  //                             icon: Row(
-  //                               children: [
-  //                                 Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded),
-  //                                 Text(style: PlayerControls.normalTextStyle, "Return"),
-  //                               ],
-  //                             ),
-  //                           ),
-  //                           if (isShow)
-  //                             FutureBuilder(
-  //                               future: _showData,
-  //                               builder: (context, snapshot) => Column(
-  //                                 spacing: 8,
-  //                                 children: [
-  //                                   Text(style: PlayerControls.normalTextStyle, snapshot.hasData ? (snapshot.data![0] as TmdbShow).name : 'Example Show Name'),
-  //                                   Text(
-  //                                     style: PlayerControls.normalTextStyle,
-  //                                     snapshot.hasData ? (snapshot.data![1] as TmdbEpisode).name : 'Example Episode Name',
-  //                                   ),
-  //                                 ],
-  //                               ).asSkeleton(snapshot: snapshot),
-  //                             )
-  //                           else
-  //                             FutureBuilder(
-  //                               future: movie,
-  //                               builder: (context, snapshot) => snapshot.hasData
-  //                                   ? Text(style: PlayerControls.normalTextStyle, (snapshot.data! as TmdbMovie).title)
-  //                                   : const SizedBox.shrink(),
-  //                             ),
-  //                           ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.info_outline_rounded)),
-  //                         ],
-  //                       ),
-  //                       Center(
-  //                         child: RepaintBoundary(
-  //                           child: ControlButton(
-  //                             onTap: () => player.playOrPause(),
-  //                             icon: isBuffering
-  //                                 ? CircularProgressIndicator(size: 50)
-  //                                 : Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
-  //                           ),
-  //                         ),
-  //                       ),
-  //                       Column(
-  //                         spacing: 8,
-  //                         children: [
-  //                           _Slider(player: player),
-  //                           Row(
-  //                             children: [
-  //                               RepaintBoundary(
-  //                                 child: ControlButton(
-  //                                   onTap: () => player.playOrPause(),
-  //                                   icon: Icon(size: PlayerControls.normalIconSize, isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-  //                                 ),
-  //                               ),
-  //                               if (!Api.isMobile()) VolumeButton(player: player),
-  //                               _PositionDisplay(player: player),
-
-  //                               if (isShow) ...[
-  //                                 const SizedBox(width: 10),
-  //                                 Container(
-  //                                   width: 4,
-  //                                   height: 4,
-  //                                   decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-  //                                 ),
-  //                                 const SizedBox(width: 10),
-  //                                 Row(
-  //                                   spacing: 8,
-  //                                   children: [
-  //                                     Text(style: PlayerControls.normalTextStyle, 'S${widget.widgetState.widget.episode!.seasonNumber}'),
-  //                                     Text(style: PlayerControls.normalTextStyle, 'E${widget.widgetState.widget.episode!.episodeNumber}'),
-  //                                   ],
-  //                                 ),
-  //                               ],
-
-  //                               const Spacer(),
-  //                               if (isShow) ...[
-  //                                 ControlButton(
-  //                                   onTap: () {
-  //                                     openDrawer(
-  //                                       context: context,
-  //                                       builder: (context) => _EpisodeDrawer(
-  //                                         showData: _showData,
-  //                                         initialSeason: _selectedSeason,
-  //                                         tmdbId: widget.widgetState.widget.showId!,
-  //                                         onSeasonChanged: (season) {
-  //                                           setState(() => _selectedSeason = season);
-  //                                         },
-  //                                       ),
-  //                                       position: OverlayPosition.right,
-  //                                     );
-  //                                   },
-  //                                   icon: Icon(size: PlayerControls.normalIconSize, Icons.amp_stories_rounded),
-  //                                 ),
-  //                                 ControlButton(
-  //                                   onTap: () async {
-  //                                     TmdbEpisode? nextEpisode = await _nextEpisode;
-  //                                     if (nextEpisode != null) {
-  //                                       context.pushReplacement(
-  //                                         '/player?show=${widget.widgetState.widget.showId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
-  //                                       );
-  //                                     }
-  //                                   },
-  //                                   icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
-  //                                 ),
-  //                               ],
-  //                               DropdownButton(
-  //                                 dropdownMenu: DropdownMenu(
-  //                                   children: [
-  //                                     MenuLabel(
-  //                                       child: Row(
-  //                                         children: [
-  //                                           ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
-  //                                           Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
-  //                                           Text(style: PlayerControls.normalTextStyle, 'Subtitles'),
-  //                                           const Spacer(),
-  //                                           ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.upload_rounded)),
-  //                                         ],
-  //                                       ),
-  //                                     ),
-  //                                     const MenuDivider(),
-  //                                     MenuLabel(
-  //                                       child: Collapsible(
-  //                                         children: [
-  //                                           CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Subtitles')),
-  //                                           Text(style: PlayerControls.normalTextStyle, player.state.track.subtitle.language ?? 'None').withPadding(left: 30),
-  //                                           ...player.state.tracks.subtitle.map(
-  //                                             (e) => CollapsibleContent(
-  //                                               child: MenuButton(
-  //                                                 onPressed: (context) => setState(() {
-  //                                                   player.setSubtitleTrack(e);
-  //                                                 }),
-  //                                                 child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
-  //                                               ),
-  //                                             ),
-  //                                           ),
-  //                                         ],
-  //                                       ),
-  //                                     ),
-  //                                     MenuLabel(
-  //                                       child: Collapsible(
-  //                                         children: [
-  //                                           CollapsibleTrigger(child: Text(style: PlayerControls.normalTextStyle, 'Audio Track')),
-  //                                           Text(style: PlayerControls.normalTextStyle, player.state.track.audio.language ?? 'None').withPadding(left: 30),
-  //                                           ...player.state.tracks.audio.map(
-  //                                             (e) => CollapsibleContent(
-  //                                               child: MenuButton(
-  //                                                 onPressed: (context) => setState(() {
-  //                                                   player.setAudioTrack(e);
-  //                                                 }),
-  //                                                 child: Text(style: PlayerControls.normalTextStyle, e.language ?? e.id),
-  //                                               ),
-  //                                             ),
-  //                                           ),
-  //                                         ],
-  //                                       ),
-  //                                     ),
-  //                                   ],
-  //                                 ),
-  //                                 icon: Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
-  //                               ),
-  //                               DropdownButton(
-  //                                 dropdownMenu: DropdownMenu(
-  //                                   children: [
-  //                                     MenuLabel(
-  //                                       child: Row(
-  //                                         spacing: 8,
-  //                                         children: [
-  //                                           ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
-  //                                           Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
-  //                                           Text(style: PlayerControls.normalTextStyle, 'Settings'),
-  //                                         ],
-  //                                       ),
-  //                                     ),
-  //                                   ],
-  //                                 ),
-  //                                 icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
-  //                               ),
-  //                               ControlButton(
-  //                                 onTap: () async {
-  //                                   setState(() {
-  //                                     widget.widgetState.zoomVideo = !widget.widgetState.zoomVideo;
-  //                                   });
-
-  //                                   // windowManager.setFullScreen(!(await windowManager.isFullScreen()));
-  //                                 },
-  //                                 icon: Icon(size: PlayerControls.normalIconSize, Icons.fullscreen_rounded),
-  //                               ),
-  //                             ],
-  //                           ),
-  //                         ],
-  //                       ),
-  //                     ],
-  //                   ),
-  //                 ),
-  //               ),
-  //             ),
-  //           ),
-
-  //           if (isShow)
-  //             Positioned(
-  //               right: 20,
-  //               bottom: 40,
-  //               child: _NextUpCard(player: player, nextEpisode: _nextEpisode, uiIsActive: _uiIsActive),
-  //             ),
-  //         ],
-  //       ),
-  //     ),
-  //   ),
-  // );
 }
 
 class ControlButton extends StatelessWidget {
@@ -1309,46 +1055,60 @@ class _NextUpCardState extends State<_NextUpCard> {
           _secondsLeft = _maxtime;
         }
 
-        return IgnorePointer(
-          ignoring: !showCard,
-          child: AnimatedSlide(
-            offset: showCard ? const Offset(0, -0.10) : Offset.zero,
-            duration: const Duration(milliseconds: 500),
-            child: AnimatedOpacity(
-              opacity: showCard ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 500),
+        return FutureBuilder(
+          future: widget.nextEpisode,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SizedBox.shrink();
+            }
+
+            if (!snapshot.hasData || snapshot.data == null) {
+              return const SizedBox.shrink();
+            }
+
+            final episode = snapshot.data!;
+
+            return IgnorePointer(
+              ignoring: false,
               child: AnimatedSlide(
-                duration: const Duration(milliseconds: 200),
-                offset: widget.uiIsActive ? const Offset(0, -0.20) : Offset.zero,
-                child: FutureBuilder(
-                  future: widget.nextEpisode,
-                  builder: (context, snapshot) => ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 300,
-                      height: 170,
-                      child: Stack(
-                        children: [
-                          snapshot.hasData
-                              ? CachedNetworkImage(imageUrl: 'https://image.tmdb.org/t/p/w300${snapshot.data!.stillPath}', fit: BoxFit.cover)
-                              : const SizedBox.shrink(),
-                          Container(color: Colors.black.withAlpha(120)),
-                          Center(
-                            child: GestureDetector(
-                              onTap: () => widget.playNextEpisode(),
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withAlpha(40),
-                                  border: Border.all(color: Colors.white, width: 1.5),
-                                ),
-                                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
+                offset: showCard ? const Offset(0, -0.10) : Offset.zero,
+                duration: const Duration(milliseconds: 500),
+                child: AnimatedOpacity(
+                  opacity: showCard ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 200),
+                    offset: widget.uiIsActive ? const Offset(0, -0.20) : Offset.zero,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 20.w,
+                        height: 12.h,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: CachedNetworkImage(
+                                imageUrl: 'https://image.tmdb.org/t/p/w300${episode.stillPath}',
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => const Center(child: Text('Image missing')),
                               ),
                             ),
-                          ),
-                          if (snapshot.hasData)
+                            Container(color: Colors.black.withAlpha(120)),
+                            Center(
+                              child: GestureDetector(
+                                onTap: () => widget.playNextEpisode(),
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withAlpha(40),
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
+                                ),
+                              ),
+                            ),
                             Positioned(
                               left: 0,
                               right: 0,
@@ -1372,13 +1132,13 @@ class _NextUpCardState extends State<_NextUpCard> {
                                       style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.w600),
                                     ),
                                     Text(
-                                      snapshot.data!.name,
+                                      episode.name,
                                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
-                                      "S${snapshot.data!.seasonNumber}:E${snapshot.data!.episodeNumber} · ${snapshot.data!.name}",
+                                      "S${episode.seasonNumber}:E${episode.episodeNumber} · ${episode.name}",
                                       style: const TextStyle(fontSize: 11, color: Colors.white),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -1397,30 +1157,31 @@ class _NextUpCardState extends State<_NextUpCard> {
                                 ),
                               ),
                             ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Button(
-                              style: ButtonVariance.link,
-                              onPressed: () {
-                                print("Closing,");
-                                _timer?.cancel();
-                                setState(() {
-                                  _started = false;
-                                  _secondsLeft = _maxtime;
-                                });
-                              },
-                              child: const Icon(Icons.close, color: Colors.white, size: 18),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Button(
+                                style: ButtonVariance.primary,
+                                onPressed: () {
+                                  print("Close");
+                                  _timer?.cancel();
+                                  setState(() {
+                                    _started = false;
+                                    _secondsLeft = _maxtime;
+                                  });
+                                },
+                                child: const Icon(Icons.close, color: Colors.white, size: 18),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

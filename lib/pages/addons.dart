@@ -17,14 +17,22 @@ class Addons extends StatefulWidget {
 class _AddonsState extends State<Addons> {
   final _textController = TextEditingController();
   int? _draggingIndex;
+  Future<List<Addon>>? _addonsFuture;
 
   @override
   void initState() {
     super.initState();
+    _reloadAddons();
+  }
+
+  void _reloadAddons() {
+    setState(() {
+      _addonsFuture = ApiCache.getAddons();
+    });
   }
 
   Widget addonsWidget() => FutureBuilder(
-    future: ApiCache.getAddons(),
+    future: _addonsFuture,
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
         return const Center(child: CircularProgressIndicator());
@@ -82,7 +90,7 @@ class _AddonsState extends State<Addons> {
     },
   );
 
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Addons")),
@@ -109,11 +117,10 @@ class _AddonsState extends State<Addons> {
                               final url = _textController.text.trim();
                               if (url.isEmpty) return;
 
-                              setState(() {
-                                TraktApi.addUserAddon(url, false);
-                              });
+                              await TraktApi.addUserAddon(url, false);
 
                               _textController.clear();
+                              _reloadAddons();
                             },
                           ),
                         ],
@@ -132,8 +139,8 @@ class _AddonsState extends State<Addons> {
               spacing: 8,
               children: [
                 Text('Recommended Widgets'),
-                RecommendAddonTile(manfiestUrl: 'https://v3-cinemeta.strem.io/manifest.json', requireConfig: false),
-                RecommendAddonTile(manfiestUrl: 'https://comet.elfhosted.com/manifest.json', requireConfig: true),
+                RecommendAddonTile(manfiestUrl: 'https://v3-cinemeta.strem.io/manifest.json', requireConfig: false, onAdded: _reloadAddons),
+                RecommendAddonTile(manfiestUrl: 'https://comet.elfhosted.com/manifest.json', requireConfig: true, onAdded: _reloadAddons),
               ],
             ),
           ],
@@ -146,8 +153,9 @@ class _AddonsState extends State<Addons> {
 class RecommendAddonTile extends StatefulWidget {
   final String manfiestUrl;
   final bool requireConfig;
+  final VoidCallback onAdded;
 
-  const RecommendAddonTile({super.key, required this.manfiestUrl, required this.requireConfig});
+  const RecommendAddonTile({super.key, required this.manfiestUrl, required this.requireConfig, required this.onAdded});
 
   @override
   State<StatefulWidget> createState() => _RecommendedAddonTileState();
@@ -207,10 +215,9 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
             widget.requireConfig
                 ? IconButton(onPressed: () {}, icon: const Icon(Icons.settings))
                 : IconButton(
-                    onPressed: () {
-                      setState(() {
-                        TraktApi.addUserAddon(widget.manfiestUrl, false);
-                      });
+                    onPressed: () async {
+                      await TraktApi.addUserAddon(widget.manfiestUrl, false);
+                      widget.onAdded();
                     },
                     icon: const Icon(Icons.add),
                   ),
@@ -288,7 +295,7 @@ class _AddonTileState extends State<AddonTile> {
                 );
               }).toList(),
             ),
-            trailing: widget.addon.forced == 1
+            trailing: widget.addon.forced == 0
                 ? IconButton(icon: const Icon(Icons.lock), onPressed: null)
                 : IconButton(icon: const Icon(Icons.delete), onPressed: widget.onRemove),
             children: [

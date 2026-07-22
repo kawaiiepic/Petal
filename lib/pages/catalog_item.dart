@@ -31,13 +31,18 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
         imageUrl: catalogItem.poster,
         fit: BoxFit.cover,
         placeholder: (context, url) => Container(color: Colors.pink.withAlpha(1)).asSkeleton(leaf: true),
-        errorWidget: (context, url, error) => Icon(Icons.error),
+        errorWidget: (context, url, error) => Column(
+          spacing: 8,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.tv_rounded, size: 50),
+            Text(catalogItem.name, textAlign: TextAlign.center),
+          ],
+        ),
       ),
       onTap: () async {
-        print("Getting TmdbSearch");
         final searchResults = await ApiCache.getTmdbSearch(catalogItem.id);
         final tmdbItem = catalogItem.type == "series" ? searchResults.tv[0] : searchResults.movies[0];
-        print(tmdbItem.id);
         context.push('/${catalogItem.type}/${tmdbItem.id}');
       },
     ),

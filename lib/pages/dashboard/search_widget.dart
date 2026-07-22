@@ -42,7 +42,7 @@ class SearchControllerModel extends ChangeNotifier {
       notifyListeners();
 
       try {
-        final raw = (await StreamApi.searchCatalogItems(query, addons)).take(5);
+        final raw = (await StreamApi.searchCatalogItems(query, addons));
 
         // A newer search started while we were awaiting — drop this one.
         if (thisRequestId != _requestId) return;
@@ -207,7 +207,6 @@ class _SearchState extends State<Search> {
                             if (!mounted) return;
                             final search = await ApiCache.getTmdbSearch(choice.id);
                             final tmdbResults = choice.type == "series" ? search.tv.first : search.movies.first;
-                            print(tmdbResults.id);
                             context.pop();
                             context.push('/${choice.type}/${tmdbResults.id}');
                           },

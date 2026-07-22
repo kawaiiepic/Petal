@@ -44,9 +44,9 @@ class ApiCache {
     return _searchFuture.putIfAbsent(idType + id + type, () => TraktApi.search(idType, id, type));
   }
 
-  static Future<Uint8List> getTmdbPoster(String mediaType, String tmdbId) {
-    return _tmdbPosterFuture.putIfAbsent(mediaType + tmdbId, () => TMDB.poster(MediaType.user.fromTmdbSafe(mediaType), tmdbId));
-  }
+  // static Future<Uint8List> getTmdbPoster(String mediaType, String tmdbId) {
+  //   return _tmdbPosterFuture.putIfAbsent(mediaType + tmdbId, () => TMDB.poster(MediaType.user.fromTmdbSafe(mediaType), tmdbId));
+  // }
 
   static Future<TmdbSearchResult> getTmdbSearch(String imdbId) {
     return _tmdbSearchResult.putIfAbsent(imdbId, () => TMDB.search(imdbId));

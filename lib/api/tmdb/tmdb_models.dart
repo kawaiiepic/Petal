@@ -10,25 +10,25 @@ class Images {
   Images({this.backdrops, this.id, this.logos, this.posters, this.stills});
 
   Images.fromJson(Map<String, dynamic> json) {
-    if (json['backdrops'] != null) {
-      backdrops = <Backdrops>[];
-      json['backdrops'].forEach((v) {
-        backdrops!.add(Backdrops.fromJson(v));
-      });
-    }
-    id = json['id'];
-    if (json['logos'] != null) {
-      logos = <Logos>[];
-      json['logos'].forEach((v) {
-        logos!.add(Logos.fromJson(v));
-      });
-    }
-    if (json['posters'] != null) {
-      posters = <Logos>[];
-      json['posters'].forEach((v) {
-        posters!.add(Logos.fromJson(v));
-      });
-    }
+    // if (json['backdrops'] != null) {
+    //   backdrops = <Backdrops>[];
+    //   json['backdrops'].forEach((v) {
+    //     backdrops!.add(Backdrops.fromJson(v));
+    //   });
+    // }
+    // id = json['id'];
+    // if (json['logos'] != null) {
+    //   logos = <Logos>[];
+    //   json['logos'].forEach((v) {
+    //     logos!.add(Logos.fromJson(v));
+    //   });
+    // }
+    // if (json['posters'] != null) {
+    //   posters = <Logos>[];
+    //   json['posters'].forEach((v) {
+    //     posters!.add(Logos.fromJson(v));
+    //   });
+    // }
     if (json['stills'] != null) {
       stills = <Logos>[];
       json['stills'].forEach((v) {
@@ -103,8 +103,8 @@ class Logos {
     height = json['height'];
     iso6391 = json['iso_639_1'];
     filePath = json['file_path'];
-    voteAverage = json['vote_average'];
-    voteCount = json['vote_count'];
+    // voteAverage = json['vote_average'];
+    // voteCount = json['vote_count'];
     width = json['width'];
   }
 

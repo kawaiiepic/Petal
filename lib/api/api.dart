@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 class Api {
   static bool traktLoggedIn = false;
   static bool devMode = false;
-  static bool loggedIn = false;
 
   static String proxyImage(String url) {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
@@ -20,39 +19,33 @@ class Api {
   static final ServerUrl = devMode ? 'http://localhost:8787' : 'https://petal-backend.blossomvale.dev';
 
   static final ValueNotifier<bool> healthy = ValueNotifier(false);
-  Timer healthyTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-    healthCheck();
-  });
+  static Timer? healthyTimer;
 
   static Future<void> initApi() async {
     await TraktApi.init();
     // initial check
+    healthyTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      healthCheck();
 
-    healthy.addListener(() {
-      print("Running healthy");
-      if (healthy.value) {
-        _onBackendRecovered();
-      }
+      healthyTimer?.cancel();
     });
 
-    final ok = await healthCheck();
-    healthy.value = ok;
+    healthy.addListener(() {});
   }
 
   static Future<void> _onBackendRecovered() async {
     if (await TraktApi.verifySession()) {
       TraktApi.authState.setLoggedIn(true);
-    } else {
-      print("Failed to verify!!!!");
     }
     CatalogApi.clearCache();
   }
 
   static Future<bool> healthCheck() async {
+    print("Health check./..");
     try {
       final res = await TraktApi.dio.get("$ServerUrl/health").timeout(const Duration(seconds: 3));
 
-      print(res.data);
+      _onBackendRecovered();
 
       return res.statusCode == 200;
     } catch (_) {
@@ -76,7 +69,6 @@ class Api {
   }
 
   static List<Catalog> generateCatalogs(Addon addon) {
-    print("Generating Catalogs");
     final List<Catalog> catalogs = [];
     final manifest = addon.manifest!;
 

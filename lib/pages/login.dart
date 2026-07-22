@@ -29,13 +29,11 @@ class _LoginState extends State<Login> {
       final email = emailController.text;
       final password = passwordController.text;
       final response = await TraktApi.dio.post("${Api.ServerUrl}/users/login", data: {"email": email, "password": password});
-      print(response.data);
       if (response.data["success"] != true) {
         throw Exception("Invalid credentials");
       }
       if (mounted) {
         TraktApi.authState.setLoggedIn(true);
-        Api.loggedIn = true;
         context.go('/');
       }
     } catch (e) {
@@ -63,6 +61,7 @@ class _LoginState extends State<Login> {
         "${Api.ServerUrl}/users/register",
         data: {"username": username, "email": email, "full_name": username, "password": password, "token": token},
       );
+
       print(response.data);
 
       if (response.data["status"] == "already-exist") throw Exception("Account already exist");
@@ -70,7 +69,7 @@ class _LoginState extends State<Login> {
         throw Exception("Registration failed");
       }
       if (mounted) {
-        Api.loggedIn = true;
+        TraktApi.authState.setLoggedIn(true);
         context.go('/');
       }
     } catch (e) {

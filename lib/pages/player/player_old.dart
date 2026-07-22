@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:petal/api/discord.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/custom_model.dart';
@@ -23,7 +24,7 @@ class StreamPlayer extends StatefulWidget {
 }
 
 class StreamPlayerState extends State<StreamPlayer> {
-  late final player = Player();
+  late final player = Player(configuration: PlayerConfiguration());
   late final VideoController controller;
   late final StreamItem selectedStream;
   bool zoomVideo = false;
@@ -34,6 +35,9 @@ class StreamPlayerState extends State<StreamPlayer> {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+
+    controller = VideoController(player, configuration: VideoControllerConfiguration());
+
     _startStream();
   }
 
@@ -51,10 +55,6 @@ class StreamPlayerState extends State<StreamPlayer> {
 
       selectedStream = stream;
 
-      // Fixed texture size - set once, sized to a real target resolution.
-      // 1920x1080 is a sane cap; scale down if targeting lower-end devices.
-      controller = VideoController(player, configuration: const VideoControllerConfiguration(width: 1920, height: 1080));
-
       await player.open(Media(selectedStream.url));
       if (mounted) setState(() => _controllerReady = true);
     } catch (e, st) {
@@ -65,8 +65,7 @@ class StreamPlayerState extends State<StreamPlayer> {
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    Discord.resetStatus();
     player.dispose();
     super.dispose();
   }

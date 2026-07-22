@@ -4,7 +4,7 @@ import 'package:petal/api/trakt/trakt_helper.dart';
 class TraktAuth {
   /// Step 1: Request device code
   static Future<Map<String, dynamic>> requestDeviceCode() async {
-    final response = await TraktApi.dio.get("${Api.ServerUrl}/trakt/device_code");
+    final response = await TraktApi.dio.get("${Api.ServerUrl}/trakt/deviceCode");
 
     if (response.statusCode == 200) {
       final data = response.data;
@@ -15,7 +15,7 @@ class TraktAuth {
   }
 
   static Future<void> pollForAccessToken(String deviceCode, int interval, int expiresIn) async {
-    final url = "${Api.ServerUrl}/trakt/check_auth";
+    final url = "${Api.ServerUrl}/trakt/poll";
     final endTime = DateTime.now().add(Duration(seconds: expiresIn));
 
     while (DateTime.now().isBefore(endTime)) {
@@ -26,22 +26,10 @@ class TraktAuth {
       if (res.statusCode == 200) {
         final data = res.data;
 
-        print(data);
-
         TraktApi.authState.setTraktLoggedIn(true);
 
         return;
 
-        //Save
-        // if (kIsWeb) {
-        //   print("Running on Web!");
-        // } else {
-        //   final directory = await getApplicationCacheDirectory();
-        //   var file = File('${directory.path}/trakt.json');
-
-        //   file.writeAsString(jsonEncode(data));
-        // }
-        //
       } else if (res.statusCode == 201) {
         // Authorization pending, keep polling
         continue;

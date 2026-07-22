@@ -27,8 +27,6 @@ class StreamItem {
     final match = regex.firstMatch(title);
 
     if (match != null) {
-      print("First Match ${match.group(1)} Second Match ${match.group(2)}");
-
       season = int.tryParse(match.group(1)!);
       episode = int.tryParse(match.group(2)!);
     }

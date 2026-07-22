@@ -90,7 +90,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> {
   @override
   void initState() {
     super.initState();
-    _futureStill = TMDB.episode_still(
+    _futureStill = TMDB.episodeStill(
       widget.show.watchedShow!.show.ids.tmdb.toString(),
       widget.show.showProgress.nextEpisode!.season,
       widget.show.showProgress.nextEpisode!.number,
@@ -106,7 +106,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> {
         case ConnectionState.done:
           {
             if (tmdbPosterSnapshot.hasError) {
-              return Text('Error: ${widget.show.watchedShow!.show.title}');
+              return Text('Error: ${widget.show.watchedShow!.show.ids.tmdb}');
             }
 
             return ContextMenu(

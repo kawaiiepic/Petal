@@ -7,6 +7,7 @@ import 'package:petal/api/trakt/models.dart';
 import 'package:petal/api/trakt/trakt_cache.dart';
 import 'package:petal/api/trakt/trakt_class.dart';
 import 'package:petal/models/addon.dart';
+import 'package:petal/models/profile.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/models/trakt/profile/extended_profile.dart';
 import 'package:cookie_jar/cookie_jar.dart';
@@ -30,6 +31,10 @@ class TraktApi {
 
   static Future<void> init() async {
     prepareCookieManager();
+  }
+
+  static Future<Response> traktApi(String boop) async {
+    return await dio.get('${Api.ServerUrl}/trakt/proxy?url=$boop');
   }
 
   static Future<void> prepareCookieManager() async {
@@ -64,12 +69,17 @@ class TraktApi {
     return false;
   }
 
+  static Future<void> signOut() async {
+    await cookieJar.deleteAll();
+    TraktApi.authState.setTraktLoggedIn(false);
+    authState.setLoggedIn(false);
+  }
+
   static Future<void> addUserAddon(String manifestUrl, bool forced) async {
-    final addon = {"manifest_url": manifestUrl, "forced": true, "config": "string"};
+    final addon = {"manifest_url": manifestUrl, "forced": forced, "config": "string"};
 
     await TraktApi.dio.post(
       "${Api.ServerUrl}/addons",
-      // queryParameters: {"Content-Type": "application/json"},
       data: addon,
     );
 
@@ -77,12 +87,10 @@ class TraktApi {
   }
 
   static Future<void> addAddonResource(String addonId, String resource) async {
-    await TraktApi.dio.post(
-      "${Api.ServerUrl}/addons/$addonId/resources/$resource",
-    );
+    await TraktApi.dio.post("${Api.ServerUrl}/addons/$addonId/resources/$resource");
   }
 
-    static Future<void> delAddonResource(String addonId, String resource) async {
+  static Future<void> delAddonResource(String addonId, String resource) async {
     await TraktApi.dio.delete("${Api.ServerUrl}/addons/$addonId/resources/$resource");
   }
 
@@ -109,6 +117,23 @@ class TraktApi {
     } else {
       throw Exception('Failed to fetch addons');
     }
+  }
+
+  static Future<List<Profile>> profiles() async {
+    final url = '${Api.ServerUrl}/profiles';
+    final response = await dio.get(url);
+
+    final json = response.data['result'] as List;
+
+    // map to list of futures
+    final futures = json.map((json) async {
+      var addon = Profile.fromJson(json);
+      return addon;
+    }).toList();
+
+    // wait for all futures to complete
+    final addons = await Future.wait(futures);
+    return addons;
   }
 
   static Future<ExtendedProfile> userProfile() async {
@@ -143,7 +168,7 @@ class TraktApi {
     print("Fetching watcheed...");
     final name = mediaType == MediaType.show ? "shows" : "movies";
 
-    final response = await dio.get('${Api.ServerUrl}/trakt/sync_watched/$name');
+    final response = await traktApi("/sync/watched/$name");
 
     if (response.statusCode != 200) return Future.error(Exception('Failed to fetch watched $name'));
 
@@ -213,7 +238,7 @@ class TraktApi {
   }
 
   static Future<TraktShowProgress> fetchShowProgress(String traktId) async {
-    final response = await dio.get('${Api.ServerUrl}/trakt/show_progress/$traktId');
+    final response = await traktApi("/shows/$traktId/progress/watched");
 
     if (response.statusCode == 200) {
       final result = TraktShowProgress.fromJson(response.data);

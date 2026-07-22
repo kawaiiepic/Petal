@@ -25,7 +25,7 @@ class StreamApi {
 
     if (expanded.isEmpty) {
       print("No Streams found");
-      
+
     }
 
     return expanded;
@@ -36,7 +36,7 @@ class StreamApi {
       final url = '${addon.baseUrl}/stream/$type/$id.json';
       final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
-      print("Url: $url");
+      // print("Url: $url");
 
       if (res.statusCode != 200) return [];
 
@@ -58,10 +58,10 @@ class StreamApi {
   static StreamItem? streamFromUrl(List<StreamItem> streams, String url) {
     if (streams.isEmpty) return null;
 
-    print("Trying to find: $url");
+    // print("Trying to find: $url");
 
     return streams.firstWhere((s) {
-      print("Stream URL: ${s.url}");
+      // print("Stream URL: ${s.url}");
       if (s.url == url) return true;
       return false;
     });
@@ -117,7 +117,7 @@ class StreamApi {
     // Prefer non-external (direct play)
     if (!s.external) score += 5;
 
-    print("${s.title} has score $score");
+    // print("${s.title} has score $score");
 
     return score;
   }

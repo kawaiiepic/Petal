@@ -129,6 +129,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  crop_your_image:
+    dependency: "direct main"
+    description:
+      name: crop_your_image
+      sha256: "14c8977b11a009dc5e73e0f6522970f93363e38183f1b2ffefe1676dc9c3f49d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.0"
   cross_file:
     dependency: transitive
     description:
@@ -249,6 +257,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  file_picker:
+    dependency: "direct main"
+    description:
+      name: file_picker
+      sha256: f13a03000d942e476bc1ff0a736d2e9de711d2f89a95cd4c1d88f861c3348387
+      url: "https://pub.dev"
+    source: hosted
+    version: "11.0.2"
   fixnum:
     dependency: transitive
     description:
@@ -291,6 +307,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.7"
+  flutter_plugin_android_lifecycle:
+    dependency: transitive
+    description:
+      name: flutter_plugin_android_lifecycle
+      sha256: "3854fe5e3bff0b113c658f260b90c95dea17c92db0f2addeac2e343dd9969785"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.35"
   flutter_svg:
     dependency: "direct main"
     description:
@@ -490,36 +514,36 @@ packages:
     dependency: "direct main"
     description:
       path: "libs/android/media_kit_libs_android_video"
-      ref: "feat/pip"
-      resolved-ref: "1eac02c8dabdc2f7be62049fbc0848bbed17dae7"
-      url: "https://github.com/mdikcinar/media-kit.git"
+      ref: master
+      resolved-ref: ebae41ce5ac1273e33d92dcd152ae0517ef4b2f8
+      url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
     version: "1.3.8"
   media_kit_libs_ios_video:
     dependency: "direct main"
     description:
       path: "libs/ios/media_kit_libs_ios_video"
-      ref: "feat/pip"
-      resolved-ref: "1eac02c8dabdc2f7be62049fbc0848bbed17dae7"
-      url: "https://github.com/mdikcinar/media-kit.git"
+      ref: master
+      resolved-ref: ebae41ce5ac1273e33d92dcd152ae0517ef4b2f8
+      url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
     version: "1.1.4"
   media_kit_libs_linux:
     dependency: "direct main"
     description:
       path: "libs/linux/media_kit_libs_linux"
-      ref: "feat/pip"
-      resolved-ref: "1eac02c8dabdc2f7be62049fbc0848bbed17dae7"
-      url: "https://github.com/mdikcinar/media-kit.git"
+      ref: master
+      resolved-ref: ebae41ce5ac1273e33d92dcd152ae0517ef4b2f8
+      url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
     version: "1.2.1"
   media_kit_video:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: "feat/pip"
-      resolved-ref: "1eac02c8dabdc2f7be62049fbc0848bbed17dae7"
-      url: "https://github.com/mdikcinar/media-kit.git"
+      ref: master
+      resolved-ref: ebae41ce5ac1273e33d92dcd152ae0517ef4b2f8
+      url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
     version: "2.0.1"
   meta:

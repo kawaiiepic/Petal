@@ -227,7 +227,7 @@ class _CatalogRowState extends State<CatalogRow> {
                                         return Ink(
                                           decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(8),
-                                            image: DecorationImage(image: Image.memory(snapshot.data!).image, fit: BoxFit.cover),
+                                            image: DecorationImage(image: Image.network(snapshot.data!).image, fit: BoxFit.cover),
                                           ),
                                         );
                                       },
