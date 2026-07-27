@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show CircleAvatar;
+import 'package:flutter/material.dart' show CircleAvatar, Dialog;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
@@ -77,7 +77,10 @@ class Navigation extends StatelessWidget {
                                                   Wrap(
                                                     spacing: 20,
                                                     runSpacing: 20,
-                                                    children: snapshot.data!.map((profile) => _ProfileCard(name: profile.name, avatar: Icons.person)).toList(),
+                                                    children: [
+                                                      ...snapshot.data!.map((profile) => _ProfileCard(name: profile.name, avatar: Icons.person)).toList(),
+                                                      _ProfileCard(name: "", avatar: Icons.add, add: true),
+                                                    ],
                                                     // children: [
                                                     //   _ProfileCard(name: 'Main', avatar: Icons.person, selected: true),
                                                     //   _ProfileCard(name: 'Kids', avatar: Icons.child_care),
@@ -158,8 +161,9 @@ class _ProfileCard extends StatefulWidget {
   final String name;
   final IconData avatar;
   final bool selected;
+  final bool add;
 
-  const _ProfileCard({required this.name, required this.avatar, this.selected = false});
+  const _ProfileCard({required this.name, required this.avatar, this.selected = false, this.add = false});
 
   @override
   State<_ProfileCard> createState() => _ProfileCardState();
@@ -185,8 +189,47 @@ class _ProfileCardState extends State<_ProfileCard> {
       child: Button(
         style: ButtonVariance.text,
         onPressed: () {
-          if (widget.selected) {
+          if (widget.add) {
+            showOverlay(
+              context,
+              DialogConfiguration(
+                builder: (test) {
+                  final TextEditingController usernameController = TextEditingController();
+
+                  return AlertDialog(
+                    title: Text('Create New Profile'),
+                    content: SizedBox(
+                      width: 320, // or MediaQuery.of(context).size.width * 0.8
+                      child: TextField(
+                        controller: usernameController,
+                        autofocus: true,
+                        placeholder: Text('Enter a username'), // see note below
+                      ),
+                    ),
+                    actions: [
+                      SecondaryButton(onPressed: () => test.pop(), child: Text('Cancel')),
+                      PrimaryButton(
+                        onPressed: () {
+                          final username = usernameController.text.trim();
+                          if (username.isNotEmpty) {
+                            TraktApi.addProfile(username);
+                            // handle profile creation here, e.g.:
+                            // createProfile(username);
+                            // closeOverlay(context);
+                            test.pop();
+                          }
+                        },
+                        child: Text('Create'),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          } else if (widget.selected) {
             pickAvatar();
+          } else {
+            // widget.selected = true;
           }
         },
         child: Column(

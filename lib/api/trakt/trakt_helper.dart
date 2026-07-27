@@ -78,10 +78,7 @@ class TraktApi {
   static Future<void> addUserAddon(String manifestUrl, bool forced) async {
     final addon = {"manifest_url": manifestUrl, "forced": forced, "config": "string"};
 
-    await TraktApi.dio.post(
-      "${Api.ServerUrl}/addons",
-      data: addon,
-    );
+    await TraktApi.dio.post("${Api.ServerUrl}/addons", data: addon);
 
     ApiCache.refreshAddons();
   }
@@ -134,6 +131,14 @@ class TraktApi {
     // wait for all futures to complete
     final addons = await Future.wait(futures);
     return addons;
+  }
+
+  static Future<void> addProfile(String name) async {
+    final url = '${Api.ServerUrl}/profiles';
+    await dio.post(url, data: {
+      "name": name,
+      "avatar": "builtin:1"
+    });
   }
 
   static Future<ExtendedProfile> userProfile() async {
@@ -259,6 +264,8 @@ class TraktApi {
 
     final futures = watched.map((w) async {
       final progress = await fetchShowProgress(w.show.ids.trakt.toString());
+
+      print(progress.nextEpisode?.title);
       if (progress.nextEpisode != null &&
           progress.nextEpisode!.firstAired != null &&
           DateTime.parse(progress.nextEpisode!.firstAired!).isBefore(DateTime.now())) {
