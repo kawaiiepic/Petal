@@ -6,7 +6,7 @@ import 'package:petal/api/discord.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:petal/pages/player/player_old.dart';
+import 'package:petal/pages/player/player_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';

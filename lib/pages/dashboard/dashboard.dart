@@ -4,9 +4,9 @@ import 'package:petal/api/trakt/trakt_helper.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
-import 'package:petal/router/routes/catalog_widget.dart';
+import 'package:petal/widgets/catalog/catalog_widget.dart';
 import 'package:petal/pages/dashboard/search_widget.dart';
-import 'package:petal/pages/trakt_widget.dart';
+import 'package:petal/widgets/trakt/trakt_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 

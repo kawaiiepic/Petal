@@ -9,12 +9,12 @@ import 'package:petal/pages/episode_overview.dart';
 import 'package:petal/pages/login.dart';
 import 'package:petal/pages/movie_overview.dart';
 import 'package:petal/pages/offline.dart';
-import 'package:petal/pages/player/player_old.dart';
+import 'package:petal/pages/player/player_screen.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/pages/streams.dart';
-import 'package:petal/pages/trakt/traktlogin.dart';
+import 'package:petal/pages/trakt/trakt_login_page.dart';
 import 'package:petal/router/dialog_page.dart';
-import 'package:petal/router/routes/catalog_widget.dart';
+import 'package:petal/widgets/catalog/catalog_widget.dart';
 import 'package:go_router/go_router.dart';
 
 class AppRouter {

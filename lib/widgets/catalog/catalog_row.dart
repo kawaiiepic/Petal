@@ -1,7 +1,7 @@
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
-import 'package:petal/pages/catalog_item.dart';
-import 'package:petal/pages/scrollable_widget.dart';
+import 'package:petal/widgets/catalog/catalog_item_widget.dart';
+import 'package:petal/widgets/scrollable_widget.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
