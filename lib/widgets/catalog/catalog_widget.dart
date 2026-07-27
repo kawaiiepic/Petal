@@ -1,8 +1,8 @@
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/trakt/trakt_helper.dart';
-import 'package:petal/pages/catalog_row.dart';
-import 'package:petal/pages/empty_sliver.dart';
-import 'package:petal/pages/trakt_widget.dart';
+import 'package:petal/widgets/catalog/catalog_row.dart';
+import 'package:petal/widgets/empty_sliver.dart';
+import 'package:petal/widgets/trakt/trakt_widget.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
