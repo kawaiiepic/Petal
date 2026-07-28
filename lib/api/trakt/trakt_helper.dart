@@ -33,8 +33,8 @@ class TraktApi {
     prepareCookieManager();
   }
 
-  static Future<Response> traktApi(String boop) async {
-    return await dio.get('${Api.ServerUrl}/trakt/proxy?url=$boop');
+  static String callApi(String boop) {
+    return '${Api.ServerUrl}/trakt/proxy?url=$boop';
   }
 
   static Future<void> prepareCookieManager() async {
@@ -135,10 +135,7 @@ class TraktApi {
 
   static Future<void> addProfile(String name) async {
     final url = '${Api.ServerUrl}/profiles';
-    await dio.post(url, data: {
-      "name": name,
-      "avatar": "builtin:1"
-    });
+    await dio.post(url, data: {"name": name, "avatar": "builtin:1"});
   }
 
   static Future<ExtendedProfile> userProfile() async {
@@ -165,15 +162,14 @@ class TraktApi {
   }
 
   static Future<void> startWatching(MediaType mediaType, Object object) async {
-    var url = '${Api.ServerUrl}/trakt/start_watching';
-    await dio.post(url, data: object);
+    await dio.post(callApi('/scrobble/start'), data: object);
   }
 
   static Future<List<TraktShow>> fetchWatched(MediaType mediaType) async {
     print("Fetching watcheed...");
     final name = mediaType == MediaType.show ? "shows" : "movies";
 
-    final response = await traktApi("/sync/watched/$name");
+    final response = await dio.get(callApi('/sync/watched/$name'));
 
     if (response.statusCode != 200) return Future.error(Exception('Failed to fetch watched $name'));
 
@@ -243,7 +239,7 @@ class TraktApi {
   }
 
   static Future<TraktShowProgress> fetchShowProgress(String traktId) async {
-    final response = await traktApi("/shows/$traktId/progress/watched");
+    final response = await dio.get(callApi("/shows/$traktId/progress/watched"));
 
     if (response.statusCode == 200) {
       final result = TraktShowProgress.fromJson(response.data);
