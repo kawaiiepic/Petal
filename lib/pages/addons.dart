@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:petal/api/api_cache.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -117,7 +117,7 @@ class _AddonsState extends State<Addons> {
                               final url = _textController.text.trim();
                               if (url.isEmpty) return;
 
-                              await TraktApi.addUserAddon(url, false);
+                              await BackendApi.addUserAddon(url, false);
 
                               _textController.clear();
                               _reloadAddons();
@@ -216,7 +216,7 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
                 ? IconButton(onPressed: () {}, icon: const Icon(Icons.settings))
                 : IconButton(
                     onPressed: () async {
-                      await TraktApi.addUserAddon(widget.manfiestUrl, false);
+                      await BackendApi.addUserAddon(widget.manfiestUrl, false);
                       widget.onAdded();
                     },
                     icon: const Icon(Icons.add),
@@ -285,10 +285,10 @@ class _AddonTileState extends State<AddonTile> {
                     setState(() {
                       if (selected) {
                         widget.addon.enabledResources.add(resource.name);
-                        TraktApi.addAddonResource(widget.addon.id, resource.name);
+                        BackendApi.addAddonResource(widget.addon.id, resource.name);
                       } else {
                         widget.addon.enabledResources.remove(resource.name);
-                        TraktApi.delAddonResource(widget.addon.id, resource.name);
+                        BackendApi.delAddonResource(widget.addon.id, resource.name);
                       }
                     });
                   },

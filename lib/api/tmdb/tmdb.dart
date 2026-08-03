@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dio/src/response.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,7 +16,7 @@ class TMDB {
   static final Map<String, Future<String>> _episodeStillCache = {};
 
   static Future<Response> tmdbApi(String boop) async {
-    return await TraktApi.dio.get('${Api.ServerUrl}/tmdb/proxy?url=$boop');
+    return await BackendApi.dio.get('${Api.ServerUrl}/tmdb/proxy?url=$boop');
   }
 
   // Cache functions
@@ -46,7 +46,7 @@ class TMDB {
   }
 
   static Future<TmdbEpisode> tvEpisode(int tmdbId, int seasonNumber, int episodeNumber) async {
-    final response = await tmdbApi('/tv/$tmdbId/season/$seasonNumber/episode/$episodeNumber');
+    final response = await tmdbApi('/tv/$tmdbId/season/$seasonNumber/episode/$episodeNumber?append_to_response=images');
 
     if (response.statusCode != 200) throw Exception('Search failed');
 
@@ -62,7 +62,7 @@ class TMDB {
   }
 
   static Future<TmdbShow> tvShow(int tmdbId) async {
-    final response = await tmdbApi('/tv/$tmdbId?append_to_response=images,external_ids');
+    final response = await tmdbApi('/tv/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations');
 
     if (response.statusCode != 200) throw Exception('Search failed');
 
@@ -70,12 +70,15 @@ class TMDB {
   }
 
   static Future<TmdbMovie> movie(int tmdbId) async {
-    final response = await tmdbApi('/movie/$tmdbId?append_to_response=images,external_ids');
+    final response = await tmdbApi('/movie/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations');
 
     if (response.statusCode != 200) throw Exception('Search failed');
 
     return TmdbMovie.fromJson(response.data);
   }
+
+  static Future<TmdbPerson> person(int id) =>
+      tmdbApi('/person/$id?append_to_response=movie_credits,external_ids').then((json) => TmdbPerson.fromJson(json.data));
 
   static Future<String> _fetchEpisodeStill(String tmdb, int season, int episode) async {
     final response = await tmdbApi('/tv/$tmdb/season/$season/episode/$episode/images');

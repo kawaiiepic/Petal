@@ -6,7 +6,7 @@ import 'package:petal/api/discord.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/pages/player/player_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -114,16 +114,16 @@ class _PlayerControls extends State<PlayerControls> {
       final episode = show.episode!;
       _showData = (TMDB.tvShow(show.showId!), TMDB.tvEpisode(show.showId!, episode.seasonNumber, episode.episodeNumber)).wait;
 
-      _showData.then((showData) {
-        if (TraktApi.authState.traktConnected) {
-          TraktApi.startWatching(MediaType.show, {
-            "progress": 0.0,
-            "episode": {
-              "ids": {"tmdb": showData.$2.id},
-            },
-          });
-        }
-      });
+      // _showData.then((showData) {
+      //   if (TraktApi.authState.traktConnected) {
+      //     TraktApi.startWatching(MediaType.show, {
+      //       "progress": 0.0,
+      //       "episode": {
+      //         "ids": {"tmdb": showData.$2.id},
+      //       },
+      //     });
+      //   }
+      // });
     } else {
       _movie = TMDB.movie(widget.widgetState.widget.movieId!);
     }

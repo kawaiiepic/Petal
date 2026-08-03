@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:petal/models/profile.dart';
 
 class AuthState extends ChangeNotifier {
   bool loggedIn = false;
-  bool traktConnected = false;
   bool initializing = true;
+  Profile? selectedProfile;
 
   void setLoggedIn(bool value) {
     loggedIn = value;
     notifyListeners();
   }
 
-  void setTraktLoggedIn(bool value) {
-    traktConnected = value;
+  void setInitializing(bool value) {
+    initializing = value;
     notifyListeners();
   }
 
-  void setInitializing(bool value) {
-    initializing = value;
+  void setProfile(Profile profile) {
+    selectedProfile = profile;
     notifyListeners();
   }
 }

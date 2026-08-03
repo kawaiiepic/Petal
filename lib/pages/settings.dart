@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Settings extends StatefulWidget {
@@ -43,18 +43,6 @@ class _SettingsState extends State<Settings> {
         child: Column(
           spacing: 8,
           children: [
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: ListTile(
-                leading: const Icon(Icons.account_circle),
-                title: const Text("Connect Trakt"),
-                trailing: ElevatedButton(
-                  onPressed: TraktApi.authState.traktConnected ? null : () => context.go('/traktLogin'),
-                  child: Text(TraktApi.authState.traktConnected ? "Disconnect" : "Connect"),
-                ),
-              ),
-            ),
-
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: ListTile(

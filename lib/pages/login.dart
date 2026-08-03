@@ -1,5 +1,5 @@
 import 'package:petal/api/api.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -28,12 +28,12 @@ class _LoginState extends State<Login> {
     try {
       final email = emailController.text;
       final password = passwordController.text;
-      final response = await TraktApi.dio.post("${Api.ServerUrl}/users/login", data: {"email": email, "password": password});
+      final response = await BackendApi.dio.post("${Api.ServerUrl}/users/login", data: {"email": email, "password": password});
       if (response.data["success"] != true) {
         throw Exception("Invalid credentials");
       }
       if (mounted) {
-        TraktApi.authState.setLoggedIn(true);
+        BackendApi.authState.setLoggedIn(true);
         context.go('/');
       }
     } catch (e) {
@@ -57,7 +57,7 @@ class _LoginState extends State<Login> {
       final email = emailController.text;
       final password = passwordController.text;
       final token = registrationTokenController.text;
-      final response = await TraktApi.dio.post(
+      final response = await BackendApi.dio.post(
         "${Api.ServerUrl}/users/register",
         data: {"username": username, "email": email, "full_name": username, "password": password, "token": token},
       );
@@ -69,7 +69,7 @@ class _LoginState extends State<Login> {
         throw Exception("Registration failed");
       }
       if (mounted) {
-        TraktApi.authState.setLoggedIn(true);
+        BackendApi.authState.setLoggedIn(true);
         context.go('/');
       }
     } catch (e) {

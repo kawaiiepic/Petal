@@ -1,8 +1,9 @@
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/main.dart';
 import 'package:petal/models/custom_model.dart';
 import 'package:petal/models/stream.dart';
 import 'package:petal/navigation/navigation.dart';
+import 'package:petal/pages/actor_overview.dart';
 import 'package:petal/pages/addons.dart';
 import 'package:petal/pages/dashboard/search_widget.dart';
 import 'package:petal/pages/episode_overview.dart';
@@ -10,9 +11,9 @@ import 'package:petal/pages/login.dart';
 import 'package:petal/pages/movie_overview.dart';
 import 'package:petal/pages/offline.dart';
 import 'package:petal/pages/player/player_screen.dart';
+import 'package:petal/pages/player/trailer_player.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/pages/streams.dart';
-import 'package:petal/pages/trakt/trakt_login_page.dart';
 import 'package:petal/router/dialog_page.dart';
 import 'package:petal/widgets/catalog/catalog_widget.dart';
 import 'package:go_router/go_router.dart';
@@ -21,21 +22,21 @@ class AppRouter {
   static final appRouter = GoRouter(
     navigatorKey: PetalApp.rootNavigatorKey,
     initialLocation: '/',
-    refreshListenable: TraktApi.authState,
+    refreshListenable: BackendApi.authState,
     redirect: (context, state) {
       final loggingIn = state.matchedLocation == '/login';
       final onOffline = state.matchedLocation == '/offline';
 
-      if (TraktApi.authState.initializing) {
+      if (BackendApi.authState.initializing) {
         // Still checking session — hold on the offline/loading screen
         return onOffline ? null : '/offline';
       }
 
       // if (!Api.healthy.value) return '/offline';
 
-      if (!TraktApi.authState.loggedIn && !loggingIn) return '/login';
+      if (!BackendApi.authState.loggedIn && !loggingIn) return '/login';
 
-      if (TraktApi.authState.loggedIn && onOffline) return '/';
+      if (BackendApi.authState.loggedIn && onOffline) return '/';
 
       return null;
     },
@@ -43,19 +44,26 @@ class AppRouter {
       ShellRoute(
         navigatorKey: PetalApp.shellNavigatorKey,
         builder: (context, state, child) => Navigation(state: state, child: child),
-        routes: [
-          GoRoute(path: '/', builder: (context, state) => const CatalogWidget()),
-        ],
+        routes: [GoRoute(path: '/', builder: (context, state) => const CatalogWidget())],
       ),
 
       GoRoute(
         path: '/series/:id',
-        builder: (context, state) => EpisodeOverview(tmdbId: int.parse(state.pathParameters['id']!)),
+        builder: (context, state) => EpisodeOverview(catalogId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/movie/:id',
-        builder: (context, state) => MovieOverview(tmdbId: int.parse(state.pathParameters['id']!)),
+        builder: (context, state) => MovieOverview(catalogId: state.pathParameters['id']!),
       ),
+      GoRoute(
+        path: '/person/:id',
+        builder: (context, state) => ActorOverview(personId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/trailer/:key',
+        builder: (context, state) => TrailerPlayer(youtubeKey: state.pathParameters['key']!),
+      ),
+
       GoRoute(
         parentNavigatorKey: PetalApp.rootNavigatorKey,
         path: '/streams',
@@ -73,10 +81,7 @@ class AppRouter {
         },
       ),
 
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => Settings(),
-      ),
+      GoRoute(path: '/settings', builder: (context, state) => Settings()),
       // GoRoute(
       //   path: '/addons',
       //   pageBuilder: (context, state) => DialogPage(builder: (context) => Addons()),
@@ -88,7 +93,6 @@ class AppRouter {
       ),
       GoRoute(path: '/offline', builder: (context, state) => Offline()),
       GoRoute(path: '/login', builder: (context, state) => Login()),
-      GoRoute(path: '/traktLogin', builder: (context, state) => TraktLoginPage()),
       GoRoute(
         parentNavigatorKey: PetalApp.rootNavigatorKey,
         path: '/player',

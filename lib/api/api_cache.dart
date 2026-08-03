@@ -6,7 +6,7 @@ import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/models.dart';
 import 'package:petal/api/trakt/trakt_class.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
@@ -24,12 +24,12 @@ class ApiCache {
   static final Map<String, List<Catalog>> _catalogs = {};
 
   static Future<List<Addon>> getAddons() {
-    _addonsFuture ??= TraktApi.fetchUserAddons();
+    _addonsFuture ??= BackendApi.fetchUserAddons();
     return _addonsFuture!;
   }
 
   static void refreshAddons() {
-    _addonsFuture = TraktApi.fetchUserAddons();
+    _addonsFuture = BackendApi.fetchUserAddons();
   }
 
   static List<Catalog> getCatalogs(Addon addon) {
@@ -40,20 +40,7 @@ class ApiCache {
     return _catalogItemsFuture.putIfAbsent(catalog.id + catalog.type, () => CatalogApi.fetchCatalogItems(catalog));
   }
 
-  static Future<Search> getSearch(String idType, String id, String type) {
-    return _searchFuture.putIfAbsent(idType + id + type, () => TraktApi.search(idType, id, type));
-  }
-
-  // static Future<Uint8List> getTmdbPoster(String mediaType, String tmdbId) {
-  //   return _tmdbPosterFuture.putIfAbsent(mediaType + tmdbId, () => TMDB.poster(MediaType.user.fromTmdbSafe(mediaType), tmdbId));
-  // }
-
   static Future<TmdbSearchResult> getTmdbSearch(String imdbId) {
     return _tmdbSearchResult.putIfAbsent(imdbId, () => TMDB.search(imdbId));
-  }
-
-  static Future<List<TraktWatchedShowWithProgress>> getTraktWatched() {
-    _watchedShowWithProgressFuture ??= TraktApi.fetchWatchedShowWithProgress();
-    return _watchedShowWithProgressFuture!;
   }
 }

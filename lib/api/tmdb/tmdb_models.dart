@@ -384,6 +384,10 @@ class TmdbShow {
   final double voteAverage;
   final int voteCount;
   final TmdbImages? images;
+  final TmdbVideos? videos;
+  final TmdbCredits? credits;
+  final TmdbShowRecommendations? recommendations;
+
   final String? imdbId;
 
   static const _imageBase = 'https://image.tmdb.org/t/p/w500';
@@ -418,6 +422,10 @@ class TmdbShow {
     required this.voteAverage,
     required this.voteCount,
     required this.images,
+    required this.videos,
+    required this.credits,
+    required this.recommendations,
+
     required this.imdbId,
   });
 
@@ -455,6 +463,9 @@ class TmdbShow {
     voteAverage: (json['vote_average'] ?? 0).toDouble(),
     voteCount: json['vote_count'] ?? 0,
     images: json['images'] != null ? TmdbImages.fromJson(json['images']) : null,
+    videos: json['videos'] != null ? TmdbVideos.fromJson(json['videos']) : null,
+    credits: json['credits'] != null ? TmdbCredits.fromJson(json['credits']) : null,
+    recommendations: json['recommendations'] != null ? TmdbShowRecommendations.fromJson(json['recommendations']) : null,
     imdbId: json['external_ids']?['imdb_id'],
   );
 }
@@ -663,6 +674,9 @@ class TmdbMovie {
   final double voteAverage;
   final int voteCount;
   final TmdbImages? images;
+  final TmdbVideos? videos;
+  final TmdbCredits? credits;
+  final TmdbMovieRecommendations? recommendations;
 
   TmdbMovie({
     required this.adult,
@@ -692,6 +706,9 @@ class TmdbMovie {
     required this.voteAverage,
     required this.voteCount,
     required this.images,
+    required this.videos,
+    required this.credits,
+    required this.recommendations,
   });
 
   factory TmdbMovie.fromJson(Map<String, dynamic> json) => TmdbMovie(
@@ -722,9 +739,11 @@ class TmdbMovie {
     voteAverage: (json['vote_average'] ?? 0).toDouble(),
     voteCount: json['vote_count'] ?? 0,
     images: json['images'] != null ? TmdbImages.fromJson(json['images']) : null,
+    videos: json['videos'] != null ? TmdbVideos.fromJson(json['videos']) : null,
+    credits: json['credits'] != null ? TmdbCredits.fromJson(json['credits']) : null,
+    recommendations: json['recommendations'] != null ? TmdbMovieRecommendations.fromJson(json['recommendations']) : null,
   );
 }
-
 // Nested models
 
 class Collection {
@@ -871,3 +890,213 @@ class TmdbGuestStar {
     popularity: (json['popularity'] as num).toDouble(),
   );
 }
+
+class TmdbVideos {
+  final List<TmdbVideo> results;
+
+  TmdbVideos({required this.results});
+
+  factory TmdbVideos.fromJson(Map<String, dynamic> json) =>
+      TmdbVideos(results: (json['results'] as List<dynamic>? ?? []).map((e) => TmdbVideo.fromJson(e)).toList());
+}
+
+class TmdbVideo {
+  final String id;
+  final String key; // YouTube video key
+  final String name;
+  final String site; // "YouTube", "Vimeo", etc.
+  final String type; // "Trailer", "Teaser", "Clip", etc.
+  final bool official;
+  final int size;
+
+  TmdbVideo({required this.id, required this.key, required this.name, required this.site, required this.type, required this.official, required this.size});
+
+  factory TmdbVideo.fromJson(Map<String, dynamic> json) => TmdbVideo(
+    id: json['id'] ?? '',
+    key: json['key'] ?? '',
+    name: json['name'] ?? '',
+    site: json['site'] ?? '',
+    type: json['type'] ?? '',
+    official: json['official'] ?? false,
+    size: json['size'] ?? 0,
+  );
+
+  String get youtubeUrl => 'https://www.youtube.com/watch?v=$key';
+  String get youtubeThumbnail => 'https://img.youtube.com/vi/$key/hqdefault.jpg';
+}
+
+class TmdbCredits {
+  final List<CastMember> cast;
+  final List<CrewMember> crew;
+
+  TmdbCredits({required this.cast, required this.crew});
+
+  factory TmdbCredits.fromJson(Map<String, dynamic> json) => TmdbCredits(
+    cast: (json['cast'] as List<dynamic>? ?? []).map((e) => CastMember.fromJson(e)).toList(),
+    crew: (json['crew'] as List<dynamic>? ?? []).map((e) => CrewMember.fromJson(e)).toList(),
+  );
+
+  /// Convenience getter — first director found in crew.
+  String? get director {
+    for (final c in crew) {
+      if (c.job == 'Director') return c.name;
+    }
+    return null;
+  }
+}
+
+class CastMember {
+  final int id;
+  final String name;
+  final String? character;
+  final String? profilePath;
+  final int order;
+
+  CastMember({required this.id, required this.name, this.character, this.profilePath, required this.order});
+
+  factory CastMember.fromJson(Map<String, dynamic> json) =>
+      CastMember(id: json['id'] ?? 0, name: json['name'] ?? '', character: json['character'], profilePath: json['profile_path'], order: json['order'] ?? 0);
+}
+
+class TmdbShowRecommendations {
+  final List<RecommendedShow> results;
+
+  TmdbShowRecommendations({required this.results});
+
+  factory TmdbShowRecommendations.fromJson(Map<String, dynamic> json) =>
+      TmdbShowRecommendations(results: (json['results'] as List<dynamic>? ?? []).map((e) => RecommendedShow.fromJson(e)).toList());
+}
+
+/// Lightweight show shape returned by the recommendations/similar endpoints —
+/// no need to pull in the full TmdbShow model for a poster rail.
+class RecommendedShow {
+  final int id;
+  final String name;
+  final String? posterPath;
+  final double voteAverage;
+  final String firstAirDate;
+
+  RecommendedShow({required this.id, required this.name, this.posterPath, required this.voteAverage, required this.firstAirDate});
+
+  factory RecommendedShow.fromJson(Map<String, dynamic> json) => RecommendedShow(
+    id: json['id'] ?? 0,
+    name: json['name'] ?? '',
+    posterPath: json['poster_path'],
+    voteAverage: (json['vote_average'] ?? 0).toDouble(),
+    firstAirDate: json['first_air_date'] ?? '',
+  );
+}
+
+class TmdbMovieRecommendations {
+  final List<RecommendedMovie> results;
+
+  TmdbMovieRecommendations({required this.results});
+
+  factory TmdbMovieRecommendations.fromJson(Map<String, dynamic> json) =>
+      TmdbMovieRecommendations(results: (json['results'] as List<dynamic>? ?? []).map((e) => RecommendedMovie.fromJson(e)).toList());
+}
+
+/// Lightweight movie shape returned by the recommendations/similar endpoints —
+/// no need to pull in the full TmdbMovie model for a poster rail.
+///
+class RecommendedMovie {
+  final int id;
+  final String title;
+  final String? posterPath;
+  final double voteAverage;
+  final String releaseDate;
+
+  RecommendedMovie({required this.id, required this.title, this.posterPath, required this.voteAverage, required this.releaseDate});
+
+  factory RecommendedMovie.fromJson(Map<String, dynamic> json) => RecommendedMovie(
+    id: json['id'] ?? 0,
+    title: json['title'] ?? '',
+    posterPath: json['poster_path'],
+    voteAverage: (json['vote_average'] ?? 0).toDouble(),
+    releaseDate: json['release_date'] ?? '',
+  );
+}
+
+class TmdbPerson {
+  final int id;
+  final String name;
+  final String? biography;
+  final String? profilePath;
+  final String? birthday;
+  final String? deathday;
+  final String? placeOfBirth;
+  final List<String> alsoKnownAs;
+  final String? knownForDepartment;
+  final PersonMovieCredits? movieCredits;
+
+  TmdbPerson({
+    required this.id,
+    required this.name,
+    this.biography,
+    this.profilePath,
+    this.birthday,
+    this.deathday,
+    this.placeOfBirth,
+    required this.alsoKnownAs,
+    this.knownForDepartment,
+    this.movieCredits,
+  });
+
+  factory TmdbPerson.fromJson(Map<String, dynamic> json) => TmdbPerson(
+        id: json['id'] ?? 0,
+        name: json['name'] ?? '',
+        biography: json['biography'],
+        profilePath: json['profile_path'],
+        birthday: json['birthday'],
+        deathday: json['deathday'],
+        placeOfBirth: json['place_of_birth'],
+        alsoKnownAs: (json['also_known_as'] as List<dynamic>? ?? []).cast<String>(),
+        knownForDepartment: json['known_for_department'],
+        movieCredits: json['movie_credits'] != null ? PersonMovieCredits.fromJson(json['movie_credits']) : null,
+      );
+}
+
+class PersonMovieCredits {
+  final List<PersonCastCredit> cast;
+
+  PersonMovieCredits({required this.cast});
+
+  factory PersonMovieCredits.fromJson(Map<String, dynamic> json) => PersonMovieCredits(
+        cast: (json['cast'] as List<dynamic>? ?? []).map((e) => PersonCastCredit.fromJson(e)).toList(),
+      );
+}
+
+/// A single movie in an actor's filmography (from /person/{id} movie_credits).
+class PersonCastCredit {
+  final int id;
+  final String title;
+  final String? posterPath;
+  final String? character;
+  final double voteAverage;
+  final String releaseDate;
+
+  PersonCastCredit({
+    required this.id,
+    required this.title,
+    this.posterPath,
+    this.character,
+    required this.voteAverage,
+    required this.releaseDate,
+  });
+
+  factory PersonCastCredit.fromJson(Map<String, dynamic> json) => PersonCastCredit(
+        id: json['id'] ?? 0,
+        title: json['title'] ?? '',
+        posterPath: json['poster_path'],
+        character: json['character'],
+        voteAverage: (json['vote_average'] ?? 0).toDouble(),
+        releaseDate: json['release_date'] ?? '',
+      );
+
+  /// Sort key so the newest movies show first.
+  int get releaseYear {
+    final year = releaseDate.split('-').firstOrNull;
+    return int.tryParse(year ?? '') ?? 0;
+  }
+}
+

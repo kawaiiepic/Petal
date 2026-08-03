@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  flutter_js
   media_kit_video
   screen_retriever_windows
   url_launcher_windows

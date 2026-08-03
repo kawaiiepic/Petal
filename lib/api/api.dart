@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:petal/api/catalog_helper.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/main.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
@@ -9,7 +9,6 @@ import 'package:petal/models/settings.dart';
 import 'package:flutter/material.dart';
 
 class Api {
-  static bool traktLoggedIn = false;
   static bool devMode = false;
 
   static String proxyImage(String url) {
@@ -22,9 +21,9 @@ class Api {
   static Timer? healthyTimer;
 
   static Future<void> initApi() async {
-    await TraktApi.init();
+    await BackendApi.init();
     // initial check
-    healthyTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    healthyTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       healthCheck();
 
       healthyTimer?.cancel();
@@ -34,8 +33,9 @@ class Api {
   }
 
   static Future<void> _onBackendRecovered() async {
-    if (await TraktApi.verifySession()) {
-      TraktApi.authState.setLoggedIn(true);
+    if (await BackendApi.verifySession()) {
+      BackendApi.authState.setLoggedIn(true);
+      BackendApi.authState.setProfile((await BackendApi.profiles()).first);
     }
     CatalogApi.clearCache();
   }
@@ -43,7 +43,7 @@ class Api {
   static Future<bool> healthCheck() async {
     print("Health check./..");
     try {
-      final res = await TraktApi.dio.get("$ServerUrl/health").timeout(const Duration(seconds: 3));
+      final res = await BackendApi.dio.get("$ServerUrl/health").timeout(const Duration(seconds: 3));
 
       _onBackendRecovered();
 
@@ -59,7 +59,7 @@ class Api {
   }
 
   static Future<Settings?> userSettings() async {
-    final response = await TraktApi.dio.get('${Api.ServerUrl}/user/settings');
+    final response = await BackendApi.dio.get('${Api.ServerUrl}/user/settings');
 
     if (response.statusCode == 200) {
       return Settings.fromJson(response.data);

@@ -1,7 +1,10 @@
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/api/trakt/trakt_class.dart';
-import 'package:petal/api/trakt/trakt_helper.dart';
+import 'package:petal/models/media_state.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
 import 'package:petal/widgets/scrollable_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -17,13 +20,19 @@ class TraktNextUp extends StatefulWidget {
 
 class _TraktNextUp extends State<TraktNextUp> {
   late final ScrollController _controller;
-  late Future<List<TraktWatchedShowWithProgress>> _watchedFuture;
+  late Future<List<MediaState>> _watchedFuture;
 
   @override
   void initState() {
     super.initState();
     _controller = ScrollController();
-    _watchedFuture = TraktApi.fetchWatchedShowWithProgress();
+    _watchedFuture = BackendApi.continueWatching();
+
+    BackendApi.authState.addListener(() {
+      setState(() {
+        _watchedFuture = BackendApi.continueWatching();
+      });
+    });
   }
 
   @override
@@ -32,7 +41,7 @@ class _TraktNextUp extends State<TraktNextUp> {
     return Column(
       spacing: 8,
       children: [
-        Text('Next Ups', style: style),
+        Text('Continue Watching', style: style),
         FutureBuilder(
           future: _watchedFuture,
           builder: (context, snapshot) {
@@ -45,26 +54,13 @@ class _TraktNextUp extends State<TraktNextUp> {
                   controller: _controller,
                   itemExtent: 38.w,
                   scrollDirection: Axis.horizontal,
-                  key: PageStorageKey<String>('unique_key_for_this_list'),
+                  key: const PageStorageKey<String>('unique_key_for_this_list'),
 
-                  itemCount: snapshot.hasData ? snapshot.data!.length : 10,
-                  itemBuilder: (context, index) => snapshot.hasData
-                      ? TraktNextUpItem(key: ValueKey(snapshot.data![index].watchedShow!.show.title), show: snapshot.data![index])
-                      : Container(
-                          color: Colors.transparent,
-                          width: 300,
-                          height: 250,
-                          child: Padding(
-                            padding: EdgeInsetsGeometry.fromLTRB(16, 0, 16, 16),
-                            child: Container(
-                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.0)),
-                              child: ClipRRect(
-                                borderRadius: BorderRadiusGeometry.circular(8),
-                                child: Container(color: Colors.pink.withAlpha(40)),
-                              ),
-                            ),
-                          ),
-                        ).asSkeleton(),
+                  itemCount: snapshot.hasData ? snapshot.data!.length : 5,
+                  itemBuilder: (context, index) {
+                    final state = snapshot.hasData ? snapshot.data![index] : null;
+                    return TraktNextUpItem(key: ValueKey(state?.tmdbId ?? 'skeleton_$index'), state: state);
+                  },
                 ),
               ),
             );
@@ -76,129 +72,101 @@ class _TraktNextUp extends State<TraktNextUp> {
 }
 
 class TraktNextUpItem extends StatefulWidget {
-  final TraktWatchedShowWithProgress show;
+  final MediaState? state;
 
-  const TraktNextUpItem({super.key, required this.show});
+  const TraktNextUpItem({super.key, required this.state});
 
   @override
   State<StatefulWidget> createState() => _TraktNextUpItem();
 }
 
 class _TraktNextUpItem extends State<TraktNextUpItem> {
-  late final Future<String> _futureStill;
+  Future<TmdbEpisode>? _futureEpisode;
+  Future<TmdbShow>? _futureShow;
 
   @override
   void initState() {
     super.initState();
-    _futureStill = TMDB.episodeStill(
-      widget.show.watchedShow!.show.ids.tmdb.toString(),
-      widget.show.showProgress.nextEpisode!.season,
-      widget.show.showProgress.nextEpisode!.number,
-    );
+    final state = widget.state;
+    if (state != null) {
+      _futureShow = TMDB.tvShow(state.tmdbId);
+      _futureEpisode = TMDB.tvEpisode(state.tmdbId, state.season, state.episode);
+    }
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder(
-    future: _futureStill,
-    builder: (context, tmdbPosterSnapshot) {
-      switch (tmdbPosterSnapshot.connectionState) {
-        case ConnectionState.active:
-        case ConnectionState.done:
-          {
-            if (tmdbPosterSnapshot.hasError) {
-              return Text('Error: ${widget.show.watchedShow!.show.ids.tmdb}');
-            }
+  Widget build(BuildContext context) {
+    final state = widget.state;
 
-            return ContextMenu(
-              items: [
+    final isLoading = state == null;
+
+    return FutureBuilder(
+      future: _futureEpisode,
+      builder: (context, snapshot) => Column(
+        spacing: 8,
+        children: [
+          Expanded(
+            child: HoverableItem(
+              orientation: Orientation.landscape,
+              contextItems: [
                 MenuButton(
-                  onPressed: (context) => context.push(
-                    '/streams?show=${widget.show.watchedShow!.show.ids.tmdb}&s=${widget.show.showProgress.nextEpisode!.season}&e=${widget.show.showProgress.nextEpisode!.number}',
-                  ),
-                  child: Text('Select Source'),
+                  leading: const Icon(Icons.play_arrow_rounded),
+                  trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
+                  child: const Text('Resume'),
                 ),
-                MenuButton(child: Text('View Show')),
-                MenuButton(child: Text('Mark as Watched')),
+                MenuButton(
+                  leading: const Icon(Icons.dns_outlined),
+                  trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+                  child: const Text('Select Source'),
+                ),
+                const MenuDivider(),
+                MenuButton(leading: const Icon(Icons.info_outline_rounded), child: const Text('More Info')),
+                const MenuDivider(),
+                MenuButton(leading: const Icon(Icons.check_rounded), child: const Text('Mark as Watched')),
+                MenuButton(leading: const Icon(Icons.replay_rounded), child: const Text('Restart')),
+                MenuButton(leading: const Icon(Icons.bookmark_outline_rounded), child: Text(true ? 'Remove from Watchlist' : 'Add to Watchlist')),
+                const MenuDivider(),
+                MenuButton(leading: const Icon(Icons.remove_circle_outline_rounded), child: const Text('Remove from Continue Watching')),
               ],
-              child: Column(
-                spacing: 8,
-                children: [
-                  Expanded(
-                    child: HoverableItem(
-                      orientation: Orientation.landscape,
-                      image: CachedNetworkImage(imageUrl: tmdbPosterSnapshot.data!, fit: BoxFit.cover),
-                      onTap: () {
-                        context.push(
-                          '/player?show=${widget.show.watchedShow!.show.ids.tmdb}&s=${widget.show.showProgress.nextEpisode!.season}&e=${widget.show.showProgress.nextEpisode!.number}',
-                        );
-                      },
-                    ),
-                  ),
-                  Text(
-                    style: TextStyle(fontSize: 15.px),
-                    "${widget.show.showProgress.nextEpisode!.season}x${widget.show.showProgress.nextEpisode!.number} ${widget.show.watchedShow!.show.title}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
-                  Text(
-                    style: TextStyle(fontSize: 15.px),
-                    widget.show.showProgress.nextEpisode!.title!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 5),
-                ],
-              ),
-            );
-
-            return SizedBox(
-              height: 100,
-              child: Column(
-                spacing: 8,
-                children: [
-                  ContextMenu(
-                    items: [
-                      MenuButton(
-                        onPressed: (context) => context.push(
-                          '/streams?show=${widget.show.watchedShow!.show.ids.tmdb}&s=${widget.show.showProgress.nextEpisode!.season}&e=${widget.show.showProgress.nextEpisode!.number}',
-                        ),
-                        child: Text('Select Source'),
+              onTap: () {
+                context.push('/player?show=${state?.tmdbId}&s=${state?.season}&e=${state?.episode}');
+              },
+              image: snapshot.hasData
+                  ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl!, fit: BoxFit.cover)
+                  : Avatar(initials: '', borderRadius: 12).asSkeleton(),
+              extraWidget: state != null && state.completion > 0.0 && state.completion < 1.0
+                  ? Positioned(
+                      bottom: 8,
+                      left: 8,
+                      right: 8,
+                      child: SizedBox(
+                        child: LinearProgressIndicator(value: state.completion, minHeight: 5, borderRadius: BorderRadius.circular(8)),
                       ),
-                      MenuButton(child: Text('View Show')),
-                      MenuButton(child: Text('Mark as Watched')),
-                    ],
-                    child: HoverableItem(
-                      orientation: Orientation.landscape,
-                      onTap: () {
-                        context.push(
-                          '/player?show=${widget.show.watchedShow!.show.ids.tmdb}&s=${widget.show.showProgress.nextEpisode!.season}&e=${widget.show.showProgress.nextEpisode!.number}',
-                        );
-                      },
-                      image: CachedNetworkImage(imageUrl: tmdbPosterSnapshot.data!, fit: BoxFit.cover),
-                    ),
-                  ),
+                    )
+                  : null,
+            ),
+          ),
 
-                  Text(
-                    style: TextStyle(fontSize: 15.px),
-                    "${widget.show.showProgress.nextEpisode!.season}x${widget.show.showProgress.nextEpisode!.number} ${widget.show.watchedShow!.show.title}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+          FutureBuilder(
+            future: _futureShow,
+            builder: (context, snap2) => Text(
+              isLoading || !snap2.hasData ? "00x00 Loading..." : "${state.season}x${state.episode} ${snap2.data!.name}",
+              style: TextStyle(fontSize: 15.px),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ).asSkeleton(snapshot: snap2),
+          ),
 
-                  Text(
-                    style: TextStyle(fontSize: 15.px),
-                    widget.show.showProgress.nextEpisode!.title!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            );
-          }
-        case _:
-          return Text('gay');
-      }
-    },
-  );
+          Text(
+            isLoading || !snapshot.hasData ? "Loading..." : snapshot.data!.name,
+            style: TextStyle(fontSize: 15.px),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+
+          const SizedBox(height: 5),
+        ],
+      ).asSkeleton(snapshot: snapshot),
+    );
+  }
 }

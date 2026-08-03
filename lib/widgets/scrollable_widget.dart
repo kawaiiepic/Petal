@@ -12,7 +12,7 @@ class ScrollableWidget extends StatefulWidget {
 
 class _ScrollableWidget extends State<ScrollableWidget> {
   bool _canScrollLeft = false;
-  bool _canScrollRight = true;
+  bool _canScrollRight = false;
   bool _isHovering = false;
 
   late final ScrollController _controller;
@@ -25,18 +25,23 @@ class _ScrollableWidget extends State<ScrollableWidget> {
 
     _controller.addListener(_updateArrows);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrows);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrows());
   }
 
   void _updateArrows() {
     if (!_controller.hasClients) return;
 
-    final pos = _controller.position;
+    final position = _controller.position;
 
-    setState(() {
-      _canScrollLeft = pos.pixels > 0;
-      _canScrollRight = pos.pixels < pos.maxScrollExtent;
-    });
+    final canLeft = position.pixels > 1;
+    final canRight = position.pixels < position.maxScrollExtent - 1;
+
+    if (canLeft != _canScrollLeft || canRight != _canScrollRight) {
+      setState(() {
+        _canScrollLeft = canLeft;
+        _canScrollRight = canRight;
+      });
+    }
   }
 
   void _scrollBy(double offset) {
@@ -50,39 +55,45 @@ class _ScrollableWidget extends State<ScrollableWidget> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.removeListener(_updateArrows);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
-      cursor: SystemMouseCursors.click,
-      child: Stack(
-        children: [
-          widget.child,
+    return NotificationListener<ScrollMetricsNotification>(
+      onNotification: (notification) {
+        _updateArrows();
+        return false;
+      },
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovering = true),
+        onExit: (_) => setState(() => _isHovering = false),
+        cursor: SystemMouseCursors.click,
+        child: Stack(
+          children: [
+            widget.child,
 
-          Positioned(
-            left: 8,
-            top: widget.offset,
-            bottom: 0,
+            Positioned(
+              left: 8,
+              top: widget.offset,
+              bottom: 0,
 
-            child: Center(
-              child: ArrowButton(visible: _isHovering && _canScrollLeft, icon: Icons.arrow_back_ios_new, onPressed: () => _scrollBy(-900)),
+              child: Center(
+                child: ArrowButton(visible: _isHovering && _canScrollLeft, icon: Icons.arrow_back_ios_new, onPressed: () => _scrollBy(-900)),
+              ),
             ),
-          ),
 
-          Positioned(
-            right: 8,
-            top: widget.offset,
-            bottom: 0,
-            child: Center(
-              child: ArrowButton(visible: _isHovering && _canScrollRight, icon: Icons.arrow_forward_ios, onPressed: () => _scrollBy(900)),
+            Positioned(
+              right: 8,
+              top: widget.offset,
+              bottom: 0,
+              child: Center(
+                child: ArrowButton(visible: _isHovering && _canScrollRight, icon: Icons.arrow_forward_ios, onPressed: () => _scrollBy(900)),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
