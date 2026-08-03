@@ -321,7 +321,6 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
 
                       FutureBuilder(
                         future: _season,

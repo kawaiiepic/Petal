@@ -205,10 +205,8 @@ class _SearchState extends State<Search> {
                         return Button(
                           onPressed: () async {
                             if (!mounted) return;
-                            final search = await ApiCache.getTmdbSearch(choice.id);
-                            final tmdbResults = choice.type == "series" ? search.tv.first : search.movies.first;
                             context.pop();
-                            context.push('/${choice.type}/${tmdbResults.id}');
+                            context.push('/${choice.type}/${choice.id}');
                           },
                           style: ButtonVariance.text,
                           child: Text('${choice.name} // ${choice.type} // ${choice.releaseInfo}', style: const TextStyle(color: Colors.white, fontSize: 13)),
