@@ -9,13 +9,13 @@ import 'package:petal/models/settings.dart';
 import 'package:flutter/material.dart';
 
 class Api {
-  static bool devMode = false;
+  static bool devMode = true;
 
   static String proxyImage(String url) {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
   }
 
-  static final ServerUrl = devMode ? 'http://localhost:8787' : 'https://petal-backend.blossomvale.dev';
+  static final ServerUrl = devMode ? 'http://localhost:8788' : 'https://petal-backend.blossomvale.dev';
 
   static final ValueNotifier<bool> healthy = ValueNotifier(false);
   static Timer? healthyTimer;

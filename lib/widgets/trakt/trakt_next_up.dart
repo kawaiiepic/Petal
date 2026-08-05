@@ -45,25 +45,29 @@ class _TraktNextUp extends State<TraktNextUp> {
         FutureBuilder(
           future: _watchedFuture,
           builder: (context, snapshot) {
-            return SizedBox(
-              height: 25.h,
-              child: ScrollableWidget(
-                controller: _controller,
-                offset: -25,
-                child: ListView.builder(
+            if (snapshot.connectionState == ConnectionState.done && snapshot.hasData == false) {
+              return Text('No items to continue watching');
+            } else {
+              return SizedBox(
+                height: 25.h,
+                child: ScrollableWidget(
                   controller: _controller,
-                  itemExtent: 38.w,
-                  scrollDirection: Axis.horizontal,
-                  key: const PageStorageKey<String>('unique_key_for_this_list'),
+                  offset: -25,
+                  child: ListView.builder(
+                    controller: _controller,
+                    itemExtent: 38.w,
+                    scrollDirection: Axis.horizontal,
+                    key: const PageStorageKey<String>('unique_key_for_this_list'),
 
-                  itemCount: snapshot.hasData ? snapshot.data!.length : 5,
-                  itemBuilder: (context, index) {
-                    final state = snapshot.hasData ? snapshot.data![index] : null;
-                    return TraktNextUpItem(key: ValueKey(state?.tmdbId ?? 'skeleton_$index'), state: state);
-                  },
+                    itemCount: snapshot.hasData ? snapshot.data!.length : 5,
+                    itemBuilder: (context, index) {
+                      final state = snapshot.hasData ? snapshot.data![index] : null;
+                      return TraktNextUpItem(key: ValueKey(state?.tmdbId ?? 'skeleton_$index'), state: state);
+                    },
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           },
         ),
       ],

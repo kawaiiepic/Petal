@@ -127,10 +127,13 @@ class BackendApi {
   }
 
   static Future<List<MediaState>> continueWatching() async {
+    if (authState.selectedProfile == null) return [];
     final url = '${Api.ServerUrl}/track/continue/${authState.selectedProfile?.id}';
     final response = await dio.get(url);
 
     final json = response.data['result'] as List;
+
+    print(json);
 
     // map to list of futures
     final futures = json.map((json) async {
@@ -141,5 +144,10 @@ class BackendApi {
     // wait for all futures to complete
     final addons = await Future.wait(futures);
     return addons;
+  }
+
+    static Future<void> setState(String name) async {
+    final url = '${Api.ServerUrl}/track/state/';
+    await dio.post(url, data: {"name": name, "avatar": "builtin:1"});
   }
 }

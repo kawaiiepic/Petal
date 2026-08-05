@@ -4,9 +4,8 @@ class MediaState {
   final int season;
   final int episode;
   final double completion;
-  final String? nextEpisode;
 
-  MediaState({required this.tmdbId, required this.mediaType, required this.season, required this.episode, required this.completion, this.nextEpisode});
+  MediaState({required this.tmdbId, required this.mediaType, required this.season, required this.episode, required this.completion});
 
   factory MediaState.fromJson(Map<String, dynamic> json) {
     return MediaState(
@@ -14,8 +13,7 @@ class MediaState {
       mediaType: json['media_type'],
       season: json['season'],
       episode: json['episode'],
-      completion: json['completion'],
-      nextEpisode: json['next_episode'],
+      completion: (json['completion'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
