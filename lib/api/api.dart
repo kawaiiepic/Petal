@@ -9,7 +9,7 @@ import 'package:petal/models/settings.dart';
 import 'package:flutter/material.dart';
 
 class Api {
-  static bool devMode = true;
+  static bool devMode = false;
 
   static String proxyImage(String url) {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";

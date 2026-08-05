@@ -146,8 +146,8 @@ class BackendApi {
     return addons;
   }
 
-    static Future<void> setState(String name) async {
-    final url = '${Api.ServerUrl}/track/state/';
-    await dio.post(url, data: {"name": name, "avatar": "builtin:1"});
+  static Future<void> setState(int tmdbId, String media_type, int season, int episode, double progress) async {
+    final url = '${Api.ServerUrl}/track/state/${authState.selectedProfile?.id}/$tmdbId/$media_type/$season/$episode';
+    await dio.put(url, data: {"completion": progress});
   }
 }
