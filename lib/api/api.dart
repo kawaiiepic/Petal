@@ -17,7 +17,7 @@ class Api {
 
   static final ServerUrl = devMode ? 'http://localhost:8788' : 'https://petal-backend.blossomvale.dev';
 
-  static final ValueNotifier<bool> healthy = ValueNotifier(false);
+  static ValueNotifier<bool> healthy = ValueNotifier(false);
   static Timer? healthyTimer;
 
   static Future<void> initApi() async {
@@ -33,6 +33,7 @@ class Api {
   }
 
   static Future<void> _onBackendRecovered() async {
+    healthy.value = true;
     if (await BackendApi.verifySession()) {
       BackendApi.authState.setLoggedIn(true);
       BackendApi.authState.setProfile((await BackendApi.profiles()).first);
