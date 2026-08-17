@@ -1,14 +1,8 @@
-import 'dart:io';
-
 import 'package:collection/collection.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show CircleAvatar, Dialog;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/navigation/profile.dart';
 import 'package:petal/pages/dashboard/search_widget.dart';
-import 'package:petal/widgets/crop.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Navigation extends StatelessWidget {
@@ -40,14 +34,13 @@ class Navigation extends StatelessWidget {
     return Scaffold(
       headers: [
         SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset('assets/images/logo-clean.svg', height: 30),
-              Search(),
-              UserProfile()
-            ],
+          child: Padding(
+            padding: EdgeInsetsGeometry.fromLTRB(32, 0, 32, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // mainAxisSize: MainAxisSize.min,
+              children: [SvgPicture.asset('assets/images/logo-clean.svg', height: 30), Search(), UserProfile()],
+            ),
           ),
         ),
       ],

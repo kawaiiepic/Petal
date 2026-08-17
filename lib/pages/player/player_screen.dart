@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:petal/api/discord.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/custom_model.dart';
 import 'package:petal/models/stream.dart';
 import 'package:petal/pages/player/player_controls.dart';
@@ -38,29 +39,64 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     controller = VideoController(player, configuration: VideoControllerConfiguration());
 
+    player.stream.error.listen((event) {
+      showToast(
+        context: context,
+        builder: buildToast,
+        // Position top-left.
+        location: ToastLocation.bottomLeft,
+      );
+      if (mounted) context.pop();
+    });
+
     _startStream();
   }
 
+  Widget buildToast(BuildContext context, ToastOverlay overlay) {
+    return SurfaceCard(
+      child: Basic(
+        title: const Text('Stream failed to load'),
+        subtitle: Text(selectedStream.title),
+        trailing: PrimaryButton(
+          size: ButtonSize.small,
+          onPressed: () {
+            // Close the toast programmatically when clicking Undo.
+            overlay.close();
+          },
+          child: const Text('Retry'),
+        ),
+        trailingAlignment: Alignment.center,
+      ),
+    );
+  }
+
   Future<void> _startStream() async {
-    try {
-      final mediaImdb = widget.showId != null ? (await TMDB.tvShow(widget.showId!)).imdbId : (await TMDB.movie(widget.movieId!)).imdbId;
+    final mediaImdb = widget.showId != null ? (await TMDB.tvShow(widget.showId!)).imdbId : (await TMDB.movie(widget.movieId!)).imdbId;
 
-      final streams = await StreamApi.fetchStreams(mediaImdb!, widget.episode);
-      final stream = widget.stream ?? StreamApi.autoSelectStream(streams);
+    final streams = await StreamApi.fetchStreams(mediaImdb!, widget.episode);
+    final stream = widget.stream ?? StreamApi.autoSelectStream(streams);
 
-      if (stream == null) {
-        if (mounted) context.pop();
-        return;
-      }
-
-      selectedStream = stream;
-
-      await player.open(Media(selectedStream.url));
-      if (mounted) setState(() => _controllerReady = true);
-    } catch (e, st) {
-      debugPrint('Failed to start stream: $e\n$st');
+    if (stream == null) {
       if (mounted) context.pop();
+      return;
     }
+
+    selectedStream = stream;
+
+    await player.open(Media(selectedStream.url));
+    if (mounted) setState(() => _controllerReady = true);
+  }
+
+  Future<void> closeStream() async {
+    print("Progress is: ${player.state.position.inMinutes / player.state.duration.inMinutes}");
+    BackendApi.setProgress(
+      widget.showId ?? widget.movieId!,
+      widget.showId != null ? "episode" : "movie",
+      widget.episode?.seasonNumber ?? 0,
+      widget.episode?.episodeNumber ?? 0,
+      player.state.position.inSeconds / player.state.duration.inSeconds,
+    );
+    context.pop();
   }
 
   @override

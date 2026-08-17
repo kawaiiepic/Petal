@@ -5,7 +5,6 @@ import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/models/custom_model.dart';
 
 import 'package:petal/models/stream.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
@@ -55,7 +54,14 @@ class _StreamsPageState extends State<StreamsPage> {
         future: _showData,
         builder: (context, snapshot) {
           return Scaffold(
-            appBar: AppBar(title: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp), snapshot.hasData ? "${(snapshot.data![0] as TmdbShow).name} ${(snapshot.data![1] as TmdbEpisode).seasonNumber}x${(snapshot.data![1] as TmdbEpisode).episodeNumber}" : '')),
+            appBar: AppBar(
+              title: Text(
+                style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp),
+                snapshot.hasData
+                    ? "${(snapshot.data![0] as TmdbShow).name} ${(snapshot.data![1] as TmdbEpisode).seasonNumber}x${(snapshot.data![1] as TmdbEpisode).episodeNumber}"
+                    : '',
+              ),
+            ),
             body: FutureBuilder<List<StreamItem>>(
               future: _streamsFuture,
               builder: (context, snapshot) {
@@ -66,9 +72,13 @@ class _StreamsPageState extends State<StreamsPage> {
                 final streams = snapshot.data!;
                 if (streams.isEmpty) {
                   if (snapshot.data!.isEmpty) {
-                    return Center(child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No stream capable Addons'));
+                    return Center(
+                      child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No stream capable Addons'),
+                    );
                   } else {
-                    return Center(child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No streams found'));
+                    return Center(
+                      child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No streams found'),
+                    );
                   }
                 }
 
@@ -89,7 +99,12 @@ class _StreamsPageState extends State<StreamsPage> {
         future: movie,
         builder: (context, snapshot) {
           return Scaffold(
-            appBar: AppBar(title: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp), snapshot.hasData ? snapshot.data!.title : 'Example Title')),
+            appBar: AppBar(
+              title: Text(
+                style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp),
+                snapshot.hasData ? snapshot.data!.title : 'Example Title',
+              ),
+            ),
             body: FutureBuilder<List<StreamItem>>(
               future: _streamsFuture,
               builder: (context, snapshot) {
@@ -100,9 +115,13 @@ class _StreamsPageState extends State<StreamsPage> {
                 final streams = snapshot.data!;
                 if (streams.isEmpty) {
                   if (snapshot.data!.isEmpty) {
-                    return Center(child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No \'stream\' capable Addons'));
+                    return Center(
+                      child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No \'stream\' capable Addons'),
+                    );
                   } else {
-                    return Center(child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No streams found'));
+                    return Center(
+                      child: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 10.sp : 13.sp), 'No streams found'),
+                    );
                   }
                 }
 
@@ -146,40 +165,14 @@ class StreamTile extends StatelessWidget {
       onTap: () {
         if (stream.external) {
           launchUrl(Uri.parse(stream.url));
-        }
-        if (kIsWeb) {
-          showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: const Text("Playback not supported"),
-                content: SelectableText("This stream can't be played in the built-in player. Open it externally.\n\n${stream.url}"),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Cancel"),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      if (episode != null) {
-                        context.pushReplacement('/player?show=$tmdbId&s=${episode?.seasonNumber}&e=${episode?.episodeNumber}&url=${stream.url}');
-                      }
-
-                      // Navigator.pop(context);
-                    },
-                    child: const Text("Open Stream"),
-                  ),
-                ],
-              );
-            },
-          );
         } else {
           if (episode != null) {
             context.pushReplacement('/player?show=$tmdbId&s=${episode?.seasonNumber}&e=${episode?.episodeNumber}', extra: stream);
+          } else {
+            context.pushReplacement('/player?movie=$tmdbId', extra: stream);
           }
         }
+
       },
     );
   }

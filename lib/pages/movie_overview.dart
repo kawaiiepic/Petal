@@ -186,7 +186,7 @@ class _MovieOverviewState extends State<MovieOverview> {
                             style: TextStyle(color: Colors.green[400], fontWeight: FontWeight.w600, fontSize: Misc.labelSize),
                           ),
                           Text(
-                            movie?.releaseDate.split('-').firstOrNull ?? '2001',
+                            movie?.releaseDate.year.toString() ?? '2001',
                             style: TextStyle(color: Colors.white, fontSize: Misc.labelSize),
                           ),
                           // if (movie.episodeRunTime.isNotEmpty)

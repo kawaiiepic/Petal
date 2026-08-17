@@ -10,7 +10,6 @@ import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
 
 class ApiCache {
   static Future<List<Addon>>? _addonsFuture;

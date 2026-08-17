@@ -6,8 +6,6 @@ import 'package:petal/api/discord.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:petal/api/trakt/backend_api.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/pages/player/player_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
@@ -103,8 +101,6 @@ class _PlayerControls extends State<PlayerControls> {
     _startHideTimer();
     _isShow = widget.widgetState.widget.showId != null;
 
-    _nextUpEpisode = nextUpEpisode();
-
     widget.player.stream.log.listen((log) {
       debugPrint('[${log.level}] ${log.prefix}: ${log.text}');
     });
@@ -113,17 +109,7 @@ class _PlayerControls extends State<PlayerControls> {
       final show = widget.widgetState.widget;
       final episode = show.episode!;
       _showData = (TMDB.tvShow(show.showId!), TMDB.tvEpisode(show.showId!, episode.seasonNumber, episode.episodeNumber)).wait;
-
-      // _showData.then((showData) {
-      //   if (TraktApi.authState.traktConnected) {
-      //     TraktApi.startWatching(MediaType.show, {
-      //       "progress": 0.0,
-      //       "episode": {
-      //         "ids": {"tmdb": showData.$2.id},
-      //       },
-      //     });
-      //   }
-      // });
+      _nextUpEpisode = nextUpEpisode();
     } else {
       _movie = TMDB.movie(widget.widgetState.widget.movieId!);
     }
@@ -146,6 +132,28 @@ class _PlayerControls extends State<PlayerControls> {
                     widget.player.state.position,
                     data.$2, // the just-loaded, real duration
                     show.$2.stillUrl!,
+                    data.$1,
+                  );
+                });
+              });
+    } else {
+      _discordSub =
+          Rx.combineLatest2<bool, Duration, (bool, Duration)>(
+                widget.player.stream.playing.startWith(widget.player.state.playing),
+                widget.player.stream.duration.startWith(widget.player.state.duration),
+                (playing, duration) => (playing, duration),
+              )
+              .where((data) => data.$2 > Duration.zero) // ignore until duration is actually loaded
+              .distinct()
+              .listen((data) {
+                _movie.then((movie) {
+                  print("Updating Discord Status");
+                  Discord.updateStatus(
+                    '${movie.title} (${movie.releaseDate.year})',
+                    movie.genres.map((item) => item.name).join(', '),
+                    widget.player.state.position,
+                    data.$2, // the just-loaded, real duration
+                    movie.images?.posters.first.url ?? '',
                     data.$1,
                   );
                 });
@@ -305,36 +313,6 @@ class _PlayerControls extends State<PlayerControls> {
     super.dispose();
   }
 
-  // void restartUi({bool toggle = false}) {
-  //   if (toggle && _uiIsActive == true) {
-  //     setState(() {
-  //       _uiIsActive = false;
-  //     });
-
-  //     widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
-  //     _uiTimer?.cancel();
-  //     return;
-  //   }
-  //   if (_uiIsActive == false) {
-  //     setState(() {
-  //       _uiIsActive = true;
-  //     });
-
-  //     widget.state.setSubtitleViewPadding(EdgeInsets.fromLTRB(0, 0, 0, 100) + widget.state.widget.subtitleViewConfiguration.padding);
-  //   }
-
-  //   _uiTimer?.cancel();
-  //   _uiTimer = Timer.periodic(Duration(milliseconds: 5500), (timer) {
-  //     if (isPlaying && isLoaded.value && overlayInt == 0) {
-  //       setState(() {
-  //         _uiIsActive = false;
-  //       });
-  //       widget.state.setSubtitleViewPadding(widget.state.widget.subtitleViewConfiguration.padding);
-  //       timer.cancel();
-  //     }
-  //   });
-  // }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -350,11 +328,9 @@ class _PlayerControls extends State<PlayerControls> {
         }
       },
       onTapDown: (details) {
-        print('Tessting');
         _onMouseMove(toggle: true);
       },
       child: MouseRegion(
-        // hitTestBehavior: HitTestBehavior.deferToChild,
         onHover: (event) => _onMouseMove(),
         onEnter: (_) => setState(() => _showControls = true),
         onExit: (_) => setState(() => _showControls = false),
@@ -392,7 +368,7 @@ class _PlayerControls extends State<PlayerControls> {
                   alignment: Alignment.centerLeft,
                   child: IconButton(
                     variance: ButtonVariance.ghost,
-                    onPressed: () => context.pop(),
+                    onPressed: () => widget.widgetState.closeStream(),
                     icon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -451,6 +427,7 @@ class _PlayerControls extends State<PlayerControls> {
               ),
               Row(
                 spacing: 8,
+
                 children: [
                   ControlButton(
                     onTap: () => setState(() {
@@ -486,6 +463,9 @@ class _PlayerControls extends State<PlayerControls> {
                       icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
                     ),
                   ],
+
+                  if(!_isShow)
+                  ...[const Spacer()],
 
                   DropdownButton(
                     dropdownMenu: DropdownMenu(
@@ -1055,8 +1035,8 @@ class _NextUpCardState extends State<_NextUpCard> {
         final dur = widget.player.state.duration;
         final progress = dur.inMilliseconds > 0 ? pos.inMilliseconds / dur.inMilliseconds : 0.0;
         final nearEnd = progress > 0.93;
-        bool _dismissed = false;
-        final showCard = nearEnd && !_dismissed;
+        bool dismissed = false;
+        final showCard = nearEnd && !dismissed;
 
         if (showCard) {
           _startCountdown();
@@ -1103,7 +1083,7 @@ class _NextUpCardState extends State<_NextUpCard> {
                               child: CachedNetworkImage(
                                 imageUrl: 'https://image.tmdb.org/t/p/w300${episode.stillPath}',
                                 fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => const Center(child: Text('Image missing')),
+                                errorWidget: (_, _, _) => const Center(child: Text('Image missing')),
                               ),
                             ),
                             Container(color: Colors.black.withAlpha(120)),

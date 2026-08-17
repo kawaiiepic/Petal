@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_api.dart';
-import 'package:petal/api/trakt/trakt_class.dart';
+import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/models/media_state.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
 import 'package:petal/widgets/scrollable_widget.dart';
@@ -20,32 +20,31 @@ class TraktNextUp extends StatefulWidget {
 
 class _TraktNextUp extends State<TraktNextUp> {
   late final ScrollController _controller;
-  late Future<List<MediaState>> _watchedFuture;
 
   @override
   void initState() {
     super.initState();
     _controller = ScrollController();
-    _watchedFuture = BackendApi.continueWatching();
+    BackendCache.fetchContinueWatching();
 
     BackendApi.authState.addListener(() {
       setState(() {
-        _watchedFuture = BackendApi.continueWatching();
+        BackendCache.fetchContinueWatching();
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(fontSize: 18);
+    final style = TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp);
     return Column(
       spacing: 8,
       children: [
         Text('Continue Watching', style: style),
-        FutureBuilder(
-          future: _watchedFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done && snapshot.hasData == false) {
+        ValueListenableBuilder(
+          valueListenable: BackendCache.continueWatching,
+          builder: (context, list, child) {
+            if (list.isEmpty) {
               return Text('No items to continue watching');
             } else {
               return SizedBox(
@@ -55,14 +54,16 @@ class _TraktNextUp extends State<TraktNextUp> {
                   offset: -25,
                   child: ListView.builder(
                     controller: _controller,
-                    itemExtent: 38.w,
+                    // itemExtent: 38.w,
                     scrollDirection: Axis.horizontal,
                     key: const PageStorageKey<String>('unique_key_for_this_list'),
 
-                    itemCount: snapshot.hasData ? snapshot.data!.length : 5,
+                    itemCount: list.length,
                     itemBuilder: (context, index) {
-                      final state = snapshot.hasData ? snapshot.data![index] : null;
-                      return TraktNextUpItem(key: ValueKey(state?.tmdbId ?? 'skeleton_$index'), state: state);
+                      final state = list[index];
+                      return AutomaticKeepAlive(
+                        child: TraktNextUpItem(key: ValueKey(state.tmdbId), state: state),
+                      );
                     },
                   ),
                 ),
@@ -76,7 +77,7 @@ class _TraktNextUp extends State<TraktNextUp> {
 }
 
 class TraktNextUpItem extends StatefulWidget {
-  final MediaState? state;
+  final ContinueWatchingItem state;
 
   const TraktNextUpItem({super.key, required this.state});
 
@@ -84,17 +85,24 @@ class TraktNextUpItem extends StatefulWidget {
   State<StatefulWidget> createState() => _TraktNextUpItem();
 }
 
-class _TraktNextUpItem extends State<TraktNextUpItem> {
+class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveClientMixin<TraktNextUpItem> {
   Future<TmdbEpisode>? _futureEpisode;
   Future<TmdbShow>? _futureShow;
+  Future<TmdbMovie>? _futureMovie;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
     final state = widget.state;
-    if (state != null) {
+
+    if (state is ShowItem) {
       _futureShow = TMDB.tvShow(state.tmdbId);
-      _futureEpisode = TMDB.tvEpisode(state.tmdbId, state.season, state.episode);
+      _futureEpisode = TMDB.tvEpisode(state.tmdbId, state.nextEpisode!.season, state.nextEpisode!.episode);
+    } else {
+      _futureMovie = TMDB.movie(state.tmdbId);
     }
   }
 
@@ -102,43 +110,112 @@ class _TraktNextUpItem extends State<TraktNextUpItem> {
   Widget build(BuildContext context) {
     final state = widget.state;
 
-    final isLoading = state == null;
+    if (state is ShowItem) {
+      return episodeWidget(state);
+    } else if (state is MovieItem) {
+      return movieWidget(state);
+    }
 
-    return FutureBuilder(
-      future: _futureEpisode,
-      builder: (context, snapshot) => Column(
+    return Container();
+  }
+
+  List<MenuItem> contextItems() => [
+    MenuButton(
+      leading: const Icon(Icons.play_arrow_rounded),
+      trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
+      child: const Text('Resume'),
+    ),
+    MenuButton(
+      leading: const Icon(Icons.dns_outlined),
+      trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+      child: const Text('Select Source'),
+    ),
+    const MenuDivider(),
+    MenuButton(leading: const Icon(Icons.info_outline_rounded), child: const Text('More Info')),
+    const MenuDivider(),
+    MenuButton(leading: const Icon(Icons.check_rounded), child: const Text('Mark as Watched')),
+    MenuButton(leading: const Icon(Icons.replay_rounded), child: const Text('Restart')),
+    MenuButton(leading: const Icon(Icons.bookmark_outline_rounded), child: Text(true ? 'Remove from Watchlist' : 'Add to Watchlist')),
+    const MenuDivider(),
+    MenuButton(leading: const Icon(Icons.remove_circle_outline_rounded), child: const Text('Remove from Continue Watching')),
+  ];
+
+  Widget episodeWidget(ShowItem state) => FutureBuilder(
+    future: _futureEpisode,
+    builder: (context, snapshot) => Padding(
+      padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
+      child: Column(
         spacing: 8,
         children: [
           Expanded(
             child: HoverableItem(
               orientation: Orientation.landscape,
-              contextItems: [
-                MenuButton(
-                  leading: const Icon(Icons.play_arrow_rounded),
-                  trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
-                  child: const Text('Resume'),
-                ),
-                MenuButton(
-                  leading: const Icon(Icons.dns_outlined),
-                  trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
-                  child: const Text('Select Source'),
-                ),
-                const MenuDivider(),
-                MenuButton(leading: const Icon(Icons.info_outline_rounded), child: const Text('More Info')),
-                const MenuDivider(),
-                MenuButton(leading: const Icon(Icons.check_rounded), child: const Text('Mark as Watched')),
-                MenuButton(leading: const Icon(Icons.replay_rounded), child: const Text('Restart')),
-                MenuButton(leading: const Icon(Icons.bookmark_outline_rounded), child: Text(true ? 'Remove from Watchlist' : 'Add to Watchlist')),
-                const MenuDivider(),
-                MenuButton(leading: const Icon(Icons.remove_circle_outline_rounded), child: const Text('Remove from Continue Watching')),
-              ],
+              contextItems: contextItems(),
               onTap: () {
-                context.push('/player?show=${state?.tmdbId}&s=${state?.season}&e=${state?.episode}');
+                context.push('/player?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
               },
               image: snapshot.hasData
-                  ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl!, fit: BoxFit.cover)
+                  ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl!, fit: BoxFit.fitHeight, height: 20)
                   : Avatar(initials: '', borderRadius: 12).asSkeleton(),
-              extraWidget: state != null && state.completion > 0.0 && state.completion < 1.0
+              extraWidget: state.nextEpisode!.completion > 0.0 && state.nextEpisode!.completion < 1.0
+                  ? Positioned(
+                      bottom: 8,
+                      left: 8,
+                      right: 8,
+                      child: SizedBox(
+                        child: LinearProgressIndicator(value: state.nextEpisode!.completion, minHeight: 5, borderRadius: BorderRadius.circular(8)),
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+
+          SizedBox(
+            height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
+            child: Column(
+              children: [
+                FutureBuilder(
+                  future: _futureShow,
+                  builder: (context, snap2) => Text(
+                    !snap2.hasData ? "00x00 Loading..." : "${state.nextEpisode!.season}x${state.nextEpisode!.episode} ${snap2.data!.name}",
+                    style: TextStyle(fontSize: 15.px),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ).asSkeleton(snapshot: snap2),
+                ),
+
+                Text(
+                  !snapshot.hasData ? "Loading..." : snapshot.data!.name,
+                  style: TextStyle(fontSize: 15.px),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).asSkeleton(snapshot: snapshot),
+  );
+
+  Widget movieWidget(MovieItem state) => FutureBuilder(
+    future: _futureMovie,
+    builder: (context, snapshot) => Padding(
+      padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
+      child: Column(
+        spacing: 8,
+        children: [
+          Expanded(
+            child: HoverableItem(
+              orientation: Orientation.landscape,
+              contextItems: contextItems(),
+              onTap: () {
+                context.push('/player?movie=${state.tmdbId}');
+              },
+              image: snapshot.hasData
+                  ? CachedNetworkImage(imageUrl: snapshot.data!.images!.backdrops.first.url, fit: BoxFit.cover)
+                  : Avatar(initials: '', borderRadius: 12).asSkeleton(),
+              extraWidget: state.completion > 0.0 && state.completion < 1.0
                   ? Positioned(
                       bottom: 8,
                       left: 8,
@@ -151,26 +228,17 @@ class _TraktNextUpItem extends State<TraktNextUpItem> {
             ),
           ),
 
-          FutureBuilder(
-            future: _futureShow,
-            builder: (context, snap2) => Text(
-              isLoading || !snap2.hasData ? "00x00 Loading..." : "${state.season}x${state.episode} ${snap2.data!.name}",
+          SizedBox(
+            height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
+            child: Text(
+              !snapshot.hasData ? "Loading..." : snapshot.data!.title,
               style: TextStyle(fontSize: 15.px),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-            ).asSkeleton(snapshot: snap2),
+            ),
           ),
-
-          Text(
-            isLoading || !snapshot.hasData ? "Loading..." : snapshot.data!.name,
-            style: TextStyle(fontSize: 15.px),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          const SizedBox(height: 5),
         ],
-      ).asSkeleton(snapshot: snapshot),
-    );
-  }
+      ),
+    ).asSkeleton(snapshot: snapshot),
+  );
 }

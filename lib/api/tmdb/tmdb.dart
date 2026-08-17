@@ -1,12 +1,9 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:dio/src/response.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
 class TMDB {
   static Map<String, Future<Uint8List>> imageData = {};
@@ -62,6 +59,7 @@ class TMDB {
   }
 
   static Future<TmdbShow> tvShow(int tmdbId) async {
+    print("Getting tv show $tmdbId");
     final response = await tmdbApi('/tv/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations');
 
     if (response.statusCode != 200) throw Exception('Search failed');
@@ -70,6 +68,7 @@ class TMDB {
   }
 
   static Future<TmdbMovie> movie(int tmdbId) async {
+    print("Getting movie $tmdbId");
     final response = await tmdbApi('/movie/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations');
 
     if (response.statusCode != 200) throw Exception('Search failed');

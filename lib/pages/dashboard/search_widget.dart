@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/stream_helper.dart';
-import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog_item.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 import 'package:go_router/go_router.dart';
@@ -164,9 +162,10 @@ class _SearchState extends State<Search> {
               return material.SearchBar(
                 controller: controller,
                 hintText: 'Search TV Shows, Movies & more...',
-                constraints: BoxConstraints(maxWidth: 70.w, minHeight: 48),
+                constraints: BoxConstraints(maxWidth: 40.w, minHeight: 48),
                 onTap: () => controller.openView(),
                 onChanged: (value) => controller.openView(),
+                shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
               );
             },
             suggestionsBuilder: (context, controller) {

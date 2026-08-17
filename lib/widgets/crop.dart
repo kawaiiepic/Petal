@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:crop_your_image/crop_your_image.dart';
+import 'package:petal/api/api.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 
 class AvatarCropDialog extends StatefulWidget {
   final File image;
@@ -32,7 +35,7 @@ class _AvatarCropDialogState extends State<AvatarCropDialog> {
           onCropped: (result) {
             switch (result) {
               case CropSuccess(:final croppedImage):
-                print(croppedImage);
+                BackendApi.uploadProfile(croppedImage);
               // do something with cropped image data
               case CropFailure(:final cause):
               // do something with error

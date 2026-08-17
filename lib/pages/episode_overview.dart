@@ -23,8 +23,8 @@ class EpisodeOverview extends StatefulWidget {
 }
 
 class _EpisodeOverviewState extends State<EpisodeOverview> {
-  late Future<TmdbShow>? _show = null;
-  late Future<TmdbSeason>? _season = null;
+  Future<TmdbShow>? _show;
+  Future<TmdbSeason>? _season;
   late int? _tmdbId;
 
   Episode episode = Episode(seasonNumber: 1, episodeNumber: 1);

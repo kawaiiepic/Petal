@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart' show CircleAvatar;
 import 'package:go_router/go_router.dart';
+import 'package:petal/api/api.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/profile.dart';
 import 'package:petal/widgets/crop.dart';
@@ -22,6 +24,11 @@ class _Profile extends State<UserProfile> {
   void initState() {
     super.initState();
     _profilesFuture = BackendApi.profiles();
+    BackendApi.authState.addListener(_onAuthStateChanged);
+  }
+
+  void _onAuthStateChanged() {
+    if (mounted) setState(() {});
   }
 
   void _refreshProfiles() {
@@ -73,17 +80,18 @@ class _Profile extends State<UserProfile> {
                                           children: [
                                             for (final profile in profiles)
                                               _ProfileCard(
+                                                id: profile.id,
                                                 name: profile.name,
-                                                avatar: Icons.person,
-                                                selected: BackendApi.authState.selectedProfile == profile,
+                                                avatar: profile.avatar,
                                                 onSelect: () {
                                                   _selectProfile(profile);
                                                   dialogContext.pop();
                                                 },
                                               ),
                                             _ProfileCard(
+                                              id: "",
                                               name: "",
-                                              avatar: Icons.add,
+                                              avatar: "",
                                               add: true,
                                               onCreate: (username) async {
                                                 try {
@@ -121,9 +129,18 @@ class _Profile extends State<UserProfile> {
                 );
               },
               child: Column(
-                spacing: 4,
-                children: [
-                  CircleAvatar(child: Icon(Icons.person_2)),
+                // spacing: 4,
+                children: [ClipOval(
+                      child: SizedBox(
+                        width: 40, // 2 * radius
+                        height: 40,
+                        child: CachedNetworkImage(
+                          fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                          imageUrl: '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
+                          errorWidget: (context, url, error) => const Icon(Icons.account_circle_outlined, size: 35),
+                        ),
+                      ),
+                    ),
                   Text(BackendApi.authState.selectedProfile?.name ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -136,14 +153,14 @@ class _Profile extends State<UserProfile> {
 }
 
 class _ProfileCard extends StatefulWidget {
+  final String id;
   final String name;
-  final IconData avatar;
-  final bool selected;
+  final String avatar;
   final bool add;
   final VoidCallback? onSelect;
   final Future<void> Function(String username)? onCreate;
 
-  const _ProfileCard({required this.name, required this.avatar, this.selected = false, this.add = false, this.onSelect, this.onCreate});
+  const _ProfileCard({required this.name, required this.avatar, this.add = false, this.onSelect, this.onCreate, required this.id});
 
   @override
   State<_ProfileCard> createState() => _ProfileCardState();
@@ -205,6 +222,7 @@ class _ProfileCardState extends State<_ProfileCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isSelected = BackendApi.authState.selectedProfile?.id == widget.id;
     return MouseRegion(
       onEnter: (_) => setState(() => hovering = true),
       onExit: (_) => setState(() => hovering = false),
@@ -213,7 +231,7 @@ class _ProfileCardState extends State<_ProfileCard> {
         onPressed: () {
           if (widget.add) {
             _openCreateDialog();
-          } else if (widget.selected) {
+          } else if (isSelected) {
             pickAvatar();
           } else {
             widget.onSelect?.call();
@@ -225,9 +243,23 @@ class _ProfileCardState extends State<_ProfileCard> {
             Stack(
               alignment: Alignment.center,
               children: [
-                CircleAvatar(radius: 35, child: Icon(widget.avatar, size: 35)),
+                CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Colors.transparent,
+                  child: ClipOval(
+                    child: SizedBox(
+                      width: 70, // 2 * radius
+                      height: 70,
+                      child: CachedNetworkImage(
+                        fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                        imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
+                        errorWidget: (context, url, error) => const Icon(Icons.account_circle_outlined, size: 35),
+                      ),
+                    ),
+                  ),
+                ),
 
-                if (hovering && widget.selected)
+                if (hovering && isSelected)
                   Container(
                     width: 70,
                     height: 70,
@@ -243,7 +275,7 @@ class _ProfileCardState extends State<_ProfileCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(widget.name),
-                if (widget.selected) ...[const SizedBox(width: 5), const Icon(Icons.check, size: 16)],
+                if (isSelected) ...[const SizedBox(width: 5), const Icon(Icons.check, size: 16)],
               ],
             ),
           ],

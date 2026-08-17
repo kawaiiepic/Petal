@@ -15,7 +15,8 @@ class Api {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
   }
 
-  static final ServerUrl = devMode ? 'http://localhost:8788' : 'https://petal-backend.blossomvale.dev';
+  static final ServerUrl = devMode ? 'http://localhost:8787' : 'https://petal-backend.blossomvale.dev';
+  static final ProfileUrl = 'https://profiles.blossomvale.dev';
 
   static ValueNotifier<bool> healthy = ValueNotifier(false);
   static Timer? healthyTimer;

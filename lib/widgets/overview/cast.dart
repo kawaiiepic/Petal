@@ -5,7 +5,7 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 class CastCard extends StatelessWidget {
   final CastMember? member;
 
-  const CastCard({required this.member});
+  const CastCard({super.key, required this.member});
 
   @override
   Widget build(BuildContext context) {

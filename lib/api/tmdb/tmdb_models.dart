@@ -663,7 +663,7 @@ class TmdbMovie {
   final String? posterPath;
   final List<ProductionCompany> productionCompanies;
   final List<ProductionCountry> productionCountries;
-  final String releaseDate;
+  final DateTime releaseDate;
   final int revenue;
   final int? runtime;
   final List<SpokenLanguage> spokenLanguages;
@@ -728,7 +728,7 @@ class TmdbMovie {
     posterPath: json['poster_path'],
     productionCompanies: (json['production_companies'] as List<dynamic>? ?? []).map((e) => ProductionCompany.fromJson(e)).toList(),
     productionCountries: (json['production_countries'] as List<dynamic>? ?? []).map((e) => ProductionCountry.fromJson(e)).toList(),
-    releaseDate: json['release_date'] ?? '',
+    releaseDate: DateTime.tryParse(json['release_date']) ?? DateTime.now(),
     revenue: json['revenue'] ?? 0,
     runtime: json['runtime'],
     spokenLanguages: (json['spoken_languages'] as List<dynamic>? ?? []).map((e) => SpokenLanguage.fromJson(e)).toList(),

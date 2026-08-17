@@ -5,7 +5,6 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:petal/pages/player/js_solver.dart';
 import 'package:petal/pages/splash.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:youtube_explode_dart/solvers.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 
 class TrailerPlayer extends StatefulWidget {

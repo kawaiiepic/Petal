@@ -1,6 +1,5 @@
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:flutter/material.dart' as material;
 import 'package:go_router/go_router.dart';
 import 'package:petal/pages/splash.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -75,7 +74,7 @@ class _ActorOverviewState extends State<ActorOverview> {
                                       width: 120,
                                       height: 170,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => _ProfileFallback(),
+                                      errorBuilder: (_, _, _) => _ProfileFallback(),
                                     )
                                   : _ProfileFallback(),
                             ),
@@ -176,7 +175,7 @@ class _FilmographyCard extends StatelessWidget {
                     width: 110,
                     height: 155,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _PosterFallback(),
+                    errorBuilder: (_, _, _) => _PosterFallback(),
                   )
                 : _PosterFallback(),
           ),
