@@ -34,6 +34,7 @@
             gtk3
             libepoxy
             mpv
+            libass
 
             # runtime
             wayland

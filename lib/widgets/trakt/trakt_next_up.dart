@@ -25,7 +25,6 @@ class _TraktNextUp extends State<TraktNextUp> {
   void initState() {
     super.initState();
     _controller = ScrollController();
-    BackendCache.fetchContinueWatching();
 
     BackendApi.authState.addListener(() {
       setState(() {
@@ -61,9 +60,7 @@ class _TraktNextUp extends State<TraktNextUp> {
                     itemCount: list.length,
                     itemBuilder: (context, index) {
                       final state = list[index];
-                      return AutomaticKeepAlive(
-                        child: TraktNextUpItem(key: ValueKey(state.tmdbId), state: state),
-                      );
+                      return TraktNextUpItem(key: ValueKey(state.tmdbId), state: state);
                     },
                   ),
                 ),
