@@ -132,7 +132,7 @@ class _ArrowButtonState extends State<ArrowButton> {
               duration: const Duration(milliseconds: 120),
               curve: Curves.easeOut,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(_hovered ? 0.65 : 0.45),
+                color: Colors.black.withValues(alpha: _hovered ? 0.65 : 0.45),
                 shape: BoxShape.circle,
                 boxShadow: [if (_hovered) const BoxShadow(blurRadius: 8, color: Colors.black26)],
               ),

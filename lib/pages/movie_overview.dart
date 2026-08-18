@@ -84,7 +84,7 @@ class _MovieOverviewState extends State<MovieOverview> {
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
-                            colors: [Colors.black.withOpacity(0.8), Colors.black.withOpacity(0.4)],
+                            colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
                             stops: const [0.0, 0.5],
                           ),
                         ),
@@ -201,7 +201,7 @@ class _MovieOverviewState extends State<MovieOverview> {
                         const SizedBox(height: 6),
                         Text(
                           movie.tagline!,
-                          style: TextStyle(fontSize: Misc.bodySize, fontStyle: FontStyle.italic, color: Colors.white.withOpacity(0.7)),
+                          style: TextStyle(fontSize: Misc.bodySize, fontStyle: FontStyle.italic, color: Colors.white.withValues(alpha: 0.7)),
                         ),
                       ],
 
@@ -251,7 +251,7 @@ class _MovieOverviewState extends State<MovieOverview> {
                         const SizedBox(height: 16),
                         Text(
                           'Directed by $director',
-                          style: TextStyle(fontSize: Misc.bodySize, color: Colors.white.withOpacity(0.7)),
+                          style: TextStyle(fontSize: Misc.bodySize, color: Colors.white.withValues(alpha: 0.7)),
                         ),
                       ],
 
@@ -334,7 +334,7 @@ class _MovieRecommendationCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
-            Text('★ ${movie?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6))),
+            Text('★ ${movie?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
           ],
         ),
       ),
@@ -348,8 +348,8 @@ class _PosterFallback extends StatelessWidget {
     return Container(
       width: 110,
       height: 155,
-      color: Colors.white.withOpacity(0.12),
-      child: Icon(Icons.movie_outlined, color: Colors.white.withOpacity(0.38)),
+      color: Colors.white.withValues(alpha: 0.12),
+      child: Icon(Icons.movie_outlined, color: Colors.white.withValues(alpha: 0.38)),
     );
   }
 }
@@ -362,8 +362,8 @@ class _EpisodeThumbFallback extends StatelessWidget {
     return Container(
       width: 120,
       height: 68,
-      color: Colors.white.withOpacity(0.12),
-      child: Icon(Icons.tv_outlined, color: Colors.white.withOpacity(0.38)),
+      color: Colors.white.withValues(alpha: 0.12),
+      child: Icon(Icons.tv_outlined, color: Colors.white.withValues(alpha: 0.38)),
     );
   }
 }

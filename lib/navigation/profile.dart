@@ -64,7 +64,7 @@ class _Profile extends State<UserProfile> {
                           child: Text('Switch Profile'),
                           onPressed: (context) {
                             showOverlay(
-                              context,
+                              buttonContext,
                               DialogConfiguration(
                                 builder: (dialogContext) {
                                   return AlertDialog(

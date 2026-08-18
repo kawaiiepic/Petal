@@ -110,7 +110,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
-                            colors: [Colors.black.withOpacity(0.8), Colors.black.withOpacity(0.4)],
+                            colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
                             stops: const [0.0, 0.5],
                           ),
                         ),
@@ -238,7 +238,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                         const SizedBox(height: 6),
                         Text(
                           show.tagline,
-                          style: TextStyle(fontSize: Misc.bodySize, fontStyle: FontStyle.italic, color: Colors.white.withOpacity(0.7)),
+                          style: TextStyle(fontSize: Misc.bodySize, fontStyle: FontStyle.italic, color: Colors.white.withValues(alpha: 0.7)),
                         ),
                       ],
 
@@ -528,7 +528,7 @@ class _CastCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)),
+                style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)),
               ),
           ],
         ),
@@ -543,8 +543,8 @@ class _CastFallbackAvatar extends StatelessWidget {
     return Container(
       width: 72,
       height: 72,
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), shape: BoxShape.circle),
-      child: Icon(Icons.person, color: Colors.white.withOpacity(0.38)),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle),
+      child: Icon(Icons.person, color: Colors.white.withValues(alpha: 0.38)),
     );
   }
 }
@@ -585,7 +585,7 @@ class _ShowRecommendationCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
-            Text('★ ${show?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6))),
+            Text('★ ${show?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
           ],
         ),
       ),
@@ -599,8 +599,8 @@ class _PosterFallback extends StatelessWidget {
     return Container(
       width: 110,
       height: 155,
-      color: Colors.white.withOpacity(0.12),
-      child: Icon(Icons.movie_outlined, color: Colors.white.withOpacity(0.38)),
+      color: Colors.white.withValues(alpha: 0.12),
+      child: Icon(Icons.movie_outlined, color: Colors.white.withValues(alpha: 0.38)),
     );
   }
 }
@@ -613,8 +613,8 @@ class _EpisodeThumbFallback extends StatelessWidget {
     return Container(
       width: 120,
       height: 68,
-      color: Colors.white.withOpacity(0.12),
-      child: Icon(Icons.tv_outlined, color: Colors.white.withOpacity(0.38)),
+      color: Colors.white.withValues(alpha: 0.12),
+      child: Icon(Icons.tv_outlined, color: Colors.white.withValues(alpha: 0.38)),
     );
   }
 }

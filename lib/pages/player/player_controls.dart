@@ -245,7 +245,7 @@ class _PlayerControls extends State<PlayerControls> {
               curve: Curves.easeOut,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), shape: BoxShape.circle),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
