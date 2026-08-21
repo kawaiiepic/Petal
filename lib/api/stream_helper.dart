@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:petal/api/api_cache.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
@@ -16,7 +17,7 @@ class StreamApi {
     final type = episode != null ? 'series' : 'movie';
     final id = episode != null ? '$imdbId:${episode.seasonNumber}:${episode.episodeNumber}' : imdbId;
 
-    print("Fetching stream");
+    print("Fetching stream: " + streamAddons.length.toString() + " addons");
 
     // Fetch all addons in parallel
     final results = await Future.wait(streamAddons.map((addon) => _fetchFromAddon(addon, type, id, episode)));
@@ -25,7 +26,6 @@ class StreamApi {
 
     if (expanded.isEmpty) {
       print("No Streams found");
-
     }
 
     return expanded;
@@ -34,13 +34,14 @@ class StreamApi {
   static Future<List<StreamItem>> _fetchFromAddon(Addon addon, String type, String id, Episode? episode) async {
     try {
       final url = '${addon.baseUrl}/stream/$type/$id.json';
-      final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
-      // print("Url: $url");
+      print(url);
+
+      final res = await BackendApi.dio.get(url).timeout(const Duration(seconds: 20));
 
       if (res.statusCode != 200) return [];
 
-      final streams = (jsonDecode(res.body)['streams'] as List? ?? []).map((s) => StreamItem.fromJson(s, addon)).toList();
+      final streams = (res.data['streams'] as List? ?? []).map((s) => StreamItem.fromJson(s, addon)).toList();
 
       if (episode == null) return streams;
 

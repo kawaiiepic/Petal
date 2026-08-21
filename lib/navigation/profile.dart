@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show CircleAvatar;
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/trakt/backend_api.dart';
+import 'package:petal/main.dart';
 import 'package:petal/models/profile.dart';
 import 'package:petal/widgets/crop.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -61,6 +62,12 @@ class _Profile extends State<UserProfile> {
                         MenuLabel(child: Text('My Account')),
                         MenuDivider(),
                         MenuButton(
+                          onPressed: (_) async {
+                            PetalApp.refreshTriggerKey.currentState!.refresh();
+                          },
+                          child: const Text('Refresh'),
+                        ),
+                        MenuButton(
                           child: Text('Switch Profile'),
                           onPressed: (context) {
                             showOverlay(
@@ -90,7 +97,7 @@ class _Profile extends State<UserProfile> {
                                               ),
                                             _ProfileCard(
                                               id: "",
-                                              name: "",
+                                              name: "New Profile",
                                               avatar: "",
                                               add: true,
                                               onCreate: (username) async {
@@ -130,17 +137,18 @@ class _Profile extends State<UserProfile> {
               },
               child: Column(
                 // spacing: 4,
-                children: [ClipOval(
-                      child: SizedBox(
-                        width: 40, // 2 * radius
-                        height: 40,
-                        child: CachedNetworkImage(
-                          fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
-                          imageUrl: '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
-                          errorWidget: (context, url, error) => const Icon(Icons.account_circle_outlined, size: 35),
-                        ),
+                children: [
+                  ClipOval(
+                    child: SizedBox(
+                      width: 40, // 2 * radius
+                      height: 40,
+                      child: CachedNetworkImage(
+                        fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                        imageUrl: '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
+                        errorWidget: (context, url, error) => const Icon(Icons.account_circle_outlined, size: 35),
                       ),
                     ),
+                  ),
                   Text(BackendApi.authState.selectedProfile?.name ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -243,21 +251,30 @@ class _ProfileCardState extends State<_ProfileCard> {
             Stack(
               alignment: Alignment.center,
               children: [
-                CircleAvatar(
-                  radius: 35,
-                  backgroundColor: Colors.transparent,
-                  child: ClipOval(
-                    child: SizedBox(
-                      width: 70, // 2 * radius
-                      height: 70,
-                      child: CachedNetworkImage(
-                        fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
-                        imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
-                        errorWidget: (context, url, error) => const Icon(Icons.account_circle_outlined, size: 35),
+                if (!widget.add)
+                  CircleAvatar(
+                    radius: 35,
+                    backgroundColor: Colors.transparent,
+                    child: ClipOval(
+                      child: SizedBox(
+                        width: 70, // 2 * radius
+                        height: 70,
+                        child: CachedNetworkImage(
+                          fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                          imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
+                          errorWidget: (context, url, error) => const Icon(Icons.account_circle_outlined, size: 70),
+                        ),
                       ),
                     ),
                   ),
-                ),
+
+                if (widget.add)
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(color: Colors.black.withAlpha(100), shape: BoxShape.circle),
+                    child: const Icon(Icons.add, color: Colors.white, size: 28),
+                  ),
 
                 if (hovering && isSelected)
                   Container(

@@ -5,6 +5,7 @@ import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/models/media_state.dart';
+import 'package:petal/router/router.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
 import 'package:petal/widgets/scrollable_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -53,7 +54,6 @@ class _TraktNextUp extends State<TraktNextUp> {
                   offset: -25,
                   child: ListView.builder(
                     controller: _controller,
-                    // itemExtent: 38.w,
                     scrollDirection: Axis.horizontal,
                     key: const PageStorageKey<String>('unique_key_for_this_list'),
 
@@ -121,18 +121,55 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
       leading: const Icon(Icons.play_arrow_rounded),
       trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
       child: const Text('Resume'),
+      onPressed: (context) {
+        final state = widget.state;
+        if (state is ShowItem) {
+          context.push('/player?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
+        } else {
+          context.push('/player?movie=${state.tmdbId}');
+        }
+      },
     ),
     MenuButton(
       leading: const Icon(Icons.dns_outlined),
-      trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
       child: const Text('Select Source'),
+      onPressed: (context) {
+        final state = widget.state;
+        if (state is ShowItem) {
+          AppRouter.appRouter.push('/streams?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
+        } else {
+          AppRouter.appRouter.push('/streams?movie=${state.tmdbId}');
+        }
+      },
     ),
     const MenuDivider(),
-    MenuButton(leading: const Icon(Icons.info_outline_rounded), child: const Text('More Info')),
+    MenuButton(
+      leading: const Icon(Icons.info_outline_rounded),
+      child: const Text('More Info'),
+      onPressed: (context) async {
+        final state = widget.state;
+        if (state is ShowItem) {
+          context.push('/series?tmdb=${state.tmdbId}');
+        } else {
+          context.push('/movie?tmdb=${state.tmdbId}');
+        }
+      },
+    ),
     const MenuDivider(),
-    MenuButton(leading: const Icon(Icons.check_rounded), child: const Text('Mark as Watched')),
+    MenuButton(
+      leading: const Icon(Icons.check_rounded),
+      child: const Text('Mark as Watched'),
+      onPressed: (context) {
+        final state = widget.state;
+        if (state is ShowItem) {
+          BackendApi.setProgress(state.tmdbId, state.mediaType, state.nextEpisode!.season, state.nextEpisode!.episode, 1.0);
+        } else {
+          BackendApi.setProgress(state.tmdbId, state.mediaType, 0, 0, 1.0);
+        }
+      },
+    ),
     MenuButton(leading: const Icon(Icons.replay_rounded), child: const Text('Restart')),
-    MenuButton(leading: const Icon(Icons.bookmark_outline_rounded), child: Text(true ? 'Remove from Watchlist' : 'Add to Watchlist')),
+    MenuButton(leading: const Icon(Icons.bookmark_outline_rounded), child: Text(false ? 'Remove from Watchlist' : 'Add to Watchlist')),
     const MenuDivider(),
     MenuButton(leading: const Icon(Icons.remove_circle_outline_rounded), child: const Text('Remove from Continue Watching')),
   ];

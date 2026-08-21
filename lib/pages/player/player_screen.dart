@@ -83,24 +83,41 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     selectedStream = stream;
 
+    print(selectedStream.url);
+
     await player.open(Media(selectedStream.url));
     if (mounted) setState(() => _controllerReady = true);
   }
 
-  Future<void> closeStream() async {
+Future<void> closeStream() async {
+    await player.pause(); // Or player.stop();
+
     print("Progress is: ${player.state.position.inMinutes / player.state.duration.inMinutes}");
-    BackendApi.setProgress(
-      widget.showId ?? widget.movieId!,
-      widget.showId != null ? "episode" : "movie",
-      widget.episode?.seasonNumber ?? 0,
-      widget.episode?.episodeNumber ?? 0,
-      player.state.position.inSeconds / player.state.duration.inSeconds,
-    );
-    context.pop();
+
+    // 2. Await the API call to ensure it finishes before the widget gets destroyed
+    try {
+      await BackendApi.setProgress(
+        widget.showId ?? widget.movieId!,
+        widget.showId != null ? "episode" : "movie",
+        widget.episode?.seasonNumber ?? 0,
+        widget.episode?.episodeNumber ?? 0,
+        player.state.position.inSeconds / player.state.duration.inSeconds,
+      );
+    } catch (e) {
+      print("Failed to save progress: $e");
+    }
+
+    if (mounted) {
+      context.pop();
+    }
   }
+
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
     Discord.resetStatus();
     player.dispose();
     super.dispose();

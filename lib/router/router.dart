@@ -1,3 +1,4 @@
+import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/main.dart';
 import 'package:petal/models/custom_model.dart';
@@ -48,12 +49,22 @@ class AppRouter {
       ),
 
       GoRoute(
-        path: '/series/:id',
-        builder: (context, state) => EpisodeOverview(catalogId: state.pathParameters['id']!),
+        path: '/series',
+        builder: (context, state) {
+          final tmdbId = state.uri.queryParameters['tmdb'];
+          final imdbId = state.uri.queryParameters['imdb'];
+
+          return EpisodeOverview(tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null, imdbId: imdbId);
+        },
       ),
       GoRoute(
-        path: '/movie/:id',
-        builder: (context, state) => MovieOverview(catalogId: state.pathParameters['id']!),
+        path: '/movie',
+        builder: (context, state) {
+          final imdbId = state.uri.queryParameters['imdb'];
+          final tmdbId = state.uri.queryParameters['tmdb'];
+
+          return MovieOverview(tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null, imdbId: imdbId);
+        },
       ),
       GoRoute(
         path: '/person/:id',

@@ -102,7 +102,7 @@ class _StreamsPageState extends State<StreamsPage> {
             appBar: AppBar(
               title: Text(
                 style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp),
-                snapshot.hasData ? snapshot.data!.title : 'Example Title',
+                snapshot.hasData ? snapshot.data!.title : '',
               ),
             ),
             body: FutureBuilder<List<StreamItem>>(

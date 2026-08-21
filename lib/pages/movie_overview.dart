@@ -12,9 +12,10 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MovieOverview extends StatefulWidget {
-  final String catalogId;
+  final int? tmdbId;
+  final String? imdbId;
 
-  const MovieOverview({super.key, required this.catalogId});
+  const MovieOverview({super.key, this.tmdbId, this.imdbId}) : assert(tmdbId != null || imdbId != null);
 
   @override
   State<MovieOverview> createState() => _MovieOverviewState();
@@ -22,7 +23,6 @@ class MovieOverview extends StatefulWidget {
 
 class _MovieOverviewState extends State<MovieOverview> {
   Future<TmdbMovie>? _movie;
-  late int? _tmdbId;
 
   final scrollController = ScrollController();
 
@@ -32,11 +32,27 @@ class _MovieOverviewState extends State<MovieOverview> {
     initData();
   }
 
+  int? _resolvedTmdbId;
+
   Future<void> initData() async {
-    _tmdbId = (await ApiCache.getTmdbSearch(widget.catalogId)).movies[0].id;
-    final movie = TMDB.movie(_tmdbId!);
-    if (!mounted) return;
+    int? tmdbId = widget.tmdbId;
+
+    if (tmdbId == null && widget.imdbId != null) {
+      final result = await ApiCache.getTmdbSearch(widget.imdbId!);
+
+      if (result.movies.isEmpty) {
+        return;
+      }
+
+      tmdbId = result.movies.first.id;
+    }
+
+    if (tmdbId == null || !mounted) return;
+
+    final movie = TMDB.movie(tmdbId);
+
     setState(() {
+      _resolvedTmdbId = tmdbId;
       _movie = movie;
     });
   }

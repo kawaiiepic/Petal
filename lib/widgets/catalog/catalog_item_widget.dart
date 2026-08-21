@@ -46,7 +46,7 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
             )
           : Avatar(initials: '', borderRadius: 12).asSkeleton(),
       onTap: () {
-        if (catalogItem != null) context.push('/${catalogItem!.type}/${catalogItem!.id}');
+        if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
       },
       contextItems: [
         MenuButton(

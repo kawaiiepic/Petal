@@ -27,6 +27,7 @@ class PetalApp extends StatefulWidget {
   static final rootNavigatorKey = GlobalKey<NavigatorState>(); // ← root
   static final shellNavigatorKey = GlobalKey<NavigatorState>();
   static final drawerNavigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<RefreshTriggerState> refreshTriggerKey = GlobalKey<RefreshTriggerState>();
 
   @override
   State<PetalApp> createState() => _PetalState();

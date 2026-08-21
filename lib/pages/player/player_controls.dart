@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' as Material;
+import 'package:flutter/material.dart' as material;
 import 'package:petal/api/api.dart';
 import 'package:petal/api/discord.dart';
 import 'package:petal/api/misc.dart';
@@ -101,10 +101,6 @@ class _PlayerControls extends State<PlayerControls> {
     _startHideTimer();
     _isShow = widget.widgetState.widget.showId != null;
 
-    widget.player.stream.log.listen((log) {
-      debugPrint('[${log.level}] ${log.prefix}: ${log.text}');
-    });
-
     if (_isShow) {
       final show = widget.widgetState.widget;
       final episode = show.episode!;
@@ -159,56 +155,6 @@ class _PlayerControls extends State<PlayerControls> {
                 });
               });
     }
-
-    // player = widget.state.widget.controller.player;
-
-    // isShow = widget.widgetState.widget.showId != null;
-
-    // isLoaded.addListener(() {
-    //   if (isLoaded.value) {
-    //     if (isShow) {
-    //       _showData.then((data) async {
-    //         final TmdbShow tmdbShow = data[0];
-    //         final TmdbEpisode tmdbEpisode = data[1];
-    //         print("Updating Discord Status");
-    //         Discord.updateStatus(tmdbShow.name, tmdbEpisode.name, player.state.position, player.state.duration, tmdbEpisode.stillUrl!, player.state.playing);
-    //       });
-    //     }
-    //   }
-    // });
-
-    // if (isShow) {
-    //   _showData = Future.wait([
-    //     TMDB.tvShow(widget.widgetState.widget.showId!),
-    //     TMDB.tvEpisode(widget.widgetState.widget.showId!, widget.widgetState.widget.episode!.seasonNumber, widget.widgetState.widget.episode!.episodeNumber),
-    //   ]);
-
-    //   _showData.then((showData) {
-    //     _selectedSeason = ((showData[0] as TmdbShow).seasons.firstWhere((s) => s.seasonNumber == widget.widgetState.widget.episode!.seasonNumber));
-    //     if (TraktApi.authState.traktConnected) {
-    //       TraktApi.startWatching(MediaType.show, {
-    //         "progress": 0.0,
-    //         "episode": {
-    //           "ids": {"tmdb": (showData[1] as TmdbEpisode).id},
-    //         },
-    //       });
-    //     }
-    //   });
-
-    //   _nextEpisode = nextUpEpisode();
-    // } else {
-    //   movie = TMDB.movie(widget.widgetState.widget.movieId!);
-    // }
-
-    // player.stream.buffering.listen((buffering) {
-    //   setState(() {
-    //     isBuffering = buffering;
-
-    //     if (!isLoaded.value && !buffering) {
-    //       isLoaded.value = true;
-    //     }
-    //   });
-    // });
   }
 
   void _startHideTimer() {
@@ -990,7 +936,7 @@ class _NextUpCard extends StatefulWidget {
   const _NextUpCard({required this.player, required this.nextEpisode, required this.uiIsActive, required this.playNextEpisode});
 
   @override
-  Material.State<Material.StatefulWidget> createState() => _NextUpCardState();
+  material.State<material.StatefulWidget> createState() => _NextUpCardState();
 }
 
 class _NextUpCardState extends State<_NextUpCard> {

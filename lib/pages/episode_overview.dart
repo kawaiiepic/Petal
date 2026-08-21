@@ -14,9 +14,10 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class EpisodeOverview extends StatefulWidget {
-  final String catalogId;
+  final int? tmdbId;
+  final String? imdbId;
 
-  const EpisodeOverview({super.key, required this.catalogId});
+  const EpisodeOverview({super.key, this.tmdbId, this.imdbId}) : assert(tmdbId != null || imdbId != null);
 
   @override
   State<EpisodeOverview> createState() => _EpisodeOverviewState();
@@ -25,7 +26,6 @@ class EpisodeOverview extends StatefulWidget {
 class _EpisodeOverviewState extends State<EpisodeOverview> {
   Future<TmdbShow>? _show;
   Future<TmdbSeason>? _season;
-  late int? _tmdbId;
 
   Episode episode = Episode(seasonNumber: 1, episodeNumber: 1);
   final scrollController = ScrollController();
@@ -36,12 +36,28 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
     initData();
   }
 
+int? _resolvedTmdbId;
+
   Future<void> initData() async {
-    _tmdbId = (await ApiCache.getTmdbSearch(widget.catalogId)).tv[0].id;
-    final show = TMDB.tvShow(_tmdbId!);
-    final season = TMDB.tvSeason(_tmdbId!, episode.seasonNumber);
-    if (!mounted) return;
+    int? tmdbId = widget.tmdbId;
+
+    if (tmdbId == null && widget.imdbId != null) {
+      final result = await ApiCache.getTmdbSearch(widget.imdbId!);
+
+      if (result.tv.isEmpty) {
+        return;
+      }
+
+      tmdbId = result.tv.first.id;
+    }
+
+    if (tmdbId == null || !mounted) return;
+
+    final show = TMDB.tvShow(tmdbId);
+    final season = TMDB.tvSeason(tmdbId, episode.seasonNumber);
+
     setState(() {
+      _resolvedTmdbId = tmdbId;
       _show = show;
       _season = season;
     });
@@ -166,7 +182,6 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                 ),
                               ),
                             ),
-                            // if (trailer != null)
                             Skeleton.keep(
                               child: Button(
                                 onPressed: () => trailer != null ? launchUrl(Uri.parse(trailer.youtubeUrl)) : null,
@@ -314,7 +329,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                               tvShow: show,
                               selectedSeason: show?.seasons.firstWhere((s) => s.seasonNumber == episode.seasonNumber),
                               onSeasonChanged: (season) {
-                                _season = TMDB.tvSeason(_tmdbId!, season.seasonNumber);
+                                _season = TMDB.tvSeason(_resolvedTmdbId!, season.seasonNumber);
                                 setState(() {});
                               },
                             ),
@@ -351,7 +366,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                       ],
                                       child: GhostButton(
                                         onPressed: () {
-                                          context.push('/player?show=${_tmdbId!}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                          context.push('/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
                                         },
                                         child: Row(
                                           spacing: 12,
