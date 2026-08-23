@@ -28,7 +28,6 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependency_overrides:
-  meta: ^1.1.5
   media_kit:
     path: third_party/media-kit/media_kit
 dependencies:
