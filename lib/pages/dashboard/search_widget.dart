@@ -1,33 +1,44 @@
 import 'dart:async';
+
+import 'package:fuzzywuzzy/fuzzywuzzy.dart';
+import 'package:go_router/go_router.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog_item.dart';
-import 'package:flutter/material.dart' as material;
-import 'package:fuzzywuzzy/fuzzywuzzy.dart';
-import 'package:go_router/go_router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
-enum SearchType { seriesAndMovies, series, movies, actors }
+enum SearchType {
+  seriesAndMovies('Series & Movies'),
+  series('Series'),
+  movies('Movies'),
+  actors('Actors');
+
+  final String title;
+
+  const SearchType(this.title);
+}
 
 class SearchControllerModel extends ChangeNotifier {
   Timer? _debounce;
-  String _currentQuery = "";
-  int _requestId = 0; // NEW: tracks the latest search "generation"
+  String _currentQuery = '';
+  int _requestId = 0;
 
   List<SearchResult> results = [];
   bool loading = false;
 
   Future<void> search(String query, List<Addon> addons) async {
-    if (_currentQuery.trim() == query.trim()) return;
-    if (_debounce?.isActive ?? false) {
-      _debounce!.cancel();
+    if (_currentQuery.trim() == query.trim()) {
+      return;
     }
+
+    _debounce?.cancel();
 
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       _currentQuery = query;
-      final int thisRequestId = ++_requestId; // claim this run's ticket
+
+      final int thisRequestId = ++_requestId;
 
       if (query.isEmpty) {
         results = [];
@@ -40,14 +51,14 @@ class SearchControllerModel extends ChangeNotifier {
       notifyListeners();
 
       try {
-        final raw = (await StreamApi.searchCatalogItems(query, addons));
+        final raw = await StreamApi.searchCatalogItems(query, addons);
 
-        // A newer search started while we were awaiting — drop this one.
-        if (thisRequestId != _requestId) return;
+        if (thisRequestId != _requestId) {
+          return;
+        }
 
         final enriched = await Future.wait(
           raw.map((item) async {
-            print("Searching: $query");
             return SearchResult(
               id: item.id,
               name: item.name,
@@ -73,8 +84,9 @@ class SearchControllerModel extends ChangeNotifier {
           }),
         );
 
-        // Check again after the second await gap before mutating state.
-        if (thisRequestId != _requestId) return;
+        if (thisRequestId != _requestId) {
+          return;
+        }
 
         results = enriched.whereType<SearchResult>().toList();
       } finally {
@@ -84,6 +96,12 @@ class SearchControllerModel extends ChangeNotifier {
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 }
 
@@ -120,26 +138,204 @@ class Search extends StatefulWidget {
 }
 
 class _SearchState extends State<Search> {
-  late SearchControllerModel searchModel;
+  late final SearchControllerModel searchModel;
+
   final ValueNotifier<SearchType> searchTypeNotifier = ValueNotifier(SearchType.seriesAndMovies);
-  final material.SearchController _viewController = material.SearchController();
+
+  final TextEditingController _textController = TextEditingController();
+
+  final OverlayController _overlayController = OverlayController();
 
   List<Addon>? _addons;
 
   @override
   void initState() {
     super.initState();
+
     searchModel = SearchControllerModel();
+
     ApiCache.getAddons().then((addons) {
-      if (mounted) setState(() => _addons = addons);
+      if (!mounted) return;
+
+      setState(() {
+        _addons = addons;
+      });
     });
+
+    _textController.addListener(_onSearchChanged);
   }
 
-  @override
-  void dispose() {
-    _viewController.dispose();
-    searchTypeNotifier.dispose();
-    super.dispose();
+  void _onSearchChanged() {
+    final addons = _addons;
+
+    if (addons == null) {
+      return;
+    }
+
+    final query = _textController.text;
+
+    searchModel.search(query, addons);
+
+    if (query.isEmpty) {
+      _overlayController.close();
+      return;
+    }
+
+    _showSearchOverlay();
+  }
+
+  void _showSearchOverlay() {
+    if (!mounted || _textController.text.isEmpty) {
+      return;
+    }
+
+    _overlayController.show(
+      context,
+      PopoverConfiguration(
+        alignment: Alignment.bottomCenter,
+        anchorAlignment: Alignment.topCenter,
+        widthConstraint: PopoverConstraint.flexible,
+        heightConstraint: PopoverConstraint.flexible,
+        builder: (context) {
+          return _buildSearchResults(context);
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchResults(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxWidth: 50.w, maxHeight: 30.h, minWidth: 50.w, minHeight: 10.h),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Theme.of(context).colorScheme.card,
+        border: Border.all(color: Theme.of(context).colorScheme.border),
+      ),
+      child: ListenableBuilder(
+        listenable: searchModel,
+        builder: (context, _) {
+          if (searchModel.loading) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final searchType = searchTypeNotifier.value;
+
+          final filtered = searchModel.results.where((item) {
+            switch (searchType) {
+              case SearchType.series:
+                return item.type == 'series';
+
+              case SearchType.movies:
+                return item.type == 'movie';
+
+              case SearchType.seriesAndMovies:
+                return item.type == 'series' || item.type == 'movie';
+
+              case SearchType.actors:
+                return item.type == 'actor';
+            }
+          }).toList();
+
+          final matches = extractTop(query: searchModel._currentQuery, choices: filtered, limit: 10, cutoff: 80, getter: (x) => x.name);
+
+          if (matches.isEmpty) {
+            return const Padding(padding: EdgeInsets.all(16), child: Text('No results found.'));
+          }
+
+          return ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: matches.map((item) {
+                  final choice = item.choice;
+                  return Padding(
+                    padding: EdgeInsetsGeometry.all(2),
+                    child: Button.ghost(
+                      leading: choice.type == "movie" ? Icon(Icons.local_movies) : Icon(Icons.movie),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${choice.name} // '
+                        '${choice.type.toUpperCase()} // '
+                        '${choice.releaseInfo}',
+                      ),
+                      onPressed: () {
+                        _overlayController.close();
+                        context.push('/${choice.type}?imdb=${choice.id}');
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchField(SearchType searchType) {
+    return Container(
+      constraints: BoxConstraints(minHeight: 20, maxWidth: 50.w),
+      child: Row(
+        children: [
+          // Padding(padding: const EdgeInsets.only(left: 4), child: _buildTypeMenu(searchType)),
+          Expanded(
+            child: TextField(
+              onTap: _showSearchOverlay,
+              features: [
+                InputFeature.leading(
+                  Select<SearchType>(
+                    // How to render each selected item as text in the field.
+                    padding: EdgeInsets.fromLTRB(12, 2, 12, 2),
+                    borderRadius: BorderRadius.circular(8),
+                    itemBuilder: (context, item) {
+                      return Text(item.title);
+                    },
+                    // Limit the popup size so it doesn't grow too large in the docs view.
+                    popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
+                    onChanged: (value) {
+                      setState(() {
+                        // Save the currently selected value (or null to clear).
+                        if (value == null) return;
+                        searchTypeNotifier.value = value;
+                      });
+                    },
+                    // The current selection bound to this field.
+                    value: searchTypeNotifier.value,
+                    placeholder: const Text('Media Type'),
+                    popup: SelectPopup(
+                      items: SelectItemList(
+                        children: SearchType.values
+                            .map(
+                              (v) => SelectItemButton(
+                                value: v,
+                                child: Text(v.title, style: TextStyle(fontSize: 12)),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ).call,
+                  ),
+                ),
+                const InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
+                // Hint shows a small tooltip-like popup for the input field.
+                InputFeature.hint(
+                  popupBuilder: (context) {
+                    return const TooltipContainer(child: Text('This is for your username'));
+                  },
+                ),
+              ],
+              controller: _textController,
+              placeholder: const Text('Search TV Shows, Movies & more...'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -149,76 +345,23 @@ class _SearchState extends State<Search> {
       child: ValueListenableBuilder<SearchType>(
         valueListenable: searchTypeNotifier,
         builder: (context, searchType, _) {
-          return material.SearchAnchor(
-            searchController: _viewController,
-            isFullScreen: false,
-            viewLeading: material.PopupMenuButton<SearchType>(
-              icon: Row(children: [Icon(Icons.filter_list), const SizedBox(width: 6), Text(searchType.name)]),
-              onSelected: (t) => searchTypeNotifier.value = t,
-              itemBuilder: (context) => SearchType.values.map((type) => material.PopupMenuItem<SearchType>(value: type, child: Text(type.name))).toList(),
-            ),
-            viewTrailing: [material.IconButton(icon: const Icon(Icons.close), onPressed: () => _viewController.closeView(null))],
-            builder: (context, controller) {
-              return material.SearchBar(
-                controller: controller,
-                hintText: 'Search TV Shows, Movies & more...',
-                constraints: BoxConstraints(maxWidth: 80.w, minHeight: 48),
-                onTap: () => controller.openView(),
-                onChanged: (value) => controller.openView(),
-                shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-              );
-            },
-            suggestionsBuilder: (context, controller) {
-              final addons = _addons;
-              if (addons == null) return [const SizedBox()];
-
-              searchModel.search(controller.text, addons);
-
-              // ✅ this single item subscribes directly to searchModel and
-              // rebuilds itself whenever new results arrive — independent
-              // of whether SearchAnchor re-invokes suggestionsBuilder.
-              return [
-                ListenableBuilder(
-                  listenable: searchModel,
-                  builder: (context, _) {
-                    final filtered = searchModel.results.where((item) {
-                      switch (searchType) {
-                        case SearchType.series:
-                          return item.type == "series";
-                        case SearchType.movies:
-                          return item.type == "movie";
-                        case SearchType.seriesAndMovies:
-                          return item.type == "series" || item.type == "movie";
-                        case SearchType.actors:
-                          return item.type == "actor";
-                      }
-                    }).toList();
-
-                    final matches = extractTop(query: searchModel._currentQuery, choices: filtered, limit: 10, cutoff: 80, getter: (x) => x.name);
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: matches.map((item) {
-                        final choice = item.choice;
-                        return Button(
-                          onPressed: () async {
-                            if (!mounted) return;
-                            context.pop();
-                            context.push('/${choice.type}?imdb=${choice.id}');
-                          },
-                          style: ButtonVariance.text,
-                          child: Text('${choice.name} // ${choice.type} // ${choice.releaseInfo}', style: const TextStyle(color: Colors.white, fontSize: 13)),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-              ];
-            },
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 60.w),
+            child: _buildSearchField(searchType),
           );
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _textController.removeListener(_onSearchChanged);
+    _textController.dispose();
+    _overlayController.dispose();
+    searchTypeNotifier.dispose();
+    searchModel.dispose();
+
+    super.dispose();
   }
 }

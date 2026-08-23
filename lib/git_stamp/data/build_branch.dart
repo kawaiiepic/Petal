@@ -1,1 +1,0 @@
-const gitStampBuildBranch = r'''main''';

@@ -1,1 +1,0 @@
-const gitStampAppBuild = r'''1''';

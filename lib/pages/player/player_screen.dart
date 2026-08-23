@@ -35,7 +35,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+    // SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
 
     controller = VideoController(player, configuration: VideoControllerConfiguration());
 
@@ -90,11 +90,10 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
 Future<void> closeStream() async {
-    await player.pause(); // Or player.stop();
+    await player.pause();
 
     print("Progress is: ${player.state.position.inMinutes / player.state.duration.inMinutes}");
 
-    // 2. Await the API call to ensure it finishes before the widget gets destroyed
     try {
       await BackendApi.setProgress(
         widget.showId ?? widget.movieId!,
@@ -108,6 +107,7 @@ Future<void> closeStream() async {
     }
 
     if (mounted) {
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       context.pop();
     }
   }
@@ -115,9 +115,6 @@ Future<void> closeStream() async {
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
     Discord.resetStatus();
     player.dispose();
     super.dispose();
@@ -131,31 +128,29 @@ Future<void> closeStream() async {
 
     return Stack(
       children: [
-        Center(
-          child: zoomVideo
-              ? Positioned.fill(
-                  child: RepaintBoundary(
-                    child: Video(
-                      controller: controller,
-                      controls: NoVideoControls,
-                      pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
-                      fit: BoxFit.cover, // crops to fill entirely, no letterboxing
-                    ),
-                  ),
-                )
-              : AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: RepaintBoundary(
-                    child: Video(
-                      controller: controller,
-                      controls: NoVideoControls,
-                      pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-        ),
-        Positioned.fill(child: RepaintBoundary(child: customVideoControls(player, this))),
+        if (zoomVideo)
+          Positioned.fill(
+            child: Video(
+              controller: controller,
+              controls: NoVideoControls,
+              pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
+              fit: BoxFit.cover,
+            ),
+          )
+        else
+          Center(
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Video(
+                controller: controller,
+                controls: NoVideoControls,
+                pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+        Positioned.fill(child: customVideoControls(player, this)),
       ],
     );
   }

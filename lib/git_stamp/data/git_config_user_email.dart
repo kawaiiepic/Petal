@@ -1,1 +1,0 @@
-const gitStampGitConfigUserEmail = r'''miathewiccancatgirl@gmail.com''';

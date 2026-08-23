@@ -1,1 +1,0 @@
-const gitStampRepoPath = r'''/home/mia/Documents/blssmpetal''';

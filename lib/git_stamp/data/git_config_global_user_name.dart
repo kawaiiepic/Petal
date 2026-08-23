@@ -1,1 +1,0 @@
-const gitStampGitConfigGlobalUserName = r'''Mia''';

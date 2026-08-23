@@ -1,1 +1,0 @@
-const gitStampAppVersion = r'''0.2.0''';
