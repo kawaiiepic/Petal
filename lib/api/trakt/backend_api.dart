@@ -23,6 +23,9 @@ class BackendApi {
 
   static Future<void> init() async {
     prepareCookieManager();
+    BackendApi.authState.addListener(() {
+      BackendCache.fetchWatchHistory();
+    });
   }
 
   static Future<void> prepareCookieManager() async {
@@ -146,6 +149,15 @@ class BackendApi {
         print('Movie ${item.tmdbId}, completion: ${item.completion}');
       }
     }
+    return items;
+  }
+
+  static Future<List<WatchHistoryItem>> watchHistory() async {
+    if (authState.selectedProfile == null) return [];
+    final url = '${Api.ServerUrl}/track/states/${authState.selectedProfile?.id}';
+    final response = await dio.get(url);
+
+    final items = (response.data['result'] as List<dynamic>).map((e) => WatchHistoryItem.fromJson(e as Map<String, dynamic>)).toList();
     return items;
   }
 

@@ -325,7 +325,7 @@ class _MovieRecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => movie != null ? context.push('/movie?id=${movie!.id}') : null,
+      onTap: () => movie != null ? context.push('/movie?tmdb=${movie!.id}') : null,
       child: SizedBox(
         width: 110,
         child: Column(
@@ -350,7 +350,12 @@ class _MovieRecommendationCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
-            Text('★ ${movie?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+              Text('★ ${movie?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+              Text('${movie?.releaseDate?.year.toString()}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)))
+            ],),
           ],
         ),
       ),

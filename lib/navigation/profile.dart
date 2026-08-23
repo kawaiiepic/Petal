@@ -61,6 +61,9 @@ class _Profile extends State<UserProfile> {
                       children: [
                         MenuLabel(child: Text('My Account')),
                         MenuDivider(),
+                        MenuButton(onPressed: (_) async => PetalApp.rootNavigatorKey.currentContext?.push('/addons'), child: const Text('Addons')),
+                        MenuButton(onPressed: (_) async => PetalApp.rootNavigatorKey.currentContext?.push('/settings'), child: const Text('Settings')),
+                        MenuDivider(),
                         MenuButton(
                           onPressed: (_) async {
                             PetalApp.refreshTriggerKey.currentState!.refresh();

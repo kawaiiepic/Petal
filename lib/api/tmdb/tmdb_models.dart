@@ -974,7 +974,7 @@ class RecommendedShow {
   final String name;
   final String? posterPath;
   final double voteAverage;
-  final String firstAirDate;
+  final DateTime? firstAirDate;
 
   RecommendedShow({required this.id, required this.name, this.posterPath, required this.voteAverage, required this.firstAirDate});
 
@@ -983,7 +983,7 @@ class RecommendedShow {
     name: json['name'] ?? '',
     posterPath: json['poster_path'],
     voteAverage: (json['vote_average'] ?? 0).toDouble(),
-    firstAirDate: json['first_air_date'] ?? '',
+    firstAirDate: json['first_air_date'] != null ? DateTime.parse(json['first_air_date']) : null,
   );
 }
 
@@ -1004,7 +1004,7 @@ class RecommendedMovie {
   final String title;
   final String? posterPath;
   final double voteAverage;
-  final String releaseDate;
+  final DateTime? releaseDate;
 
   RecommendedMovie({required this.id, required this.title, this.posterPath, required this.voteAverage, required this.releaseDate});
 
@@ -1013,7 +1013,7 @@ class RecommendedMovie {
     title: json['title'] ?? '',
     posterPath: json['poster_path'],
     voteAverage: (json['vote_average'] ?? 0).toDouble(),
-    releaseDate: json['release_date'] ?? '',
+    releaseDate: json['release_date'] != null ? DateTime.parse(json['release_date']) : null,
   );
 }
 

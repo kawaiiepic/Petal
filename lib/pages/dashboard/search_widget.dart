@@ -162,7 +162,7 @@ class _SearchState extends State<Search> {
               return material.SearchBar(
                 controller: controller,
                 hintText: 'Search TV Shows, Movies & more...',
-                constraints: BoxConstraints(maxWidth: 40.w, minHeight: 48),
+                constraints: BoxConstraints(maxWidth: 80.w, minHeight: 48),
                 onTap: () => controller.openView(),
                 onChanged: (value) => controller.openView(),
                 shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
@@ -205,7 +205,7 @@ class _SearchState extends State<Search> {
                           onPressed: () async {
                             if (!mounted) return;
                             context.pop();
-                            context.push('/${choice.type}/${choice.id}');
+                            context.push('/${choice.type}?imdb=${choice.id}');
                           },
                           style: ButtonVariance.text,
                           child: Text('${choice.name} // ${choice.type} // ${choice.releaseInfo}', style: const TextStyle(color: Colors.white, fontSize: 13)),

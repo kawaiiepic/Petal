@@ -93,8 +93,31 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
   @override
   void initState() {
     super.initState();
-    final state = widget.state;
+    _loadFutures(widget.state);
+  }
 
+  @override
+  void didUpdateWidget(covariant TraktNextUpItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final oldState = oldWidget.state;
+    final newState = widget.state;
+
+    if (oldState is ShowItem && newState is ShowItem) {
+      final episodeChanged = oldState.nextEpisode!.season != newState.nextEpisode!.season || oldState.nextEpisode!.episode != newState.nextEpisode!.episode;
+
+      // Show itself can't change since tmdbId is the list key, but the
+      // episode (and therefore its thumbnail/title) can.
+      if (episodeChanged) {
+        _futureEpisode = TMDB.tvEpisode(newState.tmdbId, newState.nextEpisode!.season, newState.nextEpisode!.episode);
+      }
+    } else if (oldState.tmdbId != newState.tmdbId || oldState.runtimeType != newState.runtimeType) {
+      // Defensive: item type/id changed under the same key somehow — reload everything.
+      _loadFutures(newState);
+    }
+  }
+
+  void _loadFutures(ContinueWatchingItem state) {
     if (state is ShowItem) {
       _futureShow = TMDB.tvShow(state.tmdbId);
       _futureEpisode = TMDB.tvEpisode(state.tmdbId, state.nextEpisode!.season, state.nextEpisode!.episode);
@@ -124,9 +147,9 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
       onPressed: (context) {
         final state = widget.state;
         if (state is ShowItem) {
-          context.push('/player?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
+          AppRouter.appRouter.push('/player?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
         } else {
-          context.push('/player?movie=${state.tmdbId}');
+          AppRouter.appRouter.push('/player?movie=${state.tmdbId}');
         }
       },
     ),
@@ -149,9 +172,9 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
       onPressed: (context) async {
         final state = widget.state;
         if (state is ShowItem) {
-          context.push('/series?tmdb=${state.tmdbId}');
+          AppRouter.appRouter.push('/series?tmdb=${state.tmdbId}');
         } else {
-          context.push('/movie?tmdb=${state.tmdbId}');
+          AppRouter.appRouter.push('/movie?tmdb=${state.tmdbId}');
         }
       },
     ),

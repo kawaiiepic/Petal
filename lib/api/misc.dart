@@ -12,11 +12,11 @@ abstract final class Misc {
     return '${d.inMinutes}:$s';
   }
 
-  static double get labelSize => Device.screenType == ScreenType.desktop ? 10.sp : 13.sp;
-  static double get bodySize => Device.screenType == ScreenType.desktop ? 12.sp : 14.sp;
-  static double get smallSize => Device.screenType == ScreenType.desktop ? 11.sp : 13.sp;
-  static double get h3Size => Device.screenType == ScreenType.desktop ? 15.sp : 20.sp;
-  static double get h4Size => Device.screenType == ScreenType.desktop ? 13.sp : 17.sp;
+  static double get labelSize => Device.screenType == ScreenType.desktop ? 10.sp.clamp(10, 14) : 13.sp;
+  static double get bodySize => Device.screenType == ScreenType.desktop ? 12.sp.clamp(12, 16) : 14.sp;
+  static double get smallSize => Device.screenType == ScreenType.desktop ? 11.sp.clamp(11, 15) : 13.sp;
+  static double get h3Size => Device.screenType == ScreenType.desktop ? 15.sp.clamp(15, 20) : 20.sp;
+  static double get h4Size => Device.screenType == ScreenType.desktop ? 13.sp.clamp(13, 17) : 17.sp;
 
   static String formatRuntime(int? minutes) {
     if (minutes == null) return '';

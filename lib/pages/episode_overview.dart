@@ -1,12 +1,15 @@
+import 'package:flutter_js/quickjs/ffi.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/models/custom_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petal/models/media_state.dart';
 import 'package:petal/router/router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
@@ -36,7 +39,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
     initData();
   }
 
-int? _resolvedTmdbId;
+  int? _resolvedTmdbId;
 
   Future<void> initData() async {
     int? tmdbId = widget.tmdbId;
@@ -62,27 +65,6 @@ int? _resolvedTmdbId;
       _season = season;
     });
   }
-
-  String _formatDate(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inDays == 0) return 'today';
-    if (diff.inDays == 1) return 'yesterday';
-    if (diff.inDays < 30) return '${diff.inDays}d ago';
-    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo ago';
-    return '${(diff.inDays / 365).floor()}y ago';
-  }
-
-  String _formatRuntime(int? minutes) {
-    if (minutes == null) return '';
-    if (minutes < 60) return '${minutes}m';
-    return '${minutes ~/ 60}h ${minutes % 60}m';
-  }
-
-  double get _labelSize => Device.screenType == ScreenType.desktop ? 10.sp : 13.sp;
-  double get _bodySize => Device.screenType == ScreenType.desktop ? 12.sp : 14.sp;
-  double get _smallSize => Device.screenType == ScreenType.desktop ? 11.sp : 13.sp;
-  double get _h3Size => Device.screenType == ScreenType.desktop ? 15.sp : 20.sp;
-  double get _h4Size => Device.screenType == ScreenType.desktop ? 13.sp : 17.sp;
 
   @override
   Widget build(BuildContext context) {
@@ -121,13 +103,15 @@ int? _resolvedTmdbId;
                       ),
 
                       // Bottom gradient so logo + button are readable
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
-                            stops: const [0.0, 0.5],
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
+                              stops: const [0.0, 1.0],
+                            ),
                           ),
                         ),
                       ),
@@ -176,7 +160,7 @@ int? _resolvedTmdbId;
                                     spacing: 8,
                                     children: [
                                       Icon(Icons.play_arrow_rounded),
-                                      Text(style: TextStyle(fontSize: _bodySize), 'S${episode.seasonNumber}:E${episode.episodeNumber}'),
+                                      Text(style: TextStyle(fontSize: Misc.bodySize), 'S${episode.seasonNumber}:E${episode.episodeNumber}'),
                                     ],
                                   ),
                                 ),
@@ -193,7 +177,7 @@ int? _resolvedTmdbId;
                                   spacing: 8,
                                   children: [
                                     const Icon(Icons.smart_display_outlined),
-                                    Text(style: TextStyle(fontSize: _bodySize), 'Trailer'),
+                                    Text(style: TextStyle(fontSize: Misc.bodySize), 'Trailer'),
                                   ],
                                 ),
                               ),
@@ -226,25 +210,25 @@ int? _resolvedTmdbId;
                         children: [
                           Text(
                             '${(show != null ? show.voteAverage * 10 : 80).toStringAsFixed(0)}% Match',
-                            style: TextStyle(color: Colors.green[400], fontWeight: FontWeight.w600, fontSize: _labelSize),
+                            style: TextStyle(color: Colors.green[400], fontWeight: FontWeight.w600, fontSize: Misc.labelSize),
                           ),
                           Text(
                             show?.firstAirDate.split('-').firstOrNull ?? '2001',
-                            style: TextStyle(color: Colors.white, fontSize: _labelSize),
+                            style: TextStyle(color: Colors.white, fontSize: Misc.labelSize),
                           ),
                           Text(
                             "${show?.seasons.length ?? '20'} ${show == null || show.seasons.length > 1 ? "Seasons" : "Season"}",
-                            style: TextStyle(color: Colors.white, fontSize: _labelSize),
+                            style: TextStyle(color: Colors.white, fontSize: Misc.labelSize),
                           ),
                           // if (show.episodeRunTime.isNotEmpty)
                           Text(
                             "${show?.episodeRunTime.firstOrNull ?? '20'} mins",
-                            style: TextStyle(color: Colors.white, fontSize: _labelSize),
+                            style: TextStyle(color: Colors.white, fontSize: Misc.labelSize),
                           ),
                           if (show != null && show.episodeRunTime.isEmpty && show.lastEpisodeToAir != null)
                             Text(
-                              _formatRuntime(show.lastEpisodeToAir!.runtime),
-                              style: TextStyle(color: Colors.white, fontSize: _labelSize),
+                              Misc.formatRuntime(show.lastEpisodeToAir!.runtime),
+                              style: TextStyle(color: Colors.white, fontSize: Misc.labelSize),
                             ),
                         ],
                       ),
@@ -260,40 +244,40 @@ int? _resolvedTmdbId;
                       const SizedBox(height: 20),
 
                       // Show overview
-                      Text(style: TextStyle(fontSize: _h3Size), 'About ${show?.name ?? 'Show Name'}').h3,
+                      Text(style: TextStyle(fontSize: Misc.h3Size), 'About ${show?.name ?? 'Show Name'}').h3,
                       const SizedBox(height: 8),
-                      Text(show?.overview ?? 'Show overview...', style: TextStyle(fontSize: _bodySize, height: 1.5)),
+                      Text(show?.overview ?? 'Show overview...', style: TextStyle(fontSize: Misc.bodySize, height: 1.5)),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           Chip(
-                            child: Text(style: TextStyle(fontSize: _labelSize), show?.networks.firstOrNull?.name ?? 'Netflix'),
+                            child: Text(style: TextStyle(fontSize: Misc.labelSize), show?.networks.firstOrNull?.name ?? 'Netflix'),
                           ),
                           Chip(
-                            child: Text(style: TextStyle(fontSize: _labelSize), show?.status ?? 'Ongoing'),
+                            child: Text(style: TextStyle(fontSize: Misc.labelSize), show?.status ?? 'Ongoing'),
                           ),
                           Chip(
-                            child: Text(style: TextStyle(fontSize: _labelSize), show?.originCountry.firstOrNull ?? 'USA'),
+                            child: Text(style: TextStyle(fontSize: Misc.labelSize), show?.originCountry.firstOrNull ?? 'USA'),
                           ),
                           Chip(
-                            child: Text(style: TextStyle(fontSize: _labelSize), '★ ${show?.voteAverage.toStringAsFixed(1) ?? 5}'),
+                            child: Text(style: TextStyle(fontSize: Misc.labelSize), '★ ${show?.voteAverage.toStringAsFixed(1) ?? 5}'),
                           ),
                           if (show != null)
                             ...show.genres
                                 .take(3)
                                 .map(
                                   (g) => Chip(
-                                    child: Text(style: TextStyle(fontSize: _labelSize), g.name),
+                                    child: Text(style: TextStyle(fontSize: Misc.labelSize), g.name),
                                   ),
                                 ),
                           if (show == null) ...[
                             Chip(
-                              child: Text('Horror', style: TextStyle(fontSize: _labelSize)),
+                              child: Text('Horror', style: TextStyle(fontSize: Misc.labelSize)),
                             ),
                             Chip(
-                              child: Text('Comedy', style: TextStyle(fontSize: _labelSize)),
+                              child: Text('Comedy', style: TextStyle(fontSize: Misc.labelSize)),
                             ),
                           ],
                         ],
@@ -304,7 +288,7 @@ int? _resolvedTmdbId;
                       // Cast row
                       // if (cast.isNotEmpty) ...[
                       Skeleton.keep(
-                        child: Text(style: TextStyle(fontSize: _h4Size), 'Cast').h4,
+                        child: Text(style: TextStyle(fontSize: Misc.h4Size), 'Cast').h4,
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
@@ -317,13 +301,12 @@ int? _resolvedTmdbId;
                         ),
                       ),
 
-
                       // ],
                       Skeleton.keep(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(style: TextStyle(fontSize: _h3Size), 'Episodes').h3,
+                            Text(style: TextStyle(fontSize: Misc.h3Size), 'Episodes').h3,
 
                             _DropdownSeasons(
                               tvShow: show,
@@ -342,7 +325,7 @@ int? _resolvedTmdbId;
                         builder: (context, snapshot) {
                           return Column(
                             children: [
-                              if (snapshot.hasData && snapshot.data!.episodes.isEmpty) Text(style: TextStyle(fontSize: _bodySize), "There are no episodes."),
+                              if (snapshot.hasData && snapshot.data!.episodes.isEmpty) Text(style: TextStyle(fontSize: Misc.bodySize), "There are no episodes."),
 
                               if (snapshot.hasData && snapshot.data!.episodes.isNotEmpty)
                                 ListView.separated(
@@ -361,7 +344,7 @@ int? _resolvedTmdbId;
                                               AppRouter.appRouter.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
                                             }
                                           },
-                                          child: Text(style: TextStyle(fontSize: _bodySize), 'Select Source'),
+                                          child: Text(style: TextStyle(fontSize: Misc.bodySize), 'Select Source'),
                                         ),
                                       ],
                                       child: GhostButton(
@@ -374,14 +357,90 @@ int? _resolvedTmdbId;
                                             Skeleton.keep(
                                               child: ClipRRect(
                                                 borderRadius: BorderRadius.circular(6),
-                                                child: CachedNetworkImage(
-                                                  imageUrl:
-                                                      'https://image.tmdb.org/t/p/w300${episode.stillPath ?? show?.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
-                                                  width: 120,
-                                                  height: 68,
-                                                  fit: BoxFit.cover,
-                                                  errorWidget: (context, url, error) => const _EpisodeThumbFallback(),
+                                                child: Stack(
+                                                  children: [
+                                                    CachedNetworkImage(
+                                                      imageUrl: 'https://image.tmdb.org/t/p/w300${episode.stillPath}',
+                                                      width: 120,
+                                                      height: 68,
+                                                      fit: BoxFit.cover,
+                                                      errorWidget: (context, url, error) => const _EpisodeThumbFallback(),
+                                                    ),
+                                                    Positioned.fill(
+                                                      child: Container(
+                                                        decoration: BoxDecoration(
+                                                          gradient: LinearGradient(
+                                                            begin: Alignment.bottomCenter,
+                                                            end: Alignment.topCenter,
+                                                            colors: [Colors.black.withValues(alpha: 0.4), Colors.black.withValues(alpha: 0.1)],
+                                                            stops: const [0.0, 1.0],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    ValueListenableBuilder(
+                                                      valueListenable: BackendCache.continueWatching,
+                                                      builder: (context, value, child) {
+                                                        if (value.any((boop) {
+                                                          if (boop.mediaType == "episode") {
+                                                            final showItem = boop as ShowItem;
+                                                            return (showItem.tmdbId == _resolvedTmdbId &&
+                                                                showItem.nextEpisode?.season == episode.seasonNumber &&
+                                                                showItem.nextEpisode?.episode == episode.episodeNumber);
+                                                          }
+                                                          return false;
+                                                        })) {
+                                                          return const Positioned(
+                                                            top: 4,
+                                                            right: 4,
+                                                            left: 4,
+                                                            bottom: 4,
+                                                            child: Icon(Icons.play_arrow_rounded, size: 30, color: Colors.white),
+                                                          );
+                                                        } else {
+                                                          return Container();
+                                                        }
+                                                      },
+                                                    ),
+                                                    ValueListenableBuilder(
+                                                      valueListenable: BackendCache.watchHistory,
+                                                      builder: (context, history, child) {
+                                                        final entry = history.firstWhereOrNull(
+                                                          (h) => h.tmdbId == show?.id && h.season == episode.seasonNumber && h.episode == episode.episodeNumber,
+                                                        );
+
+                                                        if (entry == null || entry.completion <= 0.0) {
+                                                          return const SizedBox.shrink();
+                                                        }
+
+                                                        final isCompleted = entry.completion >= 1.0;
+
+                                                        if (isCompleted) {
+                                                          return const Positioned(
+                                                            top: 4,
+                                                            right: 4,
+                                                            child: Icon(Icons.check_rounded, size: 20, color: Colors.white),
+                                                          );
+                                                        }
+
+                                                        return Positioned(
+                                                          bottom: 2,
+                                                          left: 5,
+                                                          right: 5,
+                                                          child: LinearProgressIndicator(
+                                                            value: entry.completion,
+                                                            minHeight: 5,
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ],
                                                 ),
+
+                                                // ValueListenableBuilder(valueListenable: BackendCache.watchHistory, builder:(context, value, child) => Stack(children: [
+
+                                                // ],),)
                                               ),
                                             ),
                                             Expanded(
@@ -394,11 +453,11 @@ int? _resolvedTmdbId;
                                                       children: [
                                                         TextSpan(
                                                           text: '${episode.seasonNumber}x${episode.episodeNumber}  ',
-                                                          style: TextStyle(fontSize: _bodySize, fontWeight: FontWeight.w300),
+                                                          style: TextStyle(fontSize: Misc.bodySize, fontWeight: FontWeight.w300),
                                                         ),
                                                         TextSpan(
                                                           text: episode.name,
-                                                          style: TextStyle(fontSize: _bodySize),
+                                                          style: TextStyle(fontSize: Misc.bodySize),
                                                         ),
                                                       ],
                                                     ),
@@ -406,7 +465,7 @@ int? _resolvedTmdbId;
                                                   Text(
                                                     episode.airDate,
                                                     style: TextStyle(
-                                                      fontSize: _smallSize,
+                                                      fontSize: Misc.smallSize,
                                                       color: (DateTime.tryParse(episode.airDate)?.isAfter(DateTime.now()) ?? false)
                                                           ? Colors.red.withAlpha(200)
                                                           : Colors.white.withAlpha(200),
@@ -416,7 +475,7 @@ int? _resolvedTmdbId;
                                                     episode.overview,
                                                     maxLines: 2,
                                                     overflow: TextOverflow.ellipsis,
-                                                    style: TextStyle(fontSize: _smallSize),
+                                                    style: TextStyle(fontSize: Misc.smallSize),
                                                   ),
                                                 ],
                                               ),
@@ -436,7 +495,7 @@ int? _resolvedTmdbId;
                       // if (recommendations.isNotEmpty) ...[
                       const SizedBox(height: 28),
                       Skeleton.keep(
-                        child: Text(style: TextStyle(fontSize: _h4Size), 'More Like This').h4,
+                        child: Text(style: TextStyle(fontSize: Misc.h4Size), 'More Like This').h4,
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
@@ -475,8 +534,6 @@ class _DropdownSeasons extends StatefulWidget {
 class _DropdownSeasonsState extends State<_DropdownSeasons> {
   SeasonSummary? _selectedSeason;
 
-  double get _bodySize => Device.screenType == ScreenType.desktop ? 12.sp : 15.sp;
-
   @override
   void initState() {
     super.initState();
@@ -486,7 +543,7 @@ class _DropdownSeasonsState extends State<_DropdownSeasons> {
   @override
   Widget build(BuildContext context) {
     return Select<SeasonSummary>(
-      itemBuilder: (context, item) => Text(style: TextStyle(fontSize: _bodySize), item.name),
+      itemBuilder: (context, item) => Text(style: TextStyle(fontSize: Misc.bodySize), item.name),
       popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
       onChanged: (value) {
         setState(() => _selectedSeason = value);
@@ -575,7 +632,7 @@ class _ShowRecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => show != null ? context.push('/show?id=${show!.id}') : null,
+      onTap: () => show != null ? context.push('/series?tmdb=${show!.id}') : null,
       child: SizedBox(
         width: 110,
         child: Column(
@@ -600,7 +657,13 @@ class _ShowRecommendationCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
-            Text('★ ${show?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+              Text('★ ${show?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+              Text('${show?.firstAirDate?.year.toString()}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)))
+            ],)
+            ,
           ],
         ),
       ),

@@ -74,3 +74,32 @@ class MovieItem extends ContinueWatchingItem {
     return MovieItem(tmdbId: json['tmdb_id'], completion: (json['completion'] as num?)?.toDouble() ?? 0.0);
   }
 }
+
+class WatchHistoryItem {
+  final int tmdbId;
+  final String mediaType;
+  final int season;
+  final int episode;
+  final double completion;
+  final DateTime updatedAt;
+
+  WatchHistoryItem({
+    required this.tmdbId,
+    required this.mediaType,
+    required this.season,
+    required this.episode,
+    required this.completion,
+    required this.updatedAt,
+  });
+
+  factory WatchHistoryItem.fromJson(Map<String, dynamic> json) {
+    return WatchHistoryItem(
+      tmdbId: json['tmdb_id'],
+      mediaType: json['media_type'] as String,
+      season: json['season'] ?? 0,
+      episode: json['episode'] ?? 0,
+      completion: (json['completion'] as num?)?.toDouble() ?? 0.0,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch((json['updated_at'] as int) * 1000),
+    );
+  }
+}

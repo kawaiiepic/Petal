@@ -52,30 +52,30 @@ class Navigation extends StatelessWidget {
             ),
           ),
         ],
-        footers: [
-          const Divider(),
-          NavigationBar(
-            alignment: NavigationBarAlignment.spaceAround,
-            labelType: NavigationLabelType.none,
-            expanded: true,
-            selectedKey: currentSelected,
-            onSelected: (key) {
-              final selectedNavItem = _navItems.firstWhere((i) => i.key == key);
-              selectedNavItem.popUp ? context.push(selectedNavItem.route) : context.go(selectedNavItem.route);
-            },
-            children: _navItems
-                .mapIndexed(
-                  (i, v) => NavigationItem(
-                    key: ValueKey(i),
-                    style: const ButtonStyle.muted(density: ButtonDensity.icon),
-                    selectedStyle: const ButtonStyle.fixed(density: ButtonDensity.icon),
-                    label: Text(v.label),
-                    child: Icon(v.icon),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
+        // footers: [
+        //   const Divider(),
+        //   NavigationBar(
+        //     alignment: NavigationBarAlignment.spaceAround,
+        //     labelType: NavigationLabelType.none,
+        //     expanded: true,
+        //     selectedKey: currentSelected,
+        //     onSelected: (key) {
+        //       final selectedNavItem = _navItems.firstWhere((i) => i.key == key);
+        //       selectedNavItem.popUp ? context.push(selectedNavItem.route) : context.go(selectedNavItem.route);
+        //     },
+        //     children: _navItems
+        //         .mapIndexed(
+        //           (i, v) => NavigationItem(
+        //             key: ValueKey(i),
+        //             style: const ButtonStyle.muted(density: ButtonDensity.icon),
+        //             selectedStyle: const ButtonStyle.fixed(density: ButtonDensity.icon),
+        //             label: Text(v.label),
+        //             child: Icon(v.icon),
+        //           ),
+        //         )
+        //         .toList(),
+        //   ),
+        // ],
         child: child,
       ),
     );
