@@ -592,47 +592,37 @@ packages:
   media_kit:
     dependency: "direct main"
     description:
-      path: media_kit
-      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      url: "https://github.com/Insight-Timer/media-kit.git"
-    source: git
+      path: "third_party/media-kit/media_kit"
+      relative: true
+    source: path
     version: "1.2.6"
   media_kit_libs_android_video:
     dependency: "direct main"
     description:
-      path: "libs/android/media_kit_libs_android_video"
-      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      url: "https://github.com/Insight-Timer/media-kit.git"
-    source: git
+      path: "third_party/media-kit/libs/android/media_kit_libs_android_video"
+      relative: true
+    source: path
     version: "1.3.8"
   media_kit_libs_ios_video:
     dependency: "direct main"
     description:
-      path: "libs/ios/media_kit_libs_ios_video"
-      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      url: "https://github.com/Insight-Timer/media-kit.git"
-    source: git
+      path: "third_party/media-kit/libs/ios/media_kit_libs_ios_video"
+      relative: true
+    source: path
     version: "1.1.4"
   media_kit_libs_linux:
     dependency: "direct main"
     description:
-      path: "libs/linux/media_kit_libs_linux"
-      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      url: "https://github.com/Insight-Timer/media-kit.git"
-    source: git
+      path: "third_party/media-kit/libs/linux/media_kit_libs_linux"
+      relative: true
+    source: path
     version: "1.2.1"
   media_kit_video:
     dependency: "direct main"
     description:
-      path: media_kit_video
-      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
-      url: "https://github.com/Insight-Timer/media-kit.git"
-    source: git
+      path: "third_party/media-kit/media_kit_video"
+      relative: true
+    source: path
     version: "2.0.1"
   meta:
     dependency: "direct overridden"
