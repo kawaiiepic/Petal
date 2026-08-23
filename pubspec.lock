@@ -593,7 +593,7 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: master
+      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
@@ -602,7 +602,7 @@ packages:
     dependency: "direct main"
     description:
       path: "libs/android/media_kit_libs_android_video"
-      ref: master
+      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
@@ -611,7 +611,7 @@ packages:
     dependency: "direct main"
     description:
       path: "libs/ios/media_kit_libs_ios_video"
-      ref: master
+      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
@@ -620,7 +620,7 @@ packages:
     dependency: "direct main"
     description:
       path: "libs/linux/media_kit_libs_linux"
-      ref: master
+      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       url: "https://github.com/Insight-Timer/media-kit.git"
     source: git
@@ -629,7 +629,7 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: master
+      ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       resolved-ref: "37344b7f028d4048d8e02a9cb28109756d6aae95"
       url: "https://github.com/Insight-Timer/media-kit.git"
     source: git

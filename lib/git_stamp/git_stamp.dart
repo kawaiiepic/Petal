@@ -1,7 +1,7 @@
 // Copyright © 2024 Aron Onak. All rights reserved.
 // Licensed under the MIT license.
 // If you have any feedback, please contact me at arononak@gmail.com
-library git_stamp;
+library;
 
 import 'package:flutter/services.dart';
 //import 'package:encrypt/encrypt.dart' as crypto;
@@ -46,7 +46,7 @@ final GitStamp = GitStampNodeImpl();
 class GitStampNodeImpl extends GitStampNode {
   @override String get toolVersion => gitStampToolVersion;
   @override BuildType get toolBuildType => BuildType.fromString(gitStampToolBuildType);
-  
+
   @override bool get isEncrypted => false;
   @override bool decrypt(Uint8List key, Uint8List iv) => true;
 
@@ -79,7 +79,7 @@ class GitStampNodeImpl extends GitStampNode {
   @override Widget icon() {
     return GitStampIcon(gitStamp: this);
   }
-  
+
   @override Widget listTile({required BuildContext context, String? monospaceFontFamily}) {
     return GitStampListTile(
       gitStamp: this,
@@ -92,7 +92,7 @@ class GitStampNodeImpl extends GitStampNode {
       },
     );
   }
-  
+
   @override Widget mainPage({String? monospaceFontFamily, bool showDetails = false, bool showFiles = false}) {
     return GitStampPage(
       gitStamp: this,
@@ -104,7 +104,7 @@ class GitStampNodeImpl extends GitStampNode {
   //    encryptDebugIv: GitStampEncryptDebugKey.iv,
     );
   }
-  
+
   @override Widget detailsPage({required Commit commit, String? monospaceFontFamily}) {
     return GitStampDetailsPage(
       gitStamp: this,
@@ -112,7 +112,7 @@ class GitStampNodeImpl extends GitStampNode {
       monospaceFontFamily: monospaceFontFamily,
     );
   }
-  
+
   @override void showMainPage({required BuildContext context, String? monospaceFontFamily, bool useRootNavigator = false}) {
     Navigator.of(context, rootNavigator: useRootNavigator).push(MaterialPageRoute<void>(
       builder: (BuildContext context) {
@@ -120,7 +120,7 @@ class GitStampNodeImpl extends GitStampNode {
       },
     ));
   }
-  
+
   @override void showDetailsPage({required BuildContext context, required Commit commit, String? monospaceFontFamily, bool useRootNavigator = false}) {
     Navigator.of(context, rootNavigator: useRootNavigator).push(MaterialPageRoute<void>(
       builder: (BuildContext context) {
@@ -128,7 +128,7 @@ class GitStampNodeImpl extends GitStampNode {
       },
     ));
   }
-  
+
   @override void showLicensePage({required BuildContext context, Widget? applicationIcon, String? applicationLegalese, bool useRootNavigator = false}) {
     showGitStampLicensePage(
       context: context,

@@ -34,6 +34,7 @@ class _LoginState extends State<Login> {
       }
       if (mounted) {
         BackendApi.authState.setLoggedIn(true);
+        BackendApi.authState.setProfile((await BackendApi.profiles()).first);
         context.go('/');
       }
     } catch (e) {

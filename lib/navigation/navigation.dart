@@ -1,7 +1,5 @@
-import 'package:collection/collection.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/main.dart';
 import 'package:petal/navigation/profile.dart';

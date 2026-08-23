@@ -1,4 +1,3 @@
-import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/main.dart';
 import 'package:petal/models/custom_model.dart';

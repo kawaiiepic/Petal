@@ -12,7 +12,6 @@ import 'package:go_router/go_router.dart';
 import 'package:petal/models/media_state.dart';
 import 'package:petal/router/router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 

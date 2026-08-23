@@ -17,7 +17,7 @@ class StreamApi {
     final type = episode != null ? 'series' : 'movie';
     final id = episode != null ? '$imdbId:${episode.seasonNumber}:${episode.episodeNumber}' : imdbId;
 
-    print("Fetching stream: " + streamAddons.length.toString() + " addons");
+    print("Fetching stream: ${streamAddons.length} addons");
 
     // Fetch all addons in parallel
     final results = await Future.wait(streamAddons.map((addon) => _fetchFromAddon(addon, type, id, episode)));
