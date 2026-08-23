@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/discord.dart';
+import 'package:petal/pages/settings.dart';
 import 'package:petal/router/router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
@@ -10,6 +11,7 @@ import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppTheme.load();
 
   // Initialize media_kit backend
   MediaKit.ensureInitialized();
@@ -18,7 +20,7 @@ void main() async {
   GoRouter.optionURLReflectsImperativeAPIs = true;
   runApp(PetalApp());
 
-  await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+  windowManager.setTitleBarStyle(TitleBarStyle.hidden);
 }
 
 class PetalApp extends StatefulWidget {
@@ -41,16 +43,21 @@ class _PetalState extends State<PetalApp> {
     Api.initApi();
   }
 
-  @override
+  @override // ThemeData(colorScheme: ColorSchemes.darkGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12)
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    return Sizer(
-      maxTabletWidth: 500,
-      builder: (context, orientation, screenType) => ShadcnApp.router(
-        routerConfig: AppRouter.appRouter,
-        builder: (context, child) => DrawerOverlay(child: child!),
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(colorScheme: ColorSchemes.darkGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12),
+
+    return ValueListenableBuilder(
+      valueListenable: AppTheme.mode,
+      builder: (context, mode, _) => Sizer(
+        maxTabletWidth: 500,
+        builder: (context, orientation, screenType) => ShadcnApp.router(
+          routerConfig: AppRouter.appRouter,
+          builder: (context, child) => DrawerOverlay(child: child!),
+          debugShowCheckedModeBanner: false,
+          themeMode: mode,
+          darkTheme: ThemeData(colorScheme: ColorSchemes.darkGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12),
+        ),
       ),
     );
   }

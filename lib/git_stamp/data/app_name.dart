@@ -1,0 +1,1 @@
+const gitStampAppName = r'''petal''';

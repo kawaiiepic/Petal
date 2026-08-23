@@ -1,0 +1,1 @@
+const gitStampToolVersion = r'''v5.10.0''';
