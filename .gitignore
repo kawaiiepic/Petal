@@ -26,6 +26,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+./lib/git_stamp/
 
 # Symbolication related
 app.*.symbols
