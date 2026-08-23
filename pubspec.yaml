@@ -83,9 +83,9 @@ dependencies:
   flutter_cache_manager: ^3.4.2
   git_stamp: ^5.10.1
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
+# dev_dependencies:
+#   flutter_test:
+#     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
