@@ -82,6 +82,7 @@ jobs:
         with:
           name: release-linux
           path: petal-linux-x64.tar.gz
+          archive: false
 
   windows-build:
     runs-on: windows-latest
