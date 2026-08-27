@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
 import 'package:crop_your_image/crop_your_image.dart';
+import 'package:go_router/go_router.dart';
 import 'package:petal/api/trakt/backend_api.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class AvatarCropDialog extends StatefulWidget {
   final File image;
@@ -34,6 +35,9 @@ class _AvatarCropDialogState extends State<AvatarCropDialog> {
             switch (result) {
               case CropSuccess(:final croppedImage):
                 BackendApi.uploadProfile(croppedImage);
+                BackendApi.fetchSelectedProfile();
+                context.pop();
+
               // do something with cropped image data
               case CropFailure(:final cause):
               // do something with error
@@ -49,7 +53,7 @@ class _AvatarCropDialogState extends State<AvatarCropDialog> {
           child: const Text('Cancel'),
         ),
 
-        FilledButton(
+        Button.primary(
           onPressed: () {
             controller.crop();
           },

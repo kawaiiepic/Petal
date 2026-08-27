@@ -67,6 +67,8 @@ class BackendApi {
   static Future<void> uploadProfile(Uint8List imageData) async {
     final mimeType = lookupMimeType('', headerBytes: imageData) ?? 'application/octet-stream';
 
+    print(mimeType);
+
     await BackendApi.dio.put(
       '${Api.ServerUrl}/profiles/${authState.selectedProfile?.id}/avatar',
       data: imageData,
@@ -111,6 +113,10 @@ class BackendApi {
     } else {
       throw Exception('Failed to fetch addons');
     }
+  }
+
+  static Future<void> fetchSelectedProfile() async {
+    BackendApi.authState.setProfile((await BackendApi.profiles()).first);
   }
 
   static Future<List<Profile>> profiles() async {
