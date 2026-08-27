@@ -1,3 +1,0 @@
-[submodule "third_party/media-kit"]
-	path = third_party/media-kit
-	url = https://github.com/Insight-Timer/media-kit.git
