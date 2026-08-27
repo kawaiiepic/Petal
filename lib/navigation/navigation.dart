@@ -45,7 +45,7 @@ class Navigation extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 // mainAxisSize: MainAxisSize.min,
-                children: [SvgPicture.asset('assets/images/logo-clean.svg', height: 30), Search(), UserProfile()],
+                children: [SvgPicture.asset('assets/images/logo-clean.svg', height: 30, width: 30), Search(), UserProfile()],
               ),
             ),
           ),

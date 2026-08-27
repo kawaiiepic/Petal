@@ -287,40 +287,40 @@ class _SearchState extends State<Search> {
             child: TextField(
               onTap: _showSearchOverlay,
               features: [
-                InputFeature.leading(
-                  Select<SearchType>(
-                    // How to render each selected item as text in the field.
-                    padding: EdgeInsets.fromLTRB(12, 2, 12, 2),
-                    borderRadius: BorderRadius.circular(8),
-                    itemBuilder: (context, item) {
-                      return Text(item.title);
-                    },
-                    // Limit the popup size so it doesn't grow too large in the docs view.
-                    popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
-                    onChanged: (value) {
-                      setState(() {
-                        // Save the currently selected value (or null to clear).
-                        if (value == null) return;
-                        searchTypeNotifier.value = value;
-                      });
-                    },
-                    // The current selection bound to this field.
-                    value: searchTypeNotifier.value,
-                    placeholder: const Text('Media Type'),
-                    popup: SelectPopup(
-                      items: SelectItemList(
-                        children: SearchType.values
-                            .map(
-                              (v) => SelectItemButton(
-                                value: v,
-                                child: Text(v.title, style: TextStyle(fontSize: 12)),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ).call,
-                  ),
-                ),
+                // InputFeature.leading(
+                //   Select<SearchType>(
+                //     // How to render each selected item as text in the field.
+                //     padding: EdgeInsets.fromLTRB(12, 2, 12, 2),
+                //     borderRadius: BorderRadius.circular(8),
+                //     itemBuilder: (context, item) {
+                //       return Text(item.title);
+                //     },
+                //     // Limit the popup size so it doesn't grow too large in the docs view.
+                //     popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
+                //     onChanged: (value) {
+                //       setState(() {
+                //         // Save the currently selected value (or null to clear).
+                //         if (value == null) return;
+                //         searchTypeNotifier.value = value;
+                //       });
+                //     },
+                //     // The current selection bound to this field.
+                //     value: searchTypeNotifier.value,
+                //     placeholder: const Text('Media Type'),
+                //     popup: SelectPopup(
+                //       items: SelectItemList(
+                //         children: SearchType.values
+                //             .map(
+                //               (v) => SelectItemButton(
+                //                 value: v,
+                //                 child: Text(v.title, style: TextStyle(fontSize: 12)),
+                //               ),
+                //             )
+                //             .toList(),
+                //       ),
+                //     ).call,
+                //   ),
+                // ),
                 const InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
                 // Hint shows a small tooltip-like popup for the input field.
                 InputFeature.hint(
