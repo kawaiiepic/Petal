@@ -1,0 +1,126 @@
+import 'package:petal/api/trakt/backend_api.dart';
+import 'package:petal/main.dart';
+import 'package:petal/models/custom_model.dart';
+import 'package:petal/models/stream.dart';
+import 'package:petal/navigation/navigation.dart';
+import 'package:petal/pages/actor_overview.dart';
+import 'package:petal/pages/addons.dart';
+import 'package:petal/pages/dashboard/search_widget.dart';
+import 'package:petal/pages/episode_overview.dart';
+import 'package:petal/pages/login.dart';
+import 'package:petal/pages/movie_overview.dart';
+import 'package:petal/pages/offline.dart';
+import 'package:petal/pages/player/player_screen.dart';
+import 'package:petal/pages/player/trailer_player.dart';
+import 'package:petal/pages/settings.dart';
+import 'package:petal/pages/streams.dart';
+import 'package:petal/router/dialog_page.dart';
+import 'package:petal/widgets/catalog/catalog_widget.dart';
+import 'package:go_router/go_router.dart';
+
+class AppRouter {
+  static final appRouter = GoRouter(
+    navigatorKey: PetalApp.rootNavigatorKey,
+    initialLocation: '/',
+    refreshListenable: BackendApi.authState,
+    redirect: (context, state) {
+      final loggingIn = state.matchedLocation == '/login';
+      final onOffline = state.matchedLocation == '/offline';
+
+      if (BackendApi.authState.initializing) {
+        // Still checking session — hold on the offline/loading screen
+        return onOffline ? null : '/offline';
+      }
+
+      // if (!Api.healthy.value) return '/offline';
+
+      if (!BackendApi.authState.loggedIn && !loggingIn) return '/login';
+
+      if (BackendApi.authState.loggedIn && onOffline) return '/';
+
+      return null;
+    },
+    routes: [
+      ShellRoute(
+        navigatorKey: PetalApp.shellNavigatorKey,
+        builder: (context, state, child) => Navigation(state: state, child: child),
+        routes: [GoRoute(path: '/', builder: (context, state) => const CatalogWidget())],
+      ),
+
+      GoRoute(
+        path: '/series',
+        builder: (context, state) {
+          final tmdbId = state.uri.queryParameters['tmdb'];
+          final imdbId = state.uri.queryParameters['imdb'];
+
+          return EpisodeOverview(tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null, imdbId: imdbId);
+        },
+      ),
+      GoRoute(
+        path: '/movie',
+        builder: (context, state) {
+          final imdbId = state.uri.queryParameters['imdb'];
+          final tmdbId = state.uri.queryParameters['tmdb'];
+
+          return MovieOverview(tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null, imdbId: imdbId);
+        },
+      ),
+      GoRoute(
+        path: '/person/:id',
+        builder: (context, state) => ActorOverview(personId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/trailer/:key',
+        builder: (context, state) => TrailerPlayer(youtubeKey: state.pathParameters['key']!),
+      ),
+
+      GoRoute(
+        parentNavigatorKey: PetalApp.rootNavigatorKey,
+        path: '/streams',
+        builder: (context, state) {
+          final showId = state.uri.queryParameters['show'];
+          final season = state.uri.queryParameters['s'];
+          final episode = state.uri.queryParameters['e'];
+          final movieId = state.uri.queryParameters['movie'];
+
+          return StreamsPage(
+            showId: showId != null ? int.parse(showId) : null,
+            episode: (season != null && episode != null) ? Episode(seasonNumber: int.parse(season), episodeNumber: int.parse(episode)) : null,
+            movieId: movieId != null ? int.parse(movieId) : null,
+          );
+        },
+      ),
+
+      GoRoute(path: '/settings', builder: (context, state) => Settings()),
+      // GoRoute(
+      //   path: '/addons',
+      //   pageBuilder: (context, state) => DialogPage(builder: (context) => Addons()),
+      // ),
+      GoRoute(path: '/addons', builder: (context, state) => Addons()),
+      GoRoute(
+        path: '/search',
+        pageBuilder: (context, state) => DialogPage(builder: (context) => Search()),
+      ),
+      GoRoute(path: '/offline', builder: (context, state) => Offline()),
+      GoRoute(path: '/login', builder: (context, state) => Login()),
+      GoRoute(
+        parentNavigatorKey: PetalApp.rootNavigatorKey,
+        path: '/player',
+        builder: (context, state) {
+          final showId = state.uri.queryParameters['show'];
+          final season = state.uri.queryParameters['s'];
+          final episode = state.uri.queryParameters['e'];
+          final movieId = state.uri.queryParameters['movie'];
+          final streamItem = state.extra as StreamItem?;
+
+          return StreamPlayer(
+            showId: showId != null ? int.parse(showId) : null,
+            episode: (season != null && episode != null) ? Episode(seasonNumber: int.parse(season), episodeNumber: int.parse(episode)) : null,
+            movieId: movieId != null ? int.parse(movieId) : null,
+            stream: streamItem,
+          );
+        },
+      ),
+    ],
+  );
+}

@@ -1,0 +1,150 @@
+import 'package:flutter/material.dart';
+
+class ScrollableWidget extends StatefulWidget {
+  final Widget child;
+  final ScrollController controller;
+  final double offset;
+  const ScrollableWidget({super.key, required this.child, required this.controller, this.offset = 0.0});
+
+  @override
+  State<StatefulWidget> createState() => _ScrollableWidget();
+}
+
+class _ScrollableWidget extends State<ScrollableWidget> {
+  bool _canScrollLeft = false;
+  bool _canScrollRight = false;
+  bool _isHovering = false;
+
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = widget.controller;
+
+    _controller.addListener(_updateArrows);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrows());
+  }
+
+  void _updateArrows() {
+    if (!_controller.hasClients) return;
+
+    final position = _controller.position;
+
+    final canLeft = position.pixels > 1;
+    final canRight = position.pixels < position.maxScrollExtent - 1;
+
+    if (canLeft != _canScrollLeft || canRight != _canScrollRight) {
+      setState(() {
+        _canScrollLeft = canLeft;
+        _canScrollRight = canRight;
+      });
+    }
+  }
+
+  void _scrollBy(double offset) {
+    var scrollTo = (_controller.offset + offset) > _controller.position.maxScrollExtent
+        ? _controller.position.maxScrollExtent + 100
+        : (_controller.offset + offset) < 0
+        ? _controller.position.minScrollExtent - 100
+        : _controller.offset + offset;
+    _controller.animateTo(scrollTo, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_updateArrows);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollMetricsNotification>(
+      onNotification: (notification) {
+        _updateArrows();
+        return false;
+      },
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovering = true),
+        onExit: (_) => setState(() => _isHovering = false),
+        cursor: SystemMouseCursors.click,
+        child: Stack(
+          children: [
+            widget.child,
+
+            Positioned(
+              left: 8,
+              top: widget.offset,
+              bottom: 0,
+
+              child: Center(
+                child: ArrowButton(visible: _isHovering && _canScrollLeft, icon: Icons.arrow_back_ios_new, onPressed: () => _scrollBy(-900)),
+              ),
+            ),
+
+            Positioned(
+              right: 8,
+              top: widget.offset,
+              bottom: 0,
+              child: Center(
+                child: ArrowButton(visible: _isHovering && _canScrollRight, icon: Icons.arrow_forward_ios, onPressed: () => _scrollBy(900)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ArrowButton extends StatefulWidget {
+  final bool visible;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const ArrowButton({super.key, required this.visible, required this.icon, required this.onPressed});
+
+  @override
+  State<ArrowButton> createState() => _ArrowButtonState();
+}
+
+class _ArrowButtonState extends State<ArrowButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: !widget.visible,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: AnimatedOpacity(
+          opacity: widget.visible ? 1 : 0,
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          child: AnimatedScale(
+            scale: _hovered ? 1.1 : 1.0,
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: _hovered ? 0.65 : 0.45),
+                shape: BoxShape.circle,
+                boxShadow: [if (_hovered) const BoxShadow(blurRadius: 8, color: Colors.black26)],
+              ),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: widget.onPressed,
+                child: SizedBox(width: 36, height: 36, child: Icon(widget.icon, size: 18, color: Colors.white)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

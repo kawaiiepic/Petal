@@ -1,0 +1,5 @@
+{
+  "nixEnvSelector.suggestion": false,
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "nixEnvPicker.envFile": "${workspaceFolder}${/}flake.nix"
+}

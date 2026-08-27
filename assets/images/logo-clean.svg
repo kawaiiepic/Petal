@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="436 357.48 406.48 514.33">
+  <defs>
+    <linearGradient id="petalGrad" x1="10%" y1="90%" x2="80%" y2="10%">
+      <stop offset="0%" stop-color="#e8335a" style="--darkreader-inline-stopcolor: var(--darkreader-background-e8335a, #a81333);" data-darkreader-inline-stopcolor=""/>
+      <stop offset="35%" stop-color="#f4607f" style="--darkreader-inline-stopcolor: var(--darkreader-background-f4607f, #8f0a26);" data-darkreader-inline-stopcolor=""/>
+      <stop offset="70%" stop-color="#f98fa8" style="--darkreader-inline-stopcolor: var(--darkreader-background-f98fa8, #740620);" data-darkreader-inline-stopcolor=""/>
+      <stop offset="100%" stop-color="#ffc8d5" style="--darkreader-inline-stopcolor: var(--darkreader-background-ffc8d5, #540014);" data-darkreader-inline-stopcolor=""/>
+    </linearGradient>
+
+    <radialGradient id="gloss" cx="68%" cy="32%" r="38%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22" style="--darkreader-inline-stopcolor: var(--darkreader-background-ffffff, #181a1b);" data-darkreader-inline-stopcolor=""/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" style="--darkreader-inline-stopcolor: var(--darkreader-background-ffffff, #181a1b);" data-darkreader-inline-stopcolor=""/>
+    </radialGradient>
+  </defs>
+
+  <path d="M 699.500 360.330        C 653.217 375.863, 600.361 406.858, 558.910 442.772        C 546.307 453.690, 520.029 480.327, 510.343 492        C 460.821 551.683, 435.975 617.198, 436.012 688        C 436.027 717.049, 438.547 739.085, 446.650 781        C 453.903 818.523, 453.653 829.249, 445.014 851.346        C 440.131 863.836, 440.018 865.996, 444.077 869.411        C 448.073 872.774, 449.891 872.683, 460.959 868.568        C 480.050 861.470, 495.577 858.308, 527.500 855.018        C 609.387 846.577, 662.022 830.678, 713.233 798.915        C 771.217 762.953, 811.826 704.443, 829.950 630.751        C 846.338 564.117, 846.668 489.614, 830.860 425        C 827.285 410.383, 826.891 409.514, 822.686 406.950        C 818.427 404.353, 816.701 404.471, 805.807 408.101        C 786.158 414.647, 756.551 430.564, 736.850 445.171        C 732.527 448.377, 728.813 451, 728.597 451        C 728.382 451, 728.445 443.688, 728.737 434.750        C 729.742 404.031, 724.561 365.694, 718.655 360.145        C 714.836 356.558, 710.619 356.598, 699.500 360.330 Z" fill="url(#petalGrad)"/>
+
+  <path d="M 699.500 360.330        C 653.217 375.863, 600.361 406.858, 558.910 442.772        C 546.307 453.690, 520.029 480.327, 510.343 492        C 460.821 551.683, 435.975 617.198, 436.012 688        C 436.027 717.049, 438.547 739.085, 446.650 781        C 453.903 818.523, 453.653 829.249, 445.014 851.346        C 440.131 863.836, 440.018 865.996, 444.077 869.411        C 448.073 872.774, 449.891 872.683, 460.959 868.568        C 480.050 861.470, 495.577 858.308, 527.500 855.018        C 609.387 846.577, 662.022 830.678, 713.233 798.915        C 771.217 762.953, 811.826 704.443, 829.950 630.751        C 846.338 564.117, 846.668 489.614, 830.860 425        C 827.285 410.383, 826.891 409.514, 822.686 406.950        C 818.427 404.353, 816.701 404.471, 805.807 408.101        C 786.158 414.647, 756.551 430.564, 736.850 445.171        C 732.527 448.377, 728.813 451, 728.597 451        C 728.382 451, 728.445 443.688, 728.737 434.750        C 729.742 404.031, 724.561 365.694, 718.655 360.145        C 714.836 356.558, 710.619 356.598, 699.500 360.330 Z" fill="url(#gloss)"/>
+</svg>
