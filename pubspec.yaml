@@ -29,7 +29,10 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependency_overrides:
   media_kit:
-    path: third_party/media-kit/media_kit
+    git:
+      url: https://github.com/Insight-Timer/media-kit.git
+      ref: 37344b7f028d4048d8e02a9cb28109756d6aae95
+      path: media_kit
 dependencies:
   flutter:
     sdk: flutter
@@ -41,15 +44,30 @@ dependencies:
 
   # media_kit: ^1.2.6
   media_kit:
-    path: third_party/media-kit/media_kit
+    git:
+      url: https://github.com/Insight-Timer/media-kit.git
+      ref: 37344b7f028d4048d8e02a9cb28109756d6aae95
+      path: media_kit
   media_kit_video:
-    path: third_party/media-kit/media_kit_video
+    git:
+      url: https://github.com/Insight-Timer/media-kit.git
+      ref: 37344b7f028d4048d8e02a9cb28109756d6aae95
+      path: media_kit_video
   media_kit_libs_ios_video:
-    path: third_party/media-kit/libs/ios/media_kit_libs_ios_video
+    git:
+      url: https://github.com/Insight-Timer/media-kit.git
+      ref: 37344b7f028d4048d8e02a9cb28109756d6aae95
+      path: libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
-    path: third_party/media-kit/libs/android/media_kit_libs_android_video
+    git:
+      url: https://github.com/Insight-Timer/media-kit.git
+      ref: 37344b7f028d4048d8e02a9cb28109756d6aae95
+      path: libs/android/media_kit_libs_android_video
   media_kit_libs_linux:
-    path: third_party/media-kit/libs/linux/media_kit_libs_linux
+    git:
+      url: https://github.com/Insight-Timer/media-kit.git
+      ref: 37344b7f028d4048d8e02a9cb28109756d6aae95
+      path: libs/linux/media_kit_libs_linux
 
   # media_kit_video: ^2.0.1
   # media_kit_libs_video: ^1.0.7
