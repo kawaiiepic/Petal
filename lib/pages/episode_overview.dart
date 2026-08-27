@@ -89,6 +89,12 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                 expandedHeight: 300,
                 collapsedHeight: 300,
                 backgroundColor: Colors.transparent,
+                leading: Button.text(
+                  child: Icon(Icons.chevron_left),
+                  onPressed: () {
+                    context.pop();
+                  },
+                ),
                 flexibleSpace: material.FlexibleSpaceBar(
                   background: Stack(
                     fit: StackFit.expand,
@@ -324,7 +330,8 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                         builder: (context, snapshot) {
                           return Column(
                             children: [
-                              if (snapshot.hasData && snapshot.data!.episodes.isEmpty) Text(style: TextStyle(fontSize: Misc.bodySize), "There are no episodes."),
+                              if (snapshot.hasData && snapshot.data!.episodes.isEmpty)
+                                Text(style: TextStyle(fontSize: Misc.bodySize), "There are no episodes."),
 
                               if (snapshot.hasData && snapshot.data!.episodes.isNotEmpty)
                                 ListView.separated(
@@ -659,10 +666,10 @@ class _ShowRecommendationCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-              Text('★ ${show?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
-              Text('${show?.firstAirDate?.year.toString()}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)))
-            ],)
-            ,
+                Text('★ ${show?.voteAverage.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+                Text('${show?.firstAirDate?.year.toString()}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+              ],
+            ),
           ],
         ),
       ),
