@@ -56,6 +56,7 @@ class _PetalState extends State<PetalApp> {
           builder: (context, child) => DrawerOverlay(child: child!),
           debugShowCheckedModeBanner: false,
           themeMode: mode,
+          theme: ThemeData(colorScheme: ColorSchemes.lightGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12),
           darkTheme: ThemeData(colorScheme: ColorSchemes.darkGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12),
         ),
       ),
