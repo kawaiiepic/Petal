@@ -5,8 +5,8 @@ import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/models/custom_model.dart';
 
 import 'package:petal/models/stream.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -54,15 +54,17 @@ class _StreamsPageState extends State<StreamsPage> {
         future: _showData,
         builder: (context, snapshot) {
           return Scaffold(
-            appBar: AppBar(
-              title: Text(
-                style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp),
-                snapshot.hasData
-                    ? "${(snapshot.data![0] as TmdbShow).name} ${(snapshot.data![1] as TmdbEpisode).seasonNumber}x${(snapshot.data![1] as TmdbEpisode).episodeNumber}"
-                    : '',
+            headers: [
+              AppBar(
+                title: Text(
+                  style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp),
+                  snapshot.hasData
+                      ? "${(snapshot.data![0] as TmdbShow).name} ${(snapshot.data![1] as TmdbEpisode).seasonNumber}x${(snapshot.data![1] as TmdbEpisode).episodeNumber}"
+                      : '',
+                ),
               ),
-            ),
-            body: FutureBuilder<List<StreamItem>>(
+            ],
+            child: FutureBuilder<List<StreamItem>>(
               future: _streamsFuture,
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
@@ -99,13 +101,12 @@ class _StreamsPageState extends State<StreamsPage> {
         future: movie,
         builder: (context, snapshot) {
           return Scaffold(
-            appBar: AppBar(
-              title: Text(
-                style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp),
-                snapshot.hasData ? snapshot.data!.title : '',
+            headers: [
+              AppBar(
+                title: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp), snapshot.hasData ? snapshot.data!.title : ''),
               ),
-            ),
-            body: FutureBuilder<List<StreamItem>>(
+            ],
+            child: FutureBuilder<List<StreamItem>>(
               future: _streamsFuture,
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
@@ -150,19 +151,21 @@ class StreamTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    return Button.card(
       leading: stream.external
-          ? const Icon(Icons.open_in_browser)
+          ? const Icon(RadixIcons.externalLink)
           : CachedNetworkImage(
               imageUrl: stream.addon.manifest?['logo'],
-              imageBuilder: (context, imageProvider) => CircleAvatar(foregroundImage: imageProvider, backgroundColor: Colors.transparent),
+              imageBuilder: (context, imageProvider) => Avatar(initials: '', provider: imageProvider, backgroundColor: Colors.transparent),
               progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
-              errorWidget: (context, url, error) => CircleAvatar(child: Icon(Icons.extension)),
             ),
-      title: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 14.sp), stream.name),
-      subtitle: Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 11.sp : 13.sp), stream.title),
-      // trailing: Text(style: TextStyle(fontSize: 13.sp), stream.addon.manifest?['name'] ?? ''),
-      onTap: () {
+      child: Column(
+        children: [
+          Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 14.sp), stream.name),
+          Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 11.sp : 13.sp), stream.title),
+        ],
+      ),
+      onPressed: () {
         if (stream.external) {
           launchUrl(Uri.parse(stream.url));
         } else {
@@ -172,7 +175,6 @@ class StreamTile extends StatelessWidget {
             context.pushReplacement('/player?movie=$tmdbId', extra: stream);
           }
         }
-
       },
     );
   }

@@ -52,9 +52,8 @@ class _ActorOverviewState extends State<ActorOverview> {
             color: Theme.of(context).colorScheme.background,
             child: CustomScrollView(
               slivers: [
-                SliverAppBar(
+                AppBar(
                   backgroundColor: Colors.transparent,
-                  pinned: true,
                   title: Text(person.name, style: TextStyle(fontSize: _bodySize)),
                 ),
                 SliverToBoxAdapter(
@@ -206,7 +205,7 @@ class _ProfileFallback extends StatelessWidget {
       width: 120,
       height: 170,
       color: Colors.white.withOpacity(0.12),
-      child: Icon(Icons.person, color: Colors.white.withOpacity(0.38)),
+      child: Icon(LucideIcons.user, color: Colors.white.withOpacity(0.38)),
     );
   }
 }
@@ -218,7 +217,7 @@ class _PosterFallback extends StatelessWidget {
       width: 110,
       height: 155,
       color: Colors.white.withOpacity(0.12),
-      child: Icon(Icons.movie_outlined, color: Colors.white.withOpacity(0.38)),
+      child: Icon(LucideIcons.ticket, color: Colors.white.withOpacity(0.38)),
     );
   }
 }

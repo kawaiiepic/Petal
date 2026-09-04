@@ -6,7 +6,7 @@ import 'package:petal/main.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/settings.dart';
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Api {
   static bool devMode = false;

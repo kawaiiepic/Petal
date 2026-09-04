@@ -141,7 +141,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
 
   List<MenuItem> contextItems() => [
     MenuButton(
-      leading: const Icon(Icons.play_arrow_rounded),
+      leading: const Icon(LucideIcons.play),
       trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
       child: const Text('Resume'),
       onPressed: (context) {
@@ -154,7 +154,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
       },
     ),
     MenuButton(
-      leading: const Icon(Icons.dns_outlined),
+      leading: const Icon(LucideIcons.server),
       child: const Text('Select Source'),
       onPressed: (context) {
         final state = widget.state;
@@ -167,7 +167,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
     ),
     const MenuDivider(),
     MenuButton(
-      leading: const Icon(Icons.info_outline_rounded),
+      leading: const Icon(LucideIcons.info),
       child: const Text('More Info'),
       onPressed: (context) async {
         final state = widget.state;
@@ -180,7 +180,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
     ),
     const MenuDivider(),
     MenuButton(
-      leading: const Icon(Icons.check_rounded),
+      leading: const Icon(LucideIcons.check),
       child: const Text('Mark as Watched'),
       onPressed: (context) {
         final state = widget.state;
@@ -191,10 +191,10 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
         }
       },
     ),
-    MenuButton(leading: const Icon(Icons.replay_rounded), child: const Text('Restart')),
-    MenuButton(leading: const Icon(Icons.bookmark_outline_rounded), child: Text(false ? 'Remove from Watchlist' : 'Add to Watchlist')),
+    MenuButton(leading: const Icon(LucideIcons.repeat2), child: const Text('Restart')),
+    MenuButton(leading: const Icon(LucideIcons.bookmark), child: Text(false ? 'Remove from Watchlist' : 'Add to Watchlist')),
     const MenuDivider(),
-    MenuButton(leading: const Icon(Icons.remove_circle_outline_rounded), child: const Text('Remove from Continue Watching')),
+    MenuButton(leading: const Icon(LucideIcons.delete), child: const Text('Remove from Continue Watching')),
   ];
 
   Widget episodeWidget(ShowItem state) => FutureBuilder(

@@ -21,7 +21,7 @@
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            flutter344
+            flutter347
             google-chrome
 
             # build tools

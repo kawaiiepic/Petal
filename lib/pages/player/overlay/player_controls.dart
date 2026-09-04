@@ -195,7 +195,7 @@ class _PlayerControls extends State<PlayerControls> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(isLeft ? Icons.replay_10_rounded : Icons.forward_10_rounded, color: Colors.white, size: 28),
+                    Icon(isLeft ? LucideIcons.rewind : LucideIcons.fastForward, color: Colors.white, size: 28),
                     if (seconds > 10) ...[
                       const SizedBox(height: 2),
                       Text(
@@ -212,12 +212,6 @@ class _PlayerControls extends State<PlayerControls> {
       ),
     );
   }
-
-  // String formatDurationShort(Duration duration) {
-  //   final minutes = duration.inMinutes;
-  //   final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-  //   return '$minutes:$seconds';
-  // }
 
   Future<TmdbEpisode?> nextUpEpisode() async {
     print('Geting next episode');
@@ -318,7 +312,7 @@ class _PlayerControls extends State<PlayerControls> {
                     icon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded),
+                        Icon(size: PlayerControls.normalIconSize, LucideIcons.chevronsLeft),
                         Text(style: PlayerControls.normalTextStyle, "Return"),
                       ],
                     ),
@@ -358,7 +352,7 @@ class _PlayerControls extends State<PlayerControls> {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.info_outline_rounded)),
+                  child: ControlButton(icon: Icon(size: PlayerControls.normalIconSize, LucideIcons.info)),
                 ),
               ),
             ],
@@ -379,7 +373,7 @@ class _PlayerControls extends State<PlayerControls> {
                     onTap: () => setState(() {
                       widget.player.playOrPause();
                     }),
-                    icon: Icon(size: PlayerControls.normalIconSize, widget.player.state.playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                    icon: Icon(size: PlayerControls.normalIconSize, widget.player.state.playing ? LucideIcons.pause : LucideIcons.play),
                   ),
                   if (!Api.isMobile()) VolumeButton(player: widget.player),
                   _PositionDisplay(player: widget.player, visible: _showControls),
@@ -406,12 +400,11 @@ class _PlayerControls extends State<PlayerControls> {
                       onTap: () async {
                         _playNextEpisode();
                       },
-                      icon: Icon(size: PlayerControls.normalIconSize, Icons.skip_next_rounded),
+                      icon: Icon(size: PlayerControls.normalIconSize, LucideIcons.skipForward),
                     ),
                   ],
 
-                  if(!_isShow)
-                  ...[const Spacer()],
+                  if (!_isShow) ...[const Spacer()],
 
                   DropdownButton(
                     dropdownMenu: DropdownMenu(
@@ -419,11 +412,10 @@ class _PlayerControls extends State<PlayerControls> {
                         MenuLabel(
                           child: Row(
                             children: [
-                              ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
-                              Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+                              Icon(size: PlayerControls.normalIconSize, LucideIcons.typeOutline),
                               Text(style: PlayerControls.normalTextStyle, 'Subtitles'),
                               const Spacer(),
-                              ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.upload_rounded)),
+                              ControlButton(icon: Icon(size: PlayerControls.normalIconSize, LucideIcons.upload)),
                             ],
                           ),
                         ),
@@ -466,7 +458,7 @@ class _PlayerControls extends State<PlayerControls> {
                         ),
                       ],
                     ),
-                    icon: Icon(size: PlayerControls.normalIconSize, Icons.subtitles_rounded),
+                    icon: Icon(size: PlayerControls.normalIconSize, LucideIcons.typeOutline),
                   ),
 
                   DropdownButton(
@@ -476,15 +468,14 @@ class _PlayerControls extends State<PlayerControls> {
                           child: Row(
                             spacing: 8,
                             children: [
-                              ControlButton(icon: Icon(size: PlayerControls.normalIconSize, Icons.arrow_back_ios_new_rounded)),
-                              Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
+                              Icon(size: PlayerControls.normalIconSize, LucideIcons.settings2),
                               Text(style: PlayerControls.normalTextStyle, 'Settings'),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    icon: Icon(size: PlayerControls.normalIconSize, Icons.settings_rounded),
+                    icon: Icon(size: PlayerControls.normalIconSize, LucideIcons.settings2),
                   ),
 
                   ControlButton(
@@ -494,7 +485,7 @@ class _PlayerControls extends State<PlayerControls> {
                       });
                       // windowManager.setFullScreen(!(await windowManager.isFullScreen()));
                     },
-                    icon: Icon(size: PlayerControls.normalIconSize, widget.widgetState.zoomVideo ? Icons.fullscreen_exit : Icons.fullscreen_rounded),
+                    icon: Icon(size: PlayerControls.normalIconSize, widget.widgetState.zoomVideo ? RadixIcons.exitFullScreen : RadixIcons.enterFullScreen),
                   ),
                 ],
               ),
@@ -555,112 +546,110 @@ class _EpisodeDrawerState extends State<_EpisodeDrawer> {
       onTap: () {
         showOverlay(
           context,
-          DrawerConfiguration(
-            expands: true,
-            builder: (context) {
-              return Container(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    FutureBuilder(
-                      future: widget.showData,
-                      builder: (context, snapshot) {
-                        if (_selectedSeason == null && snapshot.hasData) {
-                          _selectedSeason = snapshot.data!.$1.seasons.firstWhere((s) => s.seasonNumber == snapshot.data!.$2.seasonNumber);
-                        }
-                        return Select<SeasonSummary>(
-                          itemBuilder: (context, item) => Text(style: PlayerControls.normalTextStyle, _selectedSeason?.name ?? ''),
-                          popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
-                          onChanged: (value) {
-                            setState(() => _selectedSeason = value);
-                          },
-                          value: _selectedSeason,
-                          placeholder: Text(style: PlayerControls.normalTextStyle, 'Select a season'),
-                          popup: SelectPopup(
-                            items: SelectItemList(
-                              children: snapshot.hasData
-                                  ? snapshot.data!.$1.seasons
-                                        .map(
-                                          (s) => SelectItemButton(
-                                            value: s,
-                                            child: Text(style: PlayerControls.normalTextStyle, s.name),
-                                          ),
-                                        )
-                                        .toList()
-                                  : [],
-                            ),
-                          ).call,
-                        );
-                      },
-                    ),
-                    FutureBuilder(
-                      future: _loadedSeasons.putIfAbsent(
-                        _selectedSeason?.seasonNumber ?? 0,
-                        () => TMDB.tvSeason(widget.tmdbId, _selectedSeason?.seasonNumber ?? 0),
-                      ),
-                      builder: (context, snapshot) {
-                        return snapshot.hasData
-                            ? Expanded(
-                                child: ListView(
-                                  shrinkWrap: true,
-                                  children: snapshot.data!.episodes
+          DrawerConfiguration(expands: true),
+          builder: (context) {
+            return Container(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  FutureBuilder(
+                    future: widget.showData,
+                    builder: (context, snapshot) {
+                      if (_selectedSeason == null && snapshot.hasData) {
+                        _selectedSeason = snapshot.data!.$1.seasons.firstWhere((s) => s.seasonNumber == snapshot.data!.$2.seasonNumber);
+                      }
+                      return Select<SeasonSummary>(
+                        itemBuilder: (context, item) => Text(style: PlayerControls.normalTextStyle, _selectedSeason?.name ?? ''),
+                        popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
+                        onChanged: (value) {
+                          setState(() => _selectedSeason = value);
+                        },
+                        value: _selectedSeason,
+                        placeholder: Text(style: PlayerControls.normalTextStyle, 'Select a season'),
+                        popup: SelectPopup(
+                          items: SelectItemList(
+                            children: snapshot.hasData
+                                ? snapshot.data!.$1.seasons
                                       .map(
-                                        (episode) => Padding(
-                                          padding: EdgeInsetsGeometry.fromLTRB(0, 4, 0, 4),
-                                          child: GhostButton(
-                                            onPressed: () {
-                                              context.pushReplacement('/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
-                                            },
-                                            child: Row(
-                                              spacing: 12,
-                                              children: [
-                                                if (episode.stillPath != null)
-                                                  ClipRRect(
-                                                    borderRadius: BorderRadius.circular(6),
-                                                    child: Image.network(
-                                                      'https://image.tmdb.org/t/p/w300${episode.stillPath}',
-                                                      width: 120,
-                                                      height: 68,
-                                                      fit: BoxFit.cover,
-                                                    ),
-                                                  ),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    spacing: 8,
-                                                    children: [
-                                                      Text(
-                                                        style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp),
-                                                        '${episode.episodeNumber}. ${episode.name}',
-                                                      ),
-                                                      Text(
-                                                        style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp),
-                                                        episode.overview,
-                                                        maxLines: 2,
-                                                        overflow: TextOverflow.ellipsis,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
+                                        (s) => SelectItemButton(
+                                          value: s,
+                                          child: Text(style: PlayerControls.normalTextStyle, s.name),
                                         ),
                                       )
-                                      .toList(),
-                                ),
-                              )
-                            : const Center(child: CircularProgressIndicator());
-                      },
+                                      .toList()
+                                : [],
+                          ),
+                        ).call,
+                      );
+                    },
+                  ),
+                  FutureBuilder(
+                    future: _loadedSeasons.putIfAbsent(
+                      _selectedSeason?.seasonNumber ?? 0,
+                      () => TMDB.tvSeason(widget.tmdbId, _selectedSeason?.seasonNumber ?? 0),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                    builder: (context, snapshot) {
+                      return snapshot.hasData
+                          ? Expanded(
+                              child: ListView(
+                                shrinkWrap: true,
+                                children: snapshot.data!.episodes
+                                    .map(
+                                      (episode) => Padding(
+                                        padding: EdgeInsetsGeometry.fromLTRB(0, 4, 0, 4),
+                                        child: GhostButton(
+                                          onPressed: () {
+                                            context.pushReplacement('/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                          },
+                                          child: Row(
+                                            spacing: 12,
+                                            children: [
+                                              if (episode.stillPath != null)
+                                                ClipRRect(
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  child: Image.network(
+                                                    'https://image.tmdb.org/t/p/w300${episode.stillPath}',
+                                                    width: 120,
+                                                    height: 68,
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  spacing: 8,
+                                                  children: [
+                                                    Text(
+                                                      style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp),
+                                                      '${episode.episodeNumber}. ${episode.name}',
+                                                    ),
+                                                    Text(
+                                                      style: PlayerControls.normalTextStyle.copyWith(fontSize: 13.sp),
+                                                      episode.overview,
+                                                      maxLines: 2,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            )
+                          : const Center(child: CircularProgressIndicator());
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
-      icon: Icon(size: PlayerControls.normalIconSize, Icons.amp_stories_rounded),
+      icon: Icon(size: PlayerControls.normalIconSize, LucideIcons.listOrdered),
     );
   }
 }
@@ -701,7 +690,7 @@ class _PlayPauseButtonState extends State<_PlayPauseButton> {
   Widget build(BuildContext context) {
     return ControlButton(
       onTap: () => widget.player.playOrPause(), // no setState here
-      icon: _buffering ? CircularProgressIndicator(size: 50) : Icon(_playing ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 50),
+      icon: _buffering ? CircularProgressIndicator(size: 50) : Icon(_playing ? LucideIcons.pause : LucideIcons.play, size: 50),
     );
   }
 }
@@ -739,10 +728,10 @@ class _VolumeButtonState extends State<VolumeButton> {
             icon: Icon(
               size: PlayerControls.normalIconSize,
               _volume == 0
-                  ? Icons.volume_off_rounded
+                  ? LucideIcons.volumeX
                   : _volume < 50
-                  ? Icons.volume_down_rounded
-                  : Icons.volume_up_rounded,
+                  ? LucideIcons.volume1
+                  : LucideIcons.volume2,
             ),
             onTap: () => widget.player.setVolume(_volume == 0 ? 100 : 0),
           ),
@@ -1044,7 +1033,7 @@ class _NextUpCardState extends State<_NextUpCard> {
                                     color: Colors.white.withAlpha(40),
                                     border: Border.all(color: Colors.white, width: 1.5),
                                   ),
-                                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 26),
+                                  child: const Icon(LucideIcons.play, color: Colors.white, size: 26),
                                 ),
                               ),
                             ),
@@ -1109,7 +1098,7 @@ class _NextUpCardState extends State<_NextUpCard> {
                                     _secondsLeft = _maxtime;
                                   });
                                 },
-                                child: const Icon(Icons.close, color: Colors.white, size: 18),
+                                child: const Icon(LucideIcons.x, color: Colors.white, size: 18),
                               ),
                             ),
                           ],

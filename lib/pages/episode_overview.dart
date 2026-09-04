@@ -85,12 +85,12 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
           child: CustomScrollView(
             controller: scrollController,
             slivers: [
-              SliverAppBar(
+              material.SliverAppBar(
                 expandedHeight: 300,
                 collapsedHeight: 300,
                 backgroundColor: Colors.transparent,
                 leading: Button.text(
-                  child: Icon(Icons.chevron_left),
+                  child: Icon(LucideIcons.chevronLeft),
                   onPressed: () {
                     context.pop();
                   },
@@ -164,7 +164,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                   child: Row(
                                     spacing: 8,
                                     children: [
-                                      Icon(Icons.play_arrow_rounded),
+                                      Icon(LucideIcons.play),
                                       Text(style: TextStyle(fontSize: Misc.bodySize), 'S${episode.seasonNumber}:E${episode.episodeNumber}'),
                                     ],
                                   ),
@@ -181,20 +181,20 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                 child: Row(
                                   spacing: 8,
                                   children: [
-                                    const Icon(Icons.smart_display_outlined),
+                                    const Icon(LucideIcons.video),
                                     Text(style: TextStyle(fontSize: Misc.bodySize), 'Trailer'),
                                   ],
                                 ),
                               ),
                             ),
                             Skeleton.keep(
-                              child: _IconBtn(icon: Icons.check_rounded, onTap: () {}),
+                              child: _IconBtn(icon: LucideIcons.check, onTap: () {}),
                             ),
                             Skeleton.keep(
-                              child: _IconBtn(icon: Icons.bookmark_outline_rounded, onTap: () {}),
+                              child: _IconBtn(icon: LucideIcons.bookmark, onTap: () {}),
                             ),
                             Skeleton.keep(
-                              child: _IconBtn(icon: Icons.thumb_up_outlined, onTap: () {}),
+                              child: _IconBtn(icon: LucideIcons.thumbsUp, onTap: () {}),
                             ),
                           ],
                         ),
@@ -401,7 +401,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                                             right: 4,
                                                             left: 4,
                                                             bottom: 4,
-                                                            child: Icon(Icons.play_arrow_rounded, size: 30, color: Colors.white),
+                                                            child: Icon(LucideIcons.play, size: 30, color: Colors.white),
                                                           );
                                                         } else {
                                                           return Container();
@@ -425,7 +425,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                                           return const Positioned(
                                                             top: 4,
                                                             right: 4,
-                                                            child: Icon(Icons.check_rounded, size: 20, color: Colors.white),
+                                                            child: Icon(LucideIcons.check, size: 20, color: Colors.white),
                                                           );
                                                         }
 
@@ -622,7 +622,7 @@ class _CastFallbackAvatar extends StatelessWidget {
       width: 72,
       height: 72,
       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle),
-      child: Icon(Icons.person, color: Colors.white.withValues(alpha: 0.38)),
+      child: Icon(LucideIcons.userRound, color: Colors.white.withValues(alpha: 0.38)),
     );
   }
 }
@@ -684,7 +684,7 @@ class _PosterFallback extends StatelessWidget {
       width: 110,
       height: 155,
       color: Colors.white.withValues(alpha: 0.12),
-      child: Icon(Icons.movie_outlined, color: Colors.white.withValues(alpha: 0.38)),
+      child: Icon(LucideIcons.ticket, color: Colors.white.withValues(alpha: 0.38)),
     );
   }
 }
@@ -698,7 +698,7 @@ class _EpisodeThumbFallback extends StatelessWidget {
       width: 120,
       height: 68,
       color: Colors.white.withValues(alpha: 0.12),
-      child: Icon(Icons.tv_outlined, color: Colors.white.withValues(alpha: 0.38)),
+      child: Icon(LucideIcons.tv, color: Colors.white.withValues(alpha: 0.38)),
     );
   }
 }

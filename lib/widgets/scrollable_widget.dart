@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class ScrollableWidget extends StatefulWidget {
   final Widget child;
@@ -80,7 +80,7 @@ class _ScrollableWidget extends State<ScrollableWidget> {
               bottom: 0,
 
               child: Center(
-                child: ArrowButton(visible: _isHovering && _canScrollLeft, icon: Icons.arrow_back_ios_new, onPressed: () => _scrollBy(-900)),
+                child: ArrowButton(visible: _isHovering && _canScrollLeft, icon: LucideIcons.arrowBigLeft, onPressed: () => _scrollBy(-900)),
               ),
             ),
 
@@ -89,7 +89,7 @@ class _ScrollableWidget extends State<ScrollableWidget> {
               top: widget.offset,
               bottom: 0,
               child: Center(
-                child: ArrowButton(visible: _isHovering && _canScrollRight, icon: Icons.arrow_forward_ios, onPressed: () => _scrollBy(900)),
+                child: ArrowButton(visible: _isHovering && _canScrollRight, icon: LucideIcons.arrowBigRight, onPressed: () => _scrollBy(900)),
               ),
             ),
           ],
@@ -134,12 +134,11 @@ class _ArrowButtonState extends State<ArrowButton> {
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: _hovered ? 0.65 : 0.45),
                 shape: BoxShape.circle,
-                boxShadow: [if (_hovered) const BoxShadow(blurRadius: 8, color: Colors.black26)],
+                boxShadow: [if (_hovered) const BoxShadow(blurRadius: 8, color: Colors.black)],
               ),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: widget.onPressed,
-                child: SizedBox(width: 36, height: 36, child: Icon(widget.icon, size: 18, color: Colors.white)),
+              child: Button.text(
+                onPressed: widget.onPressed,
+                child: SizedBox(width: 36, height: 36, child: Icon(widget.icon, size: 25, color: Colors.white)),
               ),
             ),
           ),

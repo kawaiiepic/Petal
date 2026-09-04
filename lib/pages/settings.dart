@@ -85,7 +85,7 @@ class _SettingsState extends State<Settings> {
       AppBar(
         title: const Text("Settings & About"),
         leading: [
-          OutlineButton(density: ButtonDensity.icon, onPressed: () => PetalApp.rootNavigatorKey.currentContext?.pop(), child: const Icon(Icons.arrow_back)),
+          OutlineButton(density: ButtonDensity.icon, onPressed: () => PetalApp.rootNavigatorKey.currentContext?.pop(), child: const Icon(LucideIcons.chevronLeft)),
         ],
       ),
     ],
@@ -97,7 +97,7 @@ class _SettingsState extends State<Settings> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Button.card(
-              leading: const Icon(Icons.info),
+              leading: const Icon(LucideIcons.info),
               child: FutureBuilder<PackageInfo>(
                 future: _packageInfo,
                 builder: (context, infoSnapshot) {
@@ -183,7 +183,7 @@ class _SettingsState extends State<Settings> {
                                 final bool isUpToDate = latestSha == GitStamp.latestCommit?.hash;
 
                                 return Button.link(
-                                  leading: Icon(Icons.add_link_rounded),
+                                  leading: Icon(LucideIcons.link2),
                                   onPressed: () => _launchUrl("https://github.com/kawaiiepic/Petal/commit/$latestSha"),
                                   child: Text(
                                     isUpToDate
@@ -206,7 +206,7 @@ class _SettingsState extends State<Settings> {
 
             Card(
               child: Basic(
-                leading: const Icon(Icons.play_circle_outline),
+                leading: const Icon(LucideIcons.play),
                 leadingAlignment: Alignment.center,
                 title: const Text("External Player"),
                 subtitle: const Text("Choose your preferred player"),
@@ -244,7 +244,7 @@ class _SettingsState extends State<Settings> {
               child: ValueListenableBuilder<ThemeMode>(
                 valueListenable: AppTheme.mode,
                 builder: (context, mode, _) => Basic(
-                  leading: const Icon(Icons.brightness_6_outlined),
+                  leading: const Icon(LucideIcons.lightbulb),
                   leadingAlignment: Alignment.center,
                   title: const Text("Theme"),
                   subtitle: const Text("Choose light, dark, or system"),
@@ -282,15 +282,15 @@ class _SettingsState extends State<Settings> {
             Divider(),
 
             Button.card(
-              leading: const Icon(Icons.new_releases_outlined),
-              trailing: Icon(Icons.link_rounded),
+              leading: const Icon(LucideIcons.newspaper),
+              trailing: Icon(LucideIcons.link2),
               onPressed: () => _launchUrl("https://github.com/kawaiiepic/Petal/releases"),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("What's New"), const Text("View the changelog on GitHub")]),
             ),
 
             Button.card(
-              leading: const Icon(Icons.bug_report_outlined),
-              trailing: Icon(Icons.link_rounded),
+              leading: const Icon(LucideIcons.bug),
+              trailing: Icon(LucideIcons.link2),
               onPressed: () => _launchUrl("https://github.com/kawaiiepic/Petal/issues/new"),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,8 +299,8 @@ class _SettingsState extends State<Settings> {
             ),
 
             Button.card(
-              leading: const Icon(Icons.cleaning_services_outlined),
-              trailing: Icon(Icons.bug_report_outlined),
+              leading: const Icon(LucideIcons.refreshCcwDot),
+              trailing: Icon(LucideIcons.bug),
               onPressed: _clearImageCache,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,10 +309,10 @@ class _SettingsState extends State<Settings> {
             ),
 
             Button.card(
-              leading: const Icon(Icons.description_outlined),
+              leading: const Icon(LucideIcons.badgeInfo),
               // title: const Text("Licenses"),
               // subtitle: const Text("Open source licenses"),
-              trailing: Icon(Icons.link_rounded),
+              trailing: Icon(LucideIcons.link2),
               onPressed: () async {
                 final info = await _packageInfo;
                 if (!context.mounted) return;
@@ -325,17 +325,17 @@ class _SettingsState extends State<Settings> {
 
             Card(
               child: Basic(
-                leading: const Icon(Icons.chat),
+                leading: const Icon(LucideIcons.messageSquareWarning),
                 leadingAlignment: Alignment.center,
                 title: const Text("Community"),
                 subtitle: const Text("Join our Discord or GitHub"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(variance: ButtonVariance.ghost, icon: const Icon(Icons.discord_rounded), onPressed: () => _launchUrl("https://discord.com/")),
+                    IconButton(variance: ButtonVariance.ghost, icon: const Icon(BootstrapIcons.discord), onPressed: () => _launchUrl("https://discord.com/")),
                     IconButton(
                       variance: ButtonVariance.ghost,
-                      icon: const Icon(Icons.code_rounded),
+                      icon: const Icon(LucideIcons.github),
                       onPressed: () => _launchUrl("https://github.com/kawaiiepic/Petal"),
                     ),
                   ],
@@ -345,7 +345,7 @@ class _SettingsState extends State<Settings> {
 
             Card(
               child: Basic(
-                leading: const Icon(Icons.volunteer_activism),
+                leading: const Icon(LucideIcons.wallet),
                 leadingAlignment: Alignment.center,
                 title: const Text("Donate"),
                 subtitle: const Text("Support development of the app"),

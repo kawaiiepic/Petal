@@ -90,7 +90,7 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
           child: IconButton.ghost(
             onPressed: () => context.pop(),
             shape: ButtonShape.circle,
-            icon: const Icon(Icons.close_rounded, color: Colors.white),
+            icon: const Icon(LucideIcons.x, color: Colors.white),
           ),
         ),
       ],

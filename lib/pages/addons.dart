@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
@@ -124,9 +123,9 @@ class _AddonsState extends State<Addons> {
                       StatedWidget.builder(
                         builder: (context, states) {
                           if (states.hovered) {
-                            return const Icon(Icons.search);
+                            return const Icon(LucideIcons.search);
                           } else {
-                            return const Icon(Icons.search).iconMutedForeground();
+                            return const Icon(LucideIcons.search).iconMutedForeground();
                           }
                         },
                       ),
@@ -136,7 +135,7 @@ class _AddonsState extends State<Addons> {
                       IconButton(
                         variance: ButtonVariance.text,
                         density: ButtonDensity.iconDense,
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(LucideIcons.plus),
                         onPressed: () async {
                           final url = _textController.text.trim();
                           if (url.isEmpty) return;
@@ -260,10 +259,10 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
 
           Row(
             children: [
-              IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(Icons.share)),
+              IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(LucideIcons.share)),
 
               if (widget.requireConfig)
-                IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(Icons.settings))
+                IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(LucideIcons.settings2))
               else
                 IconButton(
                   variance: ButtonVariance.text,
@@ -271,7 +270,7 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
                     await BackendApi.addUserAddon(widget.manfiestUrl, false);
                     widget.onAdded();
                   },
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(LucideIcons.plus),
                 ),
             ],
           ),

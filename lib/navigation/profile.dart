@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show CircleAvatar;
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/trakt/backend_api.dart';
@@ -75,53 +74,52 @@ class _Profile extends State<UserProfile> {
                           onPressed: (context) {
                             showOverlay(
                               buttonContext,
-                              DialogConfiguration(
-                                builder: (dialogContext) {
-                                  return AlertDialog(
-                                    content: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text('Switch Profile', textAlign: TextAlign.center),
-                                        const SizedBox(height: 20),
+                              DialogConfiguration(),
+                              builder: (dialogContext) {
+                                return AlertDialog(
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text('Switch Profile', textAlign: TextAlign.center),
+                                      const SizedBox(height: 20),
 
-                                        Wrap(
-                                          spacing: 20,
-                                          runSpacing: 20,
-                                          children: [
-                                            for (final profile in profiles)
-                                              _ProfileCard(
-                                                id: profile.id,
-                                                name: profile.name,
-                                                avatar: profile.avatar,
-                                                onSelect: () {
-                                                  _selectProfile(profile);
-                                                  dialogContext.pop();
-                                                },
-                                              ),
+                                      Wrap(
+                                        spacing: 20,
+                                        runSpacing: 20,
+                                        children: [
+                                          for (final profile in profiles)
                                             _ProfileCard(
-                                              id: "",
-                                              name: "New Profile",
-                                              avatar: "",
-                                              add: true,
-                                              onCreate: (username) async {
-                                                try {
-                                                  await BackendApi.addProfile(username);
-                                                  _refreshProfiles();
-                                                  if (dialogContext.mounted) dialogContext.pop();
-                                                } catch (e) {
-                                                  if (dialogContext.mounted) {
-                                                    showToast(context: dialogContext, builder: (_, _) => Text('Could not create profile: $e'));
-                                                  }
-                                                }
+                                              id: profile.id,
+                                              name: profile.name,
+                                              avatar: profile.avatar,
+                                              onSelect: () {
+                                                _selectProfile(profile);
+                                                dialogContext.pop();
                                               },
                                             ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
+                                          _ProfileCard(
+                                            id: "",
+                                            name: "New Profile",
+                                            avatar: "",
+                                            add: true,
+                                            onCreate: (username) async {
+                                              try {
+                                                await BackendApi.addProfile(username);
+                                                _refreshProfiles();
+                                                if (dialogContext.mounted) dialogContext.pop();
+                                              } catch (e) {
+                                                if (dialogContext.mounted) {
+                                                  showToast(context: dialogContext, builder: (_, _) => Text('Could not create profile: $e'));
+                                                }
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                             );
                           },
                         ),
@@ -148,7 +146,7 @@ class _Profile extends State<UserProfile> {
                       child: CachedNetworkImage(
                         fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
                         imageUrl: '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
-                        errorWidget: (context, url, error) => const Icon(Icons.account_circle_outlined, size: 35),
+                        errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 35),
                       ),
                     ),
                   ),
@@ -187,7 +185,7 @@ class _ProfileCardState extends State<_ProfileCard> {
     if (result != null && result.files.single.path != null) {
       final file = File(result.files.single.path!);
       if (mounted) {
-        showOverlay(context, DialogConfiguration(builder: (_) => AvatarCropDialog(image: file)));
+        showOverlay(context, DialogConfiguration(), builder: (_) => AvatarCropDialog(image: file));
       }
     }
   }
@@ -195,39 +193,38 @@ class _ProfileCardState extends State<_ProfileCard> {
   void _openCreateDialog() {
     showOverlay(
       context,
-      DialogConfiguration(
-        builder: (dialogContext) {
-          final TextEditingController usernameController = TextEditingController();
+      DialogConfiguration(),
+      builder: (dialogContext) {
+        final TextEditingController usernameController = TextEditingController();
 
-          return StatefulBuilder(
-            builder: (dialogContext, setDialogState) {
-              return AlertDialog(
-                title: Text('Create New Profile'),
-                content: SizedBox(
-                  width: 320,
-                  child: TextField(controller: usernameController, autofocus: true, placeholder: Text('Enter a username')),
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              title: Text('Create New Profile'),
+              content: SizedBox(
+                width: 320,
+                child: TextField(controller: usernameController, autofocus: true, placeholder: Text('Enter a username')),
+              ),
+              actions: [
+                SecondaryButton(onPressed: creating ? null : () => dialogContext.pop(), child: Text('Cancel')),
+                PrimaryButton(
+                  onPressed: creating
+                      ? null
+                      : () async {
+                          final username = usernameController.text.trim();
+                          if (username.isEmpty || widget.onCreate == null) return;
+
+                          setDialogState(() => creating = true);
+                          await widget.onCreate!(username);
+                          if (mounted) setDialogState(() => creating = false);
+                        },
+                  child: creating ? Text('Creating...') : Text('Create'),
                 ),
-                actions: [
-                  SecondaryButton(onPressed: creating ? null : () => dialogContext.pop(), child: Text('Cancel')),
-                  PrimaryButton(
-                    onPressed: creating
-                        ? null
-                        : () async {
-                            final username = usernameController.text.trim();
-                            if (username.isEmpty || widget.onCreate == null) return;
-
-                            setDialogState(() => creating = true);
-                            await widget.onCreate!(username);
-                            if (mounted) setDialogState(() => creating = false);
-                          },
-                    child: creating ? Text('Creating...') : Text('Create'),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -255,8 +252,13 @@ class _ProfileCardState extends State<_ProfileCard> {
               alignment: Alignment.center,
               children: [
                 if (!widget.add)
-                  CircleAvatar(
-                    radius: 35,
+                  Avatar(
+                    // radius: 35,
+                    provider: CachedNetworkImage(
+                      fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                      imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
+                      errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 70),
+                    ),
                     backgroundColor: Colors.transparent,
                     child: ClipOval(
                       child: SizedBox(
@@ -265,7 +267,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                         child: CachedNetworkImage(
                           fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
                           imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
-                          errorWidget: (context, url, error) => const Icon(Icons.account_circle_outlined, size: 70),
+                          errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 70),
                         ),
                       ),
                     ),
@@ -276,7 +278,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                     width: 70,
                     height: 70,
                     decoration: BoxDecoration(color: Colors.black.withAlpha(100), shape: BoxShape.circle),
-                    child: const Icon(Icons.add, color: Colors.white, size: 28),
+                    child: const Icon(LucideIcons.plus, color: Colors.white, size: 28),
                   ),
 
                 if (hovering && isSelected)
@@ -284,7 +286,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                     width: 70,
                     height: 70,
                     decoration: BoxDecoration(color: Colors.black.withAlpha(220), shape: BoxShape.circle),
-                    child: const Icon(Icons.edit, color: Colors.white, size: 28),
+                    child: const Icon(LucideIcons.squarePen, color: Colors.white, size: 28),
                   ),
               ],
             ),
@@ -295,7 +297,7 @@ class _ProfileCardState extends State<_ProfileCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(widget.name),
-                if (isSelected) ...[const SizedBox(width: 5), const Icon(Icons.check, size: 16)],
+                if (isSelected) ...[const SizedBox(width: 5), const Icon(LucideIcons.check, size: 16)],
               ],
             ),
           ],

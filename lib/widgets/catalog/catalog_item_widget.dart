@@ -38,7 +38,7 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
                   spacing: 8,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.tv_rounded, size: 50),
+                    Icon(LucideIcons.tv, size: 50),
                     Text(catalogItem!.name, textAlign: TextAlign.center),
                   ],
                 ),
@@ -50,29 +50,29 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
       },
       contextItems: [
         MenuButton(
-          leading: const Icon(Icons.play_arrow_rounded),
+          leading: const Icon(LucideIcons.play),
           trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
           onPressed: (_) {},
           child: const Text('Play'),
         ),
         MenuButton(
-          leading: const Icon(Icons.dns_outlined),
+          leading: const Icon(LucideIcons.info),
           trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
           onPressed: (_) {},
           child: const Text('Select Source'),
         ),
         const MenuDivider(),
-        MenuButton(leading: const Icon(Icons.info_outline_rounded), onPressed: (_) {}, child: const Text('More Info')),
+        MenuButton(leading: const Icon(LucideIcons.info), onPressed: (_) {}, child: const Text('More Info')),
         const MenuDivider(),
         MenuButton(
-          leading: const Icon(Icons.bookmark_outline_rounded),
+          leading: const Icon(LucideIcons.bookmark),
           onPressed: (_) {
             // toggle watchlist state for item.id
           },
           child: Text(true ? 'Remove from Watchlist' : 'Add to Watchlist'),
         ),
         MenuButton(
-          leading: const Icon(Icons.thumb_up_outlined),
+          leading: const Icon(LucideIcons.thumbsUp),
           onPressed: (_) {
             // like/rate item.id
           },

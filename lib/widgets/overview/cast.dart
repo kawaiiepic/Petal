@@ -56,7 +56,7 @@ class _CastFallbackAvatar extends StatelessWidget {
       width: 72,
       height: 72,
       decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), shape: BoxShape.circle),
-      child: Icon(Icons.person, color: Colors.white.withOpacity(0.38)),
+      child: Icon(BootstrapIcons.personFill, color: Colors.white.withOpacity(0.38)),
     );
   }
 }

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+
 import 'package:petal/models/profile.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class AuthState extends ChangeNotifier {
   bool loggedIn = false;

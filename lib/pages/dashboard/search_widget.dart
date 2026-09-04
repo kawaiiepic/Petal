@@ -196,10 +196,11 @@ class _SearchState extends State<Search> {
         anchorAlignment: Alignment.topCenter,
         widthConstraint: PopoverConstraint.flexible,
         heightConstraint: PopoverConstraint.flexible,
-        builder: (context) {
-          return _buildSearchResults(context);
-        },
+
       ),
+      builder: (context) {
+        return _buildSearchResults(context);
+      },
     );
   }
 
@@ -255,7 +256,7 @@ class _SearchState extends State<Search> {
                   return Padding(
                     padding: EdgeInsetsGeometry.all(2),
                     child: Button.ghost(
-                      leading: choice.type == "movie" ? Icon(Icons.local_movies) : Icon(Icons.movie),
+                      leading: choice.type == "movie" ? Icon(LucideIcons.ticket) : Icon(LucideIcons.tv),
                       alignment: Alignment.center,
                       child: Text(
                         '${choice.name} // '
