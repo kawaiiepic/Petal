@@ -1,7 +1,7 @@
 import 'package:petal/api/api.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/pages/splash.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Offline extends StatelessWidget {
   const Offline({super.key});

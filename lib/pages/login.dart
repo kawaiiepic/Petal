@@ -1,7 +1,7 @@
 import 'package:petal/api/api.dart';
 import 'package:petal/api/trakt/backend_api.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -87,7 +87,7 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
           child: Padding(
@@ -100,25 +100,29 @@ class _LoginState extends State<Login> {
                 if (register) ...[
                   TextField(
                     controller: usernameController,
-                    decoration: const InputDecoration(labelText: "Username", border: OutlineInputBorder()),
+                    hintText: 'Username',
+                    // decoration: const InputDecoration(labelText: "Username", border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 16),
                 ],
                 TextField(
                   controller: emailController,
-                  decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
+                  hintText: 'Email',
+                  // decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
+                  hintText: 'Password',
+                  // decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
                 ),
                 if (register) ...[
                   const SizedBox(height: 16),
                   TextField(
                     controller: registrationTokenController,
-                    decoration: const InputDecoration(labelText: "Registration Token", border: OutlineInputBorder()),
+                    hintText: 'Registration Token',
+                    // decoration: const InputDecoration(labelText: "Registration Token", border: OutlineInputBorder()),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -126,7 +130,7 @@ class _LoginState extends State<Login> {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: Button.primary(
                     onPressed: loading ? null : (register ? handleRegister : handleLogin),
                     child: loading
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))

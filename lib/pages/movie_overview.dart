@@ -2,7 +2,7 @@ import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:flutter/material.dart' as material;
+import 'package:flutter/material.dart' show SliverAppBar, FlexibleSpaceBar;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/router/router.dart';
@@ -78,11 +78,11 @@ class _MovieOverviewState extends State<MovieOverview> {
           child: CustomScrollView(
             controller: scrollController,
             slivers: [
-              material.SliverAppBar(
+              SliverAppBar(
                 expandedHeight: 300,
                 collapsedHeight: 300,
                 backgroundColor: Colors.transparent,
-                flexibleSpace: material.FlexibleSpaceBar(
+                flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     fit: StackFit.expand,
                     children: [

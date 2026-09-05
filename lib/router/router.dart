@@ -5,7 +5,6 @@ import 'package:petal/models/stream.dart';
 import 'package:petal/navigation/navigation.dart';
 import 'package:petal/pages/actor_overview.dart';
 import 'package:petal/pages/addons.dart';
-import 'package:petal/pages/dashboard/search_widget.dart';
 import 'package:petal/pages/episode_overview.dart';
 import 'package:petal/pages/login.dart';
 import 'package:petal/pages/movie_overview.dart';
@@ -14,7 +13,6 @@ import 'package:petal/pages/player/player_screen.dart';
 import 'package:petal/pages/player/trailer_player.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/pages/streams.dart';
-import 'package:petal/router/dialog_page.dart';
 import 'package:petal/widgets/catalog/catalog_widget.dart';
 import 'package:go_router/go_router.dart';
 
@@ -92,15 +90,7 @@ class AppRouter {
       ),
 
       GoRoute(path: '/settings', builder: (context, state) => Settings()),
-      // GoRoute(
-      //   path: '/addons',
-      //   pageBuilder: (context, state) => DialogPage(builder: (context) => Addons()),
-      // ),
       GoRoute(path: '/addons', builder: (context, state) => Addons()),
-      GoRoute(
-        path: '/search',
-        pageBuilder: (context, state) => DialogPage(builder: (context) => Search()),
-      ),
       GoRoute(path: '/offline', builder: (context, state) => Offline()),
       GoRoute(path: '/login', builder: (context, state) => Login()),
       GoRoute(

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' as material;
 import 'package:petal/api/api.dart';
 import 'package:petal/api/discord.dart';
 import 'package:petal/api/misc.dart';
@@ -925,7 +924,7 @@ class _NextUpCard extends StatefulWidget {
   const _NextUpCard({required this.player, required this.nextEpisode, required this.uiIsActive, required this.playNextEpisode});
 
   @override
-  material.State<material.StatefulWidget> createState() => _NextUpCardState();
+  State<StatefulWidget> createState() => _NextUpCardState();
 }
 
 class _NextUpCardState extends State<_NextUpCard> {

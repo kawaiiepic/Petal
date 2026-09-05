@@ -252,25 +252,11 @@ class _ProfileCardState extends State<_ProfileCard> {
               alignment: Alignment.center,
               children: [
                 if (!widget.add)
-                  Avatar(
-                    // radius: 35,
-                    provider: CachedNetworkImage(
-                      fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
-                      imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
-                      errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 70),
-                    ),
-                    backgroundColor: Colors.transparent,
-                    child: ClipOval(
-                      child: SizedBox(
-                        width: 70, // 2 * radius
-                        height: 70,
-                        child: CachedNetworkImage(
-                          fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
-                          imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
-                          errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 70),
-                        ),
-                      ),
-                    ),
+                  CachedNetworkImage(
+                    fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                    imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
+                    imageBuilder: (context, imageProvider) => Avatar(initials: '', provider: imageProvider),
+                    errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 70),
                   ),
 
                 if (widget.add)

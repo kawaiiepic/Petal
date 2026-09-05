@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+
+
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Seek extends StatefulWidget {
   const Seek({super.key});
@@ -27,7 +29,7 @@ class _SeekState extends State {
             duration: const Duration(milliseconds: 200),
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(40)),
+              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(40)),
               child: Text(left ? "<< 10s" : "10s >>", style: const TextStyle(color: Colors.white, fontSize: 20)),
             ),
           ),

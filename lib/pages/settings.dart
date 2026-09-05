@@ -2,11 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart' show showLicensePage;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:petal/git_stamp/git_stamp.dart';
-import 'package:petal/main.dart';
+import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -85,7 +84,7 @@ class _SettingsState extends State<Settings> {
       AppBar(
         title: const Text("Settings & About"),
         leading: [
-          OutlineButton(density: ButtonDensity.icon, onPressed: () => PetalApp.rootNavigatorKey.currentContext?.pop(), child: const Icon(LucideIcons.chevronLeft)),
+          BackButton()
         ],
       ),
     ],

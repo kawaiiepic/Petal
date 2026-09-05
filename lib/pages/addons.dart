@@ -1,9 +1,12 @@
 import 'dart:convert';
+
 import 'package:petal/api/api_cache.dart';
+import 'package:petal/api/misc.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
+import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Addons extends StatefulWidget {
@@ -52,7 +55,10 @@ class _AddonsState extends State<Addons> {
           return SortableLayer(
             child: SortableDropFallback(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: 8,
                 children: [
+                  Text('Installed Widgets'),
                   for (int i = 0; i < addons.length; i++)
                     Sortable(
                       data: SortableData(addons[i]),
@@ -62,41 +68,6 @@ class _AddonsState extends State<Addons> {
               ),
             ),
           );
-          // return ReorderableListView.builder(
-          //   shrinkWrap: true,
-          //   physics: const NeverScrollableScrollPhysics(),
-          //   onReorderStart: (index) {
-          //     setState(() {
-          //       _draggingIndex = index;
-          //     });
-          //   },
-          //   onReorderEnd: (index) {
-          //     setState(() {
-          //       _draggingIndex = null;
-          //     });
-          //   },
-          //   onReorder: (oldIndex, newIndex) {
-          //     setState(() {
-          //       if (newIndex > oldIndex) newIndex -= 1;
-          //       final item = addons.removeAt(oldIndex);
-          //       addons.insert(newIndex, item);
-          //     });
-          //   },
-          //   itemCount: addons.length,
-          //   proxyDecorator: (child, index, animation) {
-          //     final t = Curves.easeOut.transform(animation.value);
-          //     return Material(
-          //       elevation: lerpDouble(0, 8, t)!,
-          //       color: Colors.transparent,
-          //       child: Transform.scale(scale: lerpDouble(1.0, 1.03, t)!, child: child),
-          //     );
-          //   },
-          //   buildDefaultDragHandles: false,
-          //   itemBuilder: (context, index) {
-          //     final addon = addons[index];
-          //     return AddonTile(key: ValueKey(addon.id), addon: addon, onRemove: () => removeAddon(addon), isDragging: _draggingIndex == index);
-          //   },
-          // );
         }
       }
     },
@@ -105,7 +76,9 @@ class _AddonsState extends State<Addons> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      headers: [AppBar(title: const Text("Addons"))],
+      headers: [
+        AppBar(title: const Text("Addons"), leading: [BackButton()]),
+      ],
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -123,9 +96,9 @@ class _AddonsState extends State<Addons> {
                       StatedWidget.builder(
                         builder: (context, states) {
                           if (states.hovered) {
-                            return const Icon(LucideIcons.search);
+                            return const Icon(LucideIcons.shapes);
                           } else {
-                            return const Icon(LucideIcons.search).iconMutedForeground();
+                            return const Icon(LucideIcons.shapes).iconMutedForeground();
                           }
                         },
                       ),
@@ -153,31 +126,6 @@ class _AddonsState extends State<Addons> {
                           (InputFeatureVisibility.textNotEmpty & InputFeatureVisibility.hovered),
                     ),
                   ],
-                  // decoration: InputDecoration(
-                  //   prefixIcon: Icon(Icons.search),
-                  //   suffixIcon: Row(
-                  //     mainAxisSize: MainAxisSize.min, // important to avoid stretching
-                  //     children: [
-                  //       IconButton(icon: const Icon(Icons.clear), onPressed: () => _textController.clear()),
-                  //       IconButton(
-                  //         icon: const Icon(Icons.add),
-                  //         onPressed: () async {
-                  //           final url = _textController.text.trim();
-                  //           if (url.isEmpty) return;
-
-                  //           await BackendApi.addUserAddon(url, false);
-
-                  //           _textController.clear();
-                  //           _reloadAddons();
-                  //         },
-                  //       ),
-                  //     ],
-                  //   ),
-                  //   labelText: 'Addon URL',
-                  //   hintText: 'https://example.com (full manifest url)',
-                  //   helperText: 'Note: Addon support is very much in alpha',
-                  //   border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
-                  // ),
                 ),
                 Text('Note: Addon support is very much in alpha'),
               ],
@@ -292,36 +240,85 @@ class AddonTile extends StatefulWidget {
 }
 
 class _AddonTileState extends State<AddonTile> {
-  late final CachedNetworkImage? _image;
+  String name = '';
+  String desc = '';
+  String? logo;
 
   @override
   void initState() {
     super.initState();
-    _image = widget.addon.manifest?['logo'] != null
-        ? CachedNetworkImage(
-            imageUrl: widget.addon.manifest?['logo'],
-            imageBuilder: (context, imageProvider) => Avatar(initials: 'Addon', provider: imageProvider, backgroundColor: Colors.transparent),
-            progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
-          )
-        : null;
+    initManifest();
+  }
+
+  Future<void> initManifest() async {
+    setState(() {
+      name = widget.addon.manifest?["name"];
+      desc = widget.addon.manifest?['description'];
+      logo = widget.addon.manifest?['logo'];
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      transform: widget.isDragging ? Matrix4.identity().scaledByDouble(0, 0, 0, 1.03) : Matrix4.identity(),
-      child: Opacity(
-        opacity: widget.isDragging ? 0.2 : 1,
-        child: Card(
-          child: Collapsible(children: [
-            CollapsibleTrigger(child: Text(widget.addon.manifest?["name"] ?? 'Name Here')),
-            // CollapsibleContent(child: child)
+    return Card(
+      child: Row(
+        children: [
+          Collapsible(
+            children: [
+              CollapsibleTrigger(
+                child: Row(
+                  children: [
+                    if (logo != null)
+                      CachedNetworkImage(
+                        imageUrl: logo!,
+                        imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
+                        progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+                      )
+                    else
+                      Avatar(initials: 'A'),
+                    Text(name),
+                    OverflowMarquee(
+                      step: 10,
+                      child: Text(desc, style: TextStyle(fontSize: Misc.smallSize)),
+                    ),
 
-            ]),
-        ),
+                    // Spacer(),
+                    IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(LucideIcons.circleX)),
+                  ],
+                ),
+              ),
+              CollapsibleContent(
+                child: OutlinedContainer(child: const Text('@flutter/flutter').small().mono().withPadding(horizontal: 16, vertical: 8)).withPadding(top: 8),
+              ),
+              // CollapsibleContent(child: child)
+            ],
+          ),
+        ],
       ),
+      // child: Collapsible(
+      //   children: [
+      //     CollapsibleTrigger(
+      //       child: Row(
+      //         children: [
+      //           if (logo != null)
+      //             CachedNetworkImage(
+      //               imageUrl: logo!,
+      //               imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
+      //               progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+      //             )
+      //           else
+      //             Avatar(initials: 'A'),
+
+      //           Text(name),
+      //           Text(desc),
+
+      //           IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(LucideIcons.circleX)),
+      //         ],
+      //       ),
+      //     ), // Text(widget.addon.manifest?["name"] ?? 'Name Here'
+      //     // CollapsibleContent(child: child)
+      //   ],
+      // ),
     );
     // return AnimatedContainer(
     //   duration: const Duration(milliseconds: 200),
