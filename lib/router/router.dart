@@ -5,6 +5,7 @@ import 'package:petal/models/stream.dart';
 import 'package:petal/navigation/navigation.dart';
 import 'package:petal/pages/actor_overview.dart';
 import 'package:petal/pages/addons.dart';
+import 'package:petal/pages/collection.dart';
 import 'package:petal/pages/episode_overview.dart';
 import 'package:petal/pages/login.dart';
 import 'package:petal/pages/movie_overview.dart';
@@ -63,6 +64,7 @@ class AppRouter {
           return MovieOverview(tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null, imdbId: imdbId);
         },
       ),
+      GoRoute(path: '/collection', builder: (context, state) => Collection()),
       GoRoute(
         path: '/person/:id',
         builder: (context, state) => ActorOverview(personId: int.parse(state.pathParameters['id']!)),

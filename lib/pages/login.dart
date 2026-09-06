@@ -100,28 +100,28 @@ class _LoginState extends State<Login> {
                 if (register) ...[
                   TextField(
                     controller: usernameController,
-                    hintText: 'Username',
+                    placeholder: Text('Username'),
                     // decoration: const InputDecoration(labelText: "Username", border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 16),
                 ],
                 TextField(
                   controller: emailController,
-                  hintText: 'Email',
+                  placeholder: Text('Email'),
                   // decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: passwordController,
                   obscureText: true,
-                  hintText: 'Password',
+                  placeholder: Text('Password'),
                   // decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
                 ),
                 if (register) ...[
                   const SizedBox(height: 16),
                   TextField(
                     controller: registrationTokenController,
-                    hintText: 'Registration Token',
+                    placeholder: Text('Registration Token'),
                     // decoration: const InputDecoration(labelText: "Registration Token", border: OutlineInputBorder()),
                   ),
                 ],

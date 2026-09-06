@@ -212,7 +212,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
                 context.push('/player?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
               },
               image: snapshot.hasData
-                  ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl!, fit: BoxFit.fitHeight, height: 20)
+                  ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl ?? '', fit: BoxFit.fitHeight, height: 20)
                   : Avatar(initials: '', borderRadius: 12).asSkeleton(),
               extraWidget: state.nextEpisode!.completion > 0.0 && state.nextEpisode!.completion < 1.0
                   ? Positioned(

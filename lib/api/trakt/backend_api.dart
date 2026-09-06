@@ -84,6 +84,13 @@ class BackendApi {
     ApiCache.refreshAddons();
   }
 
+    static Future<void> deleteUserAddon(String addonId) async {
+
+    await BackendApi.dio.delete("${Api.ServerUrl}/addons/$addonId");
+
+    ApiCache.refreshAddons();
+  }
+
   static Future<void> addAddonResource(String addonId, String resource) async {
     await BackendApi.dio.post("${Api.ServerUrl}/addons/$addonId/resources/$resource");
   }

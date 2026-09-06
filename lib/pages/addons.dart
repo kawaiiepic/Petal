@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:sizer/sizer.dart';
 
 class Addons extends StatefulWidget {
   const Addons({super.key});
@@ -18,7 +19,6 @@ class Addons extends StatefulWidget {
 
 class _AddonsState extends State<Addons> {
   final _textController = TextEditingController();
-  int? _draggingIndex;
   Future<List<Addon>>? _addonsFuture;
 
   @override
@@ -43,10 +43,9 @@ class _AddonsState extends State<Addons> {
       } else {
         final addons = snapshot.data!;
 
-        void removeAddon(Addon addon) {
-          setState(() {
-            addons.removeWhere((a) => a.id == addon.id);
-          });
+        Future<void> removeAddon(Addon addon) async {
+          await BackendApi.deleteUserAddon(addon.id);
+          _reloadAddons();
         }
 
         if (addons.isEmpty) {
@@ -59,11 +58,15 @@ class _AddonsState extends State<Addons> {
                 spacing: 8,
                 children: [
                   Text('Installed Widgets'),
-                  for (int i = 0; i < addons.length; i++)
-                    Sortable(
-                      data: SortableData(addons[i]),
-                      child: AddonTile(key: ValueKey(addons[i].id), addon: addons[i], onRemove: () => removeAddon(addons[i]), isDragging: false),
-                    ),
+                  Accordion(
+                    items: [
+                      for (int i = 0; i < addons.length; i++)
+                        Sortable(
+                          data: SortableData(addons[i]),
+                          child: AddonTile(key: ValueKey(addons[i].id), addon: addons[i], onRemove: () => removeAddon(addons[i]), isDragging: false),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -86,6 +89,7 @@ class _AddonsState extends State<Addons> {
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
+              spacing: 8,
               children: [
                 Text('Addon URL'),
                 TextField(
@@ -192,18 +196,21 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
   Widget build(BuildContext context) {
     return Card(
       child: Row(
+        spacing: 8,
         children: [
-          if (logo != null)
-            CachedNetworkImage(
-              imageUrl: logo!,
-              imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
-              progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
-            )
-          else
-            Avatar(initials: 'A'),
+          CachedNetworkImage(
+            imageUrl: logo ?? '',
+            imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
+            progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+            errorWidget: (context, url, error) => Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.gray),
+              child: Icon(LucideIcons.puzzle),
+            ),
+          ),
 
           Text(name),
-          Text(desc),
+          Text(desc, style: TextStyle(fontSize: Misc.smallSize)),
 
           Row(
             children: [
@@ -260,125 +267,79 @@ class _AddonTileState extends State<AddonTile> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Row(
-        children: [
-          Collapsible(
-            children: [
-              CollapsibleTrigger(
-                child: Row(
-                  children: [
-                    if (logo != null)
-                      CachedNetworkImage(
-                        imageUrl: logo!,
-                        imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
-                        progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
-                      )
-                    else
-                      Avatar(initials: 'A'),
-                    Text(name),
-                    OverflowMarquee(
-                      step: 10,
-                      child: Text(desc, style: TextStyle(fontSize: Misc.smallSize)),
-                    ),
-
-                    // Spacer(),
-                    IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(LucideIcons.circleX)),
-                  ],
+    return AccordionItem(
+      trigger: AccordionTrigger(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 8,
+          children: [
+            Row(
+              spacing: 8,
+              children: [
+                CachedNetworkImage(
+                  imageUrl: logo ?? '',
+                  imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
+                  progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+                  errorWidget: (context, url, error) => Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.gray),
+                    child: Icon(LucideIcons.puzzle),
+                  ),
                 ),
-              ),
-              CollapsibleContent(
-                child: OutlinedContainer(child: const Text('@flutter/flutter').small().mono().withPadding(horizontal: 16, vertical: 8)).withPadding(top: 8),
-              ),
-              // CollapsibleContent(child: child)
-            ],
-          ),
-        ],
+                Text(name),
+                Text(desc, style: TextStyle(fontSize: Misc.smallSize)),
+                widget.addon.forced == 1
+                    ? IconButton(variance: ButtonVariance.text, onPressed: null, icon: const Icon(LucideIcons.lock))
+                    : IconButton(variance: ButtonVariance.text, onPressed: widget.onRemove, icon: const Icon(LucideIcons.circleX)),
+              ],
+            ),
+            Wrap(
+              spacing: 8,
+              children: widget.addon.resources.map((resource) {
+                final enabled = widget.addon.enabledResources.contains(resource.name);
+
+                return Toggle(
+                  value: enabled,
+                  child: Text(resource.name[0].toUpperCase() + resource.name.substring(1)),
+                  style: ButtonStyle.primaryIcon(density: ButtonDensity.dense),
+                  onChanged: (selected) {
+                    setState(() {
+                      if (selected) {
+                        widget.addon.enabledResources.add(resource.name);
+                        BackendApi.addAddonResource(widget.addon.id, resource.name);
+                      } else {
+                        widget.addon.enabledResources.remove(resource.name);
+                        BackendApi.delAddonResource(widget.addon.id, resource.name);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
-      // child: Collapsible(
-      //   children: [
-      //     CollapsibleTrigger(
-      //       child: Row(
-      //         children: [
-      //           if (logo != null)
-      //             CachedNetworkImage(
-      //               imageUrl: logo!,
-      //               imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
-      //               progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
-      //             )
-      //           else
-      //             Avatar(initials: 'A'),
-
-      //           Text(name),
-      //           Text(desc),
-
-      //           IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(LucideIcons.circleX)),
-      //         ],
-      //       ),
-      //     ), // Text(widget.addon.manifest?["name"] ?? 'Name Here'
-      //     // CollapsibleContent(child: child)
-      //   ],
-      // ),
+      content: SizedBox(
+        height: 300,
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 8,
+              children: [
+                Text(
+                  widget.addon.manifestUrl,
+                  maxLines: 1,
+                  style: TextStyle(decoration: TextDecoration.underline, decorationStyle: TextDecorationStyle.dotted),
+                ),
+                Container(child: SelectableText(JsonEncoder.withIndent(' ').convert(widget.addon.manifest), textScaler: TextScaler.linear(1))),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
-    // return AnimatedContainer(
-    //   duration: const Duration(milliseconds: 200),
-    //   curve: Curves.easeOut,
-    //   transform: widget.isDragging ? Matrix4.identity().scaledByDouble(0, 0, 0, 1.03) : Matrix4.identity(),
-    //   child: Opacity(
-    //     opacity: widget.isDragging ? 0.2 : 1,
-    //     child: Card(
-    //       elevation: widget.isDragging ? 8 : 2,
-    //       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    //       child: ExpansionTile(
-    //         leading: ReorderableDragStartListener(
-    //           index: 0, // ignored when using builder
-    //           child: _image ?? CircleAvatar(child: Icon(Icons.extension)),
-    //         ),
-    //         title: Text(widget.addon.manifest?["name"] ?? 'Name Here'),
-    //         subtitle: Wrap(
-    //           spacing: 8,
-    //           runSpacing: 4,
-    //           children: widget.addon.resources.map((resource) {
-    //             final enabled = widget.addon.enabledResources.contains(resource.name);
-
-    //             return FilterChip(
-    //               label: Text(resource.name.toUpperCase()),
-    //               selected: enabled,
-    //               onSelected: (selected) {
-    //                 setState(() {
-    //                   if (selected) {
-    //                     widget.addon.enabledResources.add(resource.name);
-    //                     BackendApi.addAddonResource(widget.addon.id, resource.name);
-    //                   } else {
-    //                     widget.addon.enabledResources.remove(resource.name);
-    //                     BackendApi.delAddonResource(widget.addon.id, resource.name);
-    //                   }
-    //                 });
-    //               },
-    //             );
-    //           }).toList(),
-    //         ),
-    //         trailing: widget.addon.forced == 0
-    //             ? IconButton(variance: ButtonVariance.menubar, icon: const Icon(Icons.lock), onPressed: null)
-    //             : IconButton(variance: ButtonVariance.menubar, icon: const Icon(Icons.delete), onPressed: widget.onRemove),
-    //         children: [
-    //           SizedBox(
-    //             height: 300,
-    //             width: double.infinity,
-    //             child: Padding(
-    //               padding: const EdgeInsets.all(12),
-    //               child: SingleChildScrollView(
-    //                 child: Container(
-    //                   color: Colors.black.withAlpha(40),
-    //                   child: SelectableText(JsonEncoder.withIndent(' ').convert(widget.addon.manifest), textScaler: TextScaler.linear(1)),
-    //                 ),
-    //               ),
-    //             ),
-    //           ),
-    //         ],
-    //       ),
-    //     ),
-    //   ),
-    // );
   }
 }

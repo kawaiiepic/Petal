@@ -2,10 +2,10 @@ import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:flutter/material.dart' show SliverAppBar, FlexibleSpaceBar;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/router/router.dart';
+import 'package:petal/widgets/back_button.dart';
 import 'package:petal/widgets/overview/cast.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -78,35 +78,22 @@ class _MovieOverviewState extends State<MovieOverview> {
           child: CustomScrollView(
             controller: scrollController,
             slivers: [
-              SliverAppBar(
-                expandedHeight: 300,
-                collapsedHeight: 300,
-                backgroundColor: Colors.transparent,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 300,
+                  width: double.infinity,
+                  child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Backdrop
                       Image.network(
-                        'https://image.tmdb.org/t/p/original${movie?.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+                        'https://image.tmdb.org/t/p/original${(movie?.images!.backdrops.where((l) => l.iso6391 == null).toList()?..shuffle())?.first.filePath}',
                         fit: BoxFit.cover,
                         alignment: Alignment.center,
                         errorBuilder: (context, error, stackTrace) => SizedBox.expand(),
                       ),
 
-                      // Bottom gradient so logo + button are readable
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
-                            stops: const [0.0, 0.5],
-                          ),
-                        ),
-                      ),
+                      AppBar(leading: [BackButton()], surfaceBlur: 0, surfaceOpacity: 0.5, alignment: Alignment.topLeft),
 
-                      // Logo — bottom left
                       Positioned(
                         bottom: 100,
                         left: 24,
@@ -115,7 +102,7 @@ class _MovieOverviewState extends State<MovieOverview> {
                           child: Image.network(
                             'https://image.tmdb.org/t/p/original${movie?.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull?.filePath}',
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => Text(movie?.title ?? 'Long ass movie name.'),
+                            errorBuilder: (context, error, stackTrace) => Text(movie?.title ?? 'Long ass show name.'),
                           ),
                         ),
                       ),
@@ -140,7 +127,8 @@ class _MovieOverviewState extends State<MovieOverview> {
                               ],
                               child: Skeleton.keep(
                                 child: Button(
-                                  onPressed: () => movie != null ? router.push('/player?movie=${movie.id}') : null,
+                                  onPressed: () =>
+                                      movie != null ? router.push('/player?movie=${movie.id}') : null,
                                   style: const ButtonStyle.primary().withBorderRadius(
                                     borderRadius: BorderRadius.circular(16),
                                     hoverBorderRadius: BorderRadius.circular(16),
@@ -187,6 +175,115 @@ class _MovieOverviewState extends State<MovieOverview> {
                   ),
                 ),
               ),
+              // SliverAppBar(
+              //   expandedHeight: 300,
+              //   collapsedHeight: 300,
+              //   backgroundColor: Colors.transparent,
+              //   flexibleSpace: FlexibleSpaceBar(
+              //     background: Stack(
+              //       fit: StackFit.expand,
+              //       children: [
+              //         // Backdrop
+              //         Image.network(
+              //           'https://image.tmdb.org/t/p/original${movie?.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+              //           fit: BoxFit.cover,
+              //           alignment: Alignment.center,
+              //           errorBuilder: (context, error, stackTrace) => SizedBox.expand(),
+              //         ),
+
+              //         // Bottom gradient so logo + button are readable
+              //         Container(
+              //           decoration: BoxDecoration(
+              //             gradient: LinearGradient(
+              //               begin: Alignment.bottomCenter,
+              //               end: Alignment.topCenter,
+              //               colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
+              //               stops: const [0.0, 0.5],
+              //             ),
+              //           ),
+              //         ),
+
+              //         // Logo — bottom left
+              //         Positioned(
+              //           bottom: 100,
+              //           left: 24,
+              //           child: ConstrainedBox(
+              //             constraints: const BoxConstraints(maxWidth: 200, maxHeight: 80),
+              //             child: Image.network(
+              //               'https://image.tmdb.org/t/p/original${movie?.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull?.filePath}',
+              //               fit: BoxFit.contain,
+              //               errorBuilder: (context, error, stackTrace) => Text(movie?.title ?? 'Long ass movie name.'),
+              //             ),
+              //           ),
+              //         ),
+
+              //         Positioned(
+              //           bottom: 24,
+              //           left: 24,
+              //           child: Row(
+              //             spacing: 8,
+              //             children: [
+              //               ContextMenu(
+              //                 items: [
+              //                   MenuButton(
+              //                     trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+              //                     onPressed: (_) {
+              //                       if (movie != null) {
+              //                         AppRouter.appRouter.push('/streams?movie=${movie.id}');
+              //                       }
+              //                     },
+              //                     child: const Text('Select Source'),
+              //                   ),
+              //                 ],
+              //                 child: Skeleton.keep(
+              //                   child: Button(
+              //                     onPressed: () => movie != null ? router.push('/player?movie=${movie.id}') : null,
+              //                     style: const ButtonStyle.primary().withBorderRadius(
+              //                       borderRadius: BorderRadius.circular(16),
+              //                       hoverBorderRadius: BorderRadius.circular(16),
+              //                     ),
+              //                     child: Row(
+              //                       spacing: 8,
+              //                       children: [
+              //                         Icon(LucideIcons.play),
+              //                         Text(style: TextStyle(fontSize: Misc.bodySize), 'Play now'),
+              //                       ],
+              //                     ),
+              //                   ),
+              //                 ),
+              //               ),
+              //               Skeleton.keep(
+              //                 child: Button(
+              //                   onPressed: () => trailer != null ? launchUrl(Uri.parse(trailer.youtubeUrl)) : null,
+              //                   style: const ButtonStyle.outline().withBorderRadius(
+              //                     borderRadius: BorderRadius.circular(16),
+              //                     hoverBorderRadius: BorderRadius.circular(16),
+              //                   ),
+              //                   child: Row(
+              //                     spacing: 8,
+              //                     children: [
+              //                       const Icon(LucideIcons.video),
+              //                       Text(style: TextStyle(fontSize: Misc.bodySize), 'Trailer'),
+              //                     ],
+              //                   ),
+              //                 ),
+              //               ),
+              //               Skeleton.keep(
+              //                 child: _IconBtn(icon: LucideIcons.check, onTap: () {}),
+              //               ),
+              //               Skeleton.keep(
+              //                 child: _IconBtn(icon: LucideIcons.bookmark, onTap: () {}),
+              //               ),
+              //               Skeleton.keep(
+              //                 child: _IconBtn(icon: LucideIcons.thumbsUp, onTap: () {}),
+              //               ),
+              //             ],
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              // ),
 
               SliverToBoxAdapter(
                 child: Padding(

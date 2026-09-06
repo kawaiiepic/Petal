@@ -6,11 +6,11 @@ import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/models/custom_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart' show SliverAppBar, FlexibleSpaceBar;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/models/media_state.dart';
 import 'package:petal/router/router.dart';
+import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -85,43 +85,22 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
           child: CustomScrollView(
             controller: scrollController,
             slivers: [
-              SliverAppBar(
-                expandedHeight: 300,
-                collapsedHeight: 300,
-                backgroundColor: Colors.transparent,
-                leading: Button.text(
-                  child: Icon(LucideIcons.chevronLeft),
-                  onPressed: () {
-                    context.pop();
-                  },
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 300,
+                  width: double.infinity,
+                  child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Backdrop
                       Image.network(
-                        'https://image.tmdb.org/t/p/original${show?.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+                        'https://image.tmdb.org/t/p/original${(show?.images!.backdrops.where((l) => l.iso6391 == null).toList()?..shuffle())?.first.filePath}',
                         fit: BoxFit.cover,
                         alignment: Alignment.center,
                         errorBuilder: (context, error, stackTrace) => SizedBox.expand(),
                       ),
 
-                      // Bottom gradient so logo + button are readable
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
-                              stops: const [0.0, 1.0],
-                            ),
-                          ),
-                        ),
-                      ),
+                      AppBar(leading: [BackButton()], surfaceBlur: 0, surfaceOpacity: 0.5, alignment: Alignment.topLeft),
 
-                      // Logo — bottom left
                       Positioned(
                         bottom: 100,
                         left: 24,
@@ -203,7 +182,124 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                   ),
                 ),
               ),
+              // SliverAppBar(
+              //   expandedHeight: 300,
+              //   collapsedHeight: 300,
+              //   backgroundColor: Colors.transparent,
+              //   leading: Button.text(
+              //     child: Icon(LucideIcons.chevronLeft),
+              //     onPressed: () {
+              //       context.pop();
+              //     },
+              //   ),
+              //   flexibleSpace: FlexibleSpaceBar(
+              //     background: Stack(
+              //       fit: StackFit.expand,
+              //       children: [
+              //         // Backdrop
+              //         Image.network(
+              //           'https://image.tmdb.org/t/p/original${show?.images?.backdrops.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull!.filePath}',
+              //           fit: BoxFit.cover,
+              //           alignment: Alignment.center,
+              //           errorBuilder: (context, error, stackTrace) => SizedBox.expand(),
+              //         ),
 
+              //         // Bottom gradient so logo + button are readable
+              //         Positioned.fill(
+              //           child: Container(
+              //             decoration: BoxDecoration(
+              //               gradient: LinearGradient(
+              //                 begin: Alignment.bottomCenter,
+              //                 end: Alignment.topCenter,
+              //                 colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0.4)],
+              //                 stops: const [0.0, 1.0],
+              //               ),
+              //             ),
+              //           ),
+              //         ),
+
+              //         // Logo — bottom left
+              //         Positioned(
+              //           bottom: 100,
+              //           left: 24,
+              //           child: ConstrainedBox(
+              //             constraints: const BoxConstraints(maxWidth: 200, maxHeight: 80),
+              //             child: Image.network(
+              //               'https://image.tmdb.org/t/p/original${show?.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull?.filePath}',
+              //               fit: BoxFit.contain,
+              //               errorBuilder: (context, error, stackTrace) => Text(show?.name ?? 'Long ass show name.'),
+              //             ),
+              //           ),
+              //         ),
+
+              //         Positioned(
+              //           bottom: 24,
+              //           left: 24,
+              //           child: Row(
+              //             spacing: 8,
+              //             children: [
+              //               ContextMenu(
+              //                 items: [
+              //                   MenuButton(
+              //                     trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+              //                     onPressed: (_) {
+              //                       if (show != null) {
+              //                         AppRouter.appRouter.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+              //                       }
+              //                     },
+              //                     child: const Text('Select Source'),
+              //                   ),
+              //                 ],
+              //                 child: Skeleton.keep(
+              //                   child: Button(
+              //                     onPressed: () =>
+              //                         show != null ? router.push('/player?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}') : null,
+              //                     style: const ButtonStyle.primary().withBorderRadius(
+              //                       borderRadius: BorderRadius.circular(16),
+              //                       hoverBorderRadius: BorderRadius.circular(16),
+              //                     ),
+              //                     child: Row(
+              //                       spacing: 8,
+              //                       children: [
+              //                         Icon(LucideIcons.play),
+              //                         Text(style: TextStyle(fontSize: Misc.bodySize), 'S${episode.seasonNumber}:E${episode.episodeNumber}'),
+              //                       ],
+              //                     ),
+              //                   ),
+              //                 ),
+              //               ),
+              //               Skeleton.keep(
+              //                 child: Button(
+              //                   onPressed: () => trailer != null ? launchUrl(Uri.parse(trailer.youtubeUrl)) : null,
+              //                   style: const ButtonStyle.outline().withBorderRadius(
+              //                     borderRadius: BorderRadius.circular(16),
+              //                     hoverBorderRadius: BorderRadius.circular(16),
+              //                   ),
+              //                   child: Row(
+              //                     spacing: 8,
+              //                     children: [
+              //                       const Icon(LucideIcons.video),
+              //                       Text(style: TextStyle(fontSize: Misc.bodySize), 'Trailer'),
+              //                     ],
+              //                   ),
+              //                 ),
+              //               ),
+              //               Skeleton.keep(
+              //                 child: _IconBtn(icon: LucideIcons.check, onTap: () {}),
+              //               ),
+              //               Skeleton.keep(
+              //                 child: _IconBtn(icon: LucideIcons.bookmark, onTap: () {}),
+              //               ),
+              //               Skeleton.keep(
+              //                 child: _IconBtn(icon: LucideIcons.thumbsUp, onTap: () {}),
+              //               ),
+              //             ],
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              // ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
