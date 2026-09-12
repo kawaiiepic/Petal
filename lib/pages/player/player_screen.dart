@@ -112,8 +112,6 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
   Future<void> closeStream() async {
-    await player.pause();
-
     print("Progress is: ${player.state.position.inMinutes / player.state.duration.inMinutes}");
 
     try {
@@ -127,17 +125,16 @@ class StreamPlayerState extends State<StreamPlayer> {
     } catch (e) {
       print("Failed to save progress: $e");
     }
-
-    if (mounted) {
-      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      context.pop();
-    }
   }
 
   @override
   void dispose() {
+    print("Disposing...");
     Discord.resetStatus();
+    controller.pictureInPicture.stop();
     player.dispose();
+    // closeStream();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
   }
 

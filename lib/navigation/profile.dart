@@ -12,6 +12,7 @@ import 'package:petal/models/profile.dart';
 import 'package:petal/models/session.dart';
 import 'package:petal/widgets/crop.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:sizer/sizer.dart';
 
 class UserProfile extends StatefulWidget {
   const UserProfile({super.key});
@@ -147,7 +148,8 @@ class _Profile extends State<UserProfile> {
                     imageBuilder: (context, imageProvider) => Avatar(
                       initials: '',
                       provider: imageProvider,
-                      badge: const AvatarBadge(size: 10, color: Colors.green),
+                      size: 4.w,
+                      badge: AvatarBadge(size: 1.w, color: Colors.green),
                     ),
                   ),
                   Text(BackendApi.authState.selectedProfile?.name ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
