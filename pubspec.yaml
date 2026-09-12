@@ -74,13 +74,13 @@ dependencies:
   # media_kit_libs_linux: any
 
   url_launcher: ^6.3.2
-  cached_network_image: ^3.4.1
+  cached_network_image: ^4.0.0
   path_provider: ^2.1.5
-  package_info_plus: ^9.0.0
+  package_info_plus: ^10.2.1
   fuzzywuzzy: ^1.2.0
   shadcn_flutter: ^0.0.54
   flutter_native_splash: ^2.4.7
-  go_router: ^17.1.0
+  go_router: ^18.0.1
   dio: ^5.9.2
   cookie_jar: ^4.0.9
   dio_cookie_manager: ^3.4.0
@@ -90,8 +90,8 @@ dependencies:
   collection: ^1.19.1
   sizer: ^3.1.3
   flutter_svg: ^2.2.4
-  dart_discord_presence: ^1.2.0
-  file_picker: ^11.0.2
+  flutter_discord: ^1.2.1
+  file_picker: ^12.3.0
   crop_your_image: ^2.0.0
   youtube_explode_dart: ^3.1.0
   skeletonizer: ^2.1.3

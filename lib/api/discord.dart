@@ -1,4 +1,4 @@
-import 'package:dart_discord_presence/dart_discord_presence.dart';
+import 'package:flutter_discord/dart_discord_presence.dart';
 
 class Discord {
   static late DiscordRPC discordRPC;

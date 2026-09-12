@@ -180,12 +180,12 @@ class _ProfileCardState extends State<_ProfileCard> {
   bool creating = false;
 
   Future<void> pickAvatar() async {
-    final result = await FilePicker.pickFiles(type: FileType.image);
+    final file = await FilePicker.pickFile(type: FileType.image);
 
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
+    if (file != null) {
+      final boop = File(file.path!);
       if (mounted) {
-        showOverlay(context, DialogConfiguration(), builder: (_) => AvatarCropDialog(image: file));
+        showOverlay(context, DialogConfiguration(), builder: (_) => AvatarCropDialog(image: boop));
       }
     }
   }
