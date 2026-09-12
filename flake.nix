@@ -2,6 +2,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    dart.url = "github:roman-vanesyan/dart-overlay";
   };
 
   outputs =
@@ -9,12 +10,16 @@
       self,
       nixpkgs,
       flake-utils,
+      dart
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
           inherit system;
+          overlays = [(final: prev: {
+            dart = dart.packages."x86_64-linux".beta;
+          }) ];
           config.allowUnfree = true;
         };
       in
@@ -23,6 +28,7 @@
           packages = with pkgs; [
             flutter347
             google-chrome
+            gradle_9
 
             # build tools
             clang
@@ -41,6 +47,8 @@
             libxkbcommon
 
             ninja
+
+            # dart.packages."x86_64-linux".dev
           ];
 
           shellHook = ''

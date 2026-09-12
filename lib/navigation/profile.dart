@@ -1,12 +1,15 @@
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/trakt/backend_api.dart';
+import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/main.dart';
 import 'package:petal/models/profile.dart';
+import 'package:petal/models/session.dart';
 import 'package:petal/widgets/crop.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -139,15 +142,12 @@ class _Profile extends State<UserProfile> {
               child: Column(
                 // spacing: 4,
                 children: [
-                  ClipOval(
-                    child: SizedBox(
-                      width: 40, // 2 * radius
-                      height: 40,
-                      child: CachedNetworkImage(
-                        fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
-                        imageUrl: '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
-                        errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 35),
-                      ),
+                  CachedNetworkImage(
+                    imageUrl: '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
+                    imageBuilder: (context, imageProvider) => Avatar(
+                      initials: '',
+                      provider: imageProvider,
+                      badge: const AvatarBadge(size: 10, color: Colors.green),
                     ),
                   ),
                   Text(BackendApi.authState.selectedProfile?.name ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
@@ -231,6 +231,8 @@ class _ProfileCardState extends State<_ProfileCard> {
   @override
   Widget build(BuildContext context) {
     final isSelected = BackendApi.authState.selectedProfile?.id == widget.id;
+
+    print(widget.id);
     return MouseRegion(
       onEnter: (_) => setState(() => hovering = true),
       onExit: (_) => setState(() => hovering = false),
@@ -245,48 +247,58 @@ class _ProfileCardState extends State<_ProfileCard> {
             widget.onSelect?.call();
           }
         },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                if (!widget.add)
-                  CachedNetworkImage(
-                    fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
-                    imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
-                    imageBuilder: (context, imageProvider) => Avatar(initials: '', provider: imageProvider),
-                    errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 70),
-                  ),
+        child: ValueListenableBuilder(
+          valueListenable: BackendCache.sessions,
+          builder: (context, value, child) {
+            WatchSession? selectedSession = value.firstWhereOrNull((s) => s.profileId == widget.id);
 
-                if (widget.add)
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(color: Colors.black.withAlpha(100), shape: BoxShape.circle),
-                    child: const Icon(LucideIcons.plus, color: Colors.white, size: 28),
-                  ),
-
-                if (hovering && isSelected)
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(color: Colors.black.withAlpha(220), shape: BoxShape.circle),
-                    child: const Icon(LucideIcons.squarePen, color: Colors.white, size: 28),
-                  ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            Row(
+            return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(widget.name),
-                if (isSelected) ...[const SizedBox(width: 5), const Icon(LucideIcons.check, size: 16)],
-              ],
-            ),
-          ],
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (!widget.add)
+                      CachedNetworkImage(
+                        fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                        imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
+                        imageBuilder: (context, imageProvider) =>
+                            Avatar(initials: '', provider: imageProvider, size: 70, badge: selectedSession != null ? const AvatarBadge() : null),
+                        errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 70),
+                      ),
+
+                    if (widget.add)
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(color: Colors.black.withAlpha(100), shape: BoxShape.circle),
+                        child: const Icon(LucideIcons.plus, color: Colors.white, size: 28),
+                      ),
+
+                    if (hovering && isSelected)
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(color: Colors.black.withAlpha(220), shape: BoxShape.circle),
+                        child: const Icon(LucideIcons.squarePen, color: Colors.white, size: 28),
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(widget.name),
+                    if (isSelected) ...[const SizedBox(width: 5), const Icon(LucideIcons.check, size: 16)],
+                  ],
+                ),
+
+                if (selectedSession != null) Text('${selectedSession.title}'),
+              ], // {"type":"sessions","sessions":[{"profileId":"1f10c83e-7021-44db-9b62-7f0afcb85263","tmdbId":603,"mediaType":"movie","season":null,"episode":null,"position":120,"duration":8160,"lastSeen":1789216264771}]}
+            );
+          },
         ),
       ),
     );

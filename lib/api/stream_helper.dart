@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
@@ -12,6 +13,9 @@ import 'package:petal/models/stream.dart';
 class StreamApi {
   static Future<List<StreamItem>> fetchStreams(String imdbId, Episode? episode) async {
     final addons = await ApiCache.getAddons();
+    addons.forEach((addon) {
+      print(addon.enabledResources);
+    });
     final streamAddons = addons.where((a) => a.enabledResources.contains('stream')).toList();
 
     final type = episode != null ? 'series' : 'movie';

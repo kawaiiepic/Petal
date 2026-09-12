@@ -11,7 +11,6 @@ import 'package:petal/pages/login.dart';
 import 'package:petal/pages/movie_overview.dart';
 import 'package:petal/pages/offline.dart';
 import 'package:petal/pages/player/player_screen.dart';
-import 'package:petal/pages/player/trailer_player.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/pages/streams.dart';
 import 'package:petal/widgets/catalog/catalog_widget.dart';
@@ -69,10 +68,6 @@ class AppRouter {
         path: '/person/:id',
         builder: (context, state) => ActorOverview(personId: int.parse(state.pathParameters['id']!)),
       ),
-      GoRoute(
-        path: '/trailer/:key',
-        builder: (context, state) => TrailerPlayer(youtubeKey: state.pathParameters['key']!),
-      ),
 
       GoRoute(
         parentNavigatorKey: PetalApp.rootNavigatorKey,
@@ -99,16 +94,14 @@ class AppRouter {
         parentNavigatorKey: PetalApp.rootNavigatorKey,
         path: '/player',
         builder: (context, state) {
-          final showId = state.uri.queryParameters['show'];
+          final mediaId = state.uri.queryParameters['media'];
           final season = state.uri.queryParameters['s'];
           final episode = state.uri.queryParameters['e'];
-          final movieId = state.uri.queryParameters['movie'];
           final streamItem = state.extra as StreamItem?;
 
           return StreamPlayer(
-            showId: showId != null ? int.parse(showId) : null,
+            mediaId: int.parse(mediaId!),
             episode: (season != null && episode != null) ? Episode(seasonNumber: int.parse(season), episodeNumber: int.parse(episode)) : null,
-            movieId: movieId != null ? int.parse(movieId) : null,
             stream: streamItem,
           );
         },

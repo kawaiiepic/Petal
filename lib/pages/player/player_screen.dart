@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:petal/api/discord.dart';
 import 'package:petal/api/stream_helper.dart';
@@ -10,15 +12,13 @@ import 'package:petal/pages/player/overlay/player_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:petal/pages/splash.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class StreamPlayer extends StatefulWidget {
-  final int? showId;
-  final int? movieId;
+  final int mediaId;
   final Episode? episode;
   final StreamItem? stream;
-  const StreamPlayer({super.key, required this.showId, required this.movieId, required this.episode, this.stream});
+  const StreamPlayer({super.key, required this.mediaId, required this.episode, this.stream});
 
   @override
   State<StatefulWidget> createState() => StreamPlayerState();
@@ -29,7 +29,6 @@ class StreamPlayerState extends State<StreamPlayer> {
   late final VideoController controller;
   late final StreamItem selectedStream;
   bool zoomVideo = false;
-  bool _controllerReady = false;
 
   @override
   void initState() {
@@ -40,12 +39,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     controller = VideoController(player, configuration: VideoControllerConfiguration());
 
     player.stream.error.listen((event) {
-      showToast(
-        context: context,
-        builder: buildToast,
-        // Position top-left.
-        location: ToastLocation.bottomLeft,
-      );
+      showToast(context: context, builder: buildToast, location: ToastLocation.bottomLeft);
       if (mounted) context.pop();
     });
 
@@ -71,7 +65,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
   Future<void> _startStream() async {
-    final mediaImdb = widget.showId != null ? (await TMDB.tvShow(widget.showId!)).imdbId : (await TMDB.movie(widget.movieId!)).imdbId;
+    final mediaImdb = widget.episode != null ? (await TMDB.tvShow(widget.mediaId)).imdbId : (await TMDB.movie(widget.mediaId)).imdbId;
 
     final streams = await StreamApi.fetchStreams(mediaImdb!, widget.episode);
     final stream = widget.stream ?? StreamApi.autoSelectStream(streams);
@@ -85,19 +79,47 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     print(selectedStream.url);
 
-    await player.open(Media(selectedStream.url));
-    if (mounted) setState(() => _controllerReady = true);
+    await player.open(Media(selectedStream.url, extras: {'mediaId': widget.mediaId, 'episode': widget.episode}));
+
+    player.stream.tracks.listen((event) {
+      List<VideoTrack> videos = event.video;
+      List<AudioTrack> audios = event.audio;
+      List<SubtitleTrack> subtitles = event.subtitle;
+
+      final preferredLanAudio = audios.firstWhereOrNull((audio) => audio.language == "en" && audio.title == null);
+      final preferredLanSub = subtitles.firstWhereOrNull((sub) => sub.language == "en" && sub.title == null);
+
+      if (preferredLanAudio != null) {
+        player.setAudioTrack(preferredLanAudio);
+      } else {
+        print("English track missing");
+      }
+
+      if (preferredLanSub != null) {
+        player.setSubtitleTrack(preferredLanSub);
+      } else {
+        print("English subtitle missing");
+      }
+    });
+
+    player.stream.playing.listen((bool playing) {
+      if (playing) {
+        // Playing.
+      } else {
+        // Paused.
+      }
+    });
   }
 
-Future<void> closeStream() async {
+  Future<void> closeStream() async {
     await player.pause();
 
     print("Progress is: ${player.state.position.inMinutes / player.state.duration.inMinutes}");
 
     try {
       await BackendApi.setProgress(
-        widget.showId ?? widget.movieId!,
-        widget.showId != null ? "episode" : "movie",
+        widget.mediaId,
+        widget.episode != null ? "episode" : "movie",
         widget.episode?.seasonNumber ?? 0,
         widget.episode?.episodeNumber ?? 0,
         player.state.position.inSeconds / player.state.duration.inSeconds,
@@ -112,7 +134,6 @@ Future<void> closeStream() async {
     }
   }
 
-
   @override
   void dispose() {
     Discord.resetStatus();
@@ -122,36 +143,12 @@ Future<void> closeStream() async {
 
   @override
   Widget build(BuildContext context) {
-    if (!_controllerReady) {
-      return SplashScreen();
-    }
-
-    return Stack(
-      children: [
-        if (zoomVideo)
-          Positioned.fill(
-            child: Video(
-              controller: controller,
-              controls: NoVideoControls,
-              pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
-              fit: BoxFit.cover,
-            ),
-          )
-        else
-          Center(
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Video(
-                controller: controller,
-                controls: NoVideoControls,
-                pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-
-        Positioned.fill(child: customVideoControls(player, this)),
-      ],
+    return Video(
+      controller: controller,
+      controls: videoControls,
+      fit: BoxFit.contain,
+      aspectRatio: 16 / 9,
+      pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
     );
   }
 }

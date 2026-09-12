@@ -8,7 +8,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class Addons extends StatefulWidget {
   const Addons({super.key});
@@ -299,9 +298,9 @@ class _AddonTileState extends State<AddonTile> {
                 final enabled = widget.addon.enabledResources.contains(resource.name);
 
                 return Toggle(
-                  value: enabled,
+                  value: !enabled,
                   child: Text(resource.name[0].toUpperCase() + resource.name.substring(1)),
-                  style: ButtonStyle.primaryIcon(density: ButtonDensity.dense),
+                  style: ButtonStyle.primary(density: ButtonDensity.dense),
                   onChanged: (selected) {
                     setState(() {
                       if (selected) {

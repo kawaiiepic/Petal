@@ -128,7 +128,7 @@ class _MovieOverviewState extends State<MovieOverview> {
                               child: Skeleton.keep(
                                 child: Button(
                                   onPressed: () =>
-                                      movie != null ? router.push('/player?movie=${movie.id}') : null,
+                                      movie != null ? router.push('/player?media=${movie.id}') : null,
                                   style: const ButtonStyle.primary().withBorderRadius(
                                     borderRadius: BorderRadius.circular(16),
                                     hoverBorderRadius: BorderRadius.circular(16),

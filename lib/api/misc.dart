@@ -1,3 +1,5 @@
+import 'package:petal/main.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
 abstract final class Misc {
@@ -18,6 +20,10 @@ abstract final class Misc {
   static double get h3Size => Device.screenType == ScreenType.desktop ? 15.sp.clamp(15, 20) : 20.sp;
   static double get h4Size => Device.screenType == ScreenType.desktop ? 13.sp.clamp(13, 17) : 17.sp;
 
+  static double get normalIconSize => 15.px.clamp(14, 20).toDouble();
+
+  static TextStyle get normalTextStyle => TextStyle(fontSize: 14.sp.clamp(12, 20));
+
   static String formatRuntime(int? minutes) {
     if (minutes == null) return '';
     if (minutes < 60) return '${minutes}m';
@@ -31,5 +37,14 @@ abstract final class Misc {
     if (diff.inDays < 30) return '${diff.inDays}d ago';
     if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo ago';
     return '${(diff.inDays / 365).floor()}y ago';
+  }
+
+  static void sendNotification(Widget title, Widget subtitle) {
+    showToast(
+      context: PetalApp.rootNavigatorKey.currentContext!,
+      builder: (context, overlay) => SurfaceCard(
+        child: Basic(title: title, subtitle: subtitle),
+      ),
+    );
   }
 }

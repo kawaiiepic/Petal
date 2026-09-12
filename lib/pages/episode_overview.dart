@@ -1,4 +1,4 @@
-import 'package:flutter_js/quickjs/ffi.dart';
+import 'package:collection/collection.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
@@ -29,6 +29,8 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
   Future<TmdbShow>? _show;
   Future<TmdbSeason>? _season;
 
+  int? _resolvedTmdbId;
+
   Episode episode = Episode(seasonNumber: 1, episodeNumber: 1);
   final scrollController = ScrollController();
 
@@ -37,8 +39,6 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
     super.initState();
     initData();
   }
-
-  int? _resolvedTmdbId;
 
   Future<void> initData() async {
     int? tmdbId = widget.tmdbId;
@@ -135,7 +135,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                               child: Skeleton.keep(
                                 child: Button(
                                   onPressed: () =>
-                                      show != null ? router.push('/player?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}') : null,
+                                      show != null ? router.push('/player?media=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}') : null,
                                   style: const ButtonStyle.primary().withBorderRadius(
                                     borderRadius: BorderRadius.circular(16),
                                     hoverBorderRadius: BorderRadius.circular(16),
@@ -442,16 +442,14 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                         MenuButton(
                                           trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
                                           onPressed: (context) {
-                                            if (show != null) {
-                                              AppRouter.appRouter.push('/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
-                                            }
+                                            AppRouter.appRouter.push('/streams?media=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
                                           },
                                           child: Text(style: TextStyle(fontSize: Misc.bodySize), 'Select Source'),
                                         ),
                                       ],
                                       child: GhostButton(
                                         onPressed: () {
-                                          context.push('/player?show=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                          context.push('/player?media=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
                                         },
                                         child: Row(
                                           spacing: 12,
@@ -565,10 +563,10 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                                     ),
                                                   ),
                                                   Text(
-                                                    episode.airDate,
+                                                    episode.airDate.toString(),
                                                     style: TextStyle(
                                                       fontSize: Misc.smallSize,
-                                                      color: (DateTime.tryParse(episode.airDate)?.isAfter(DateTime.now()) ?? false)
+                                                      color: (episode.airDate?.isAfter(DateTime.now()) ?? false)
                                                           ? Colors.red.withAlpha(200)
                                                           : Colors.white.withAlpha(200),
                                                     ),

@@ -6,6 +6,7 @@ import 'package:petal/models/custom_model.dart';
 
 import 'package:petal/models/stream.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -56,6 +57,7 @@ class _StreamsPageState extends State<StreamsPage> {
           return Scaffold(
             headers: [
               AppBar(
+                leading: [BackButton()],
                 title: Text(
                   style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 15.sp : 18.sp),
                   snapshot.hasData
@@ -170,9 +172,9 @@ class StreamTile extends StatelessWidget {
           launchUrl(Uri.parse(stream.url));
         } else {
           if (episode != null) {
-            context.pushReplacement('/player?show=$tmdbId&s=${episode?.seasonNumber}&e=${episode?.episodeNumber}', extra: stream);
+            context.pushReplacement('/player?media=$tmdbId&s=${episode?.seasonNumber}&e=${episode?.episodeNumber}', extra: stream);
           } else {
-            context.pushReplacement('/player?movie=$tmdbId', extra: stream);
+            context.pushReplacement('/player?media=$tmdbId', extra: stream);
           }
         }
       },

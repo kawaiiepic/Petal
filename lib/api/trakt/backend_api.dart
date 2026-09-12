@@ -4,7 +4,9 @@ import 'package:mime/mime.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/authstate.dart';
+import 'package:petal/api/misc.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
+import 'package:petal/api/trakt/presence.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/profile.dart';
 import 'package:petal/models/media_state.dart';
@@ -12,6 +14,8 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:petal/models/session.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class BackendApi {
   static late final Dio dio;
@@ -19,12 +23,21 @@ class BackendApi {
   static final String secretKey = "";
   static final AuthState authState = AuthState();
 
+  static WatchPresenceClient presence = WatchPresenceClient();
+
   // static final ValueNotifier<bool> validSession = ValueNotifier(false);
 
   static Future<void> init() async {
     prepareCookieManager();
     BackendApi.authState.addListener(() {
       BackendCache.fetchWatchHistory();
+    });
+
+    presence.connect();
+
+    presence.sessions.listen((s) {
+      BackendCache.sessions.value = s;
+      print(s.toString());
     });
   }
 
@@ -84,8 +97,7 @@ class BackendApi {
     ApiCache.refreshAddons();
   }
 
-    static Future<void> deleteUserAddon(String addonId) async {
-
+  static Future<void> deleteUserAddon(String addonId) async {
     await BackendApi.dio.delete("${Api.ServerUrl}/addons/$addonId");
 
     ApiCache.refreshAddons();
@@ -183,6 +195,8 @@ class BackendApi {
       // Finished — the server needs to recompute next_episode (via TMDB),
       // so we can't fake this locally. Fire the update, then refetch.
       await dio.put(url, data: {"completion": progress, "updated_at": DateTime.now().millisecondsSinceEpoch});
+
+      Misc.sendNotification(const Text('Updated'), const Text('Episode has been marked as watched.'));
 
       await BackendCache.fetchContinueWatching(); // re-fetches and repopulates BackendCache.continueWatching
       return;

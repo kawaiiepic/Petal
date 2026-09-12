@@ -180,7 +180,7 @@ class TmdbMedia {
 // models/episode.dart
 
 class TmdbEpisode {
-  final String airDate;
+  final DateTime? airDate;
   final List<CrewMember> crew;
   final int episodeNumber;
   final List<GuestStar> guestStars;
@@ -216,7 +216,7 @@ class TmdbEpisode {
 
   factory TmdbEpisode.fromJson(Map<String, dynamic> json) {
     return TmdbEpisode(
-      airDate: json['air_date'] ?? '',
+      airDate: json['air_date'] != null ? DateTime.parse(json['air_date']) : null,
       crew: (json['crew'] as List? ?? []).map((e) => CrewMember.fromJson(e)).toList(),
       episodeNumber: json['episode_number'],
       guestStars: (json['guest_stars'] as List? ?? []).map((e) => GuestStar.fromJson(e)).toList(),

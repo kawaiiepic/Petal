@@ -60,6 +60,7 @@ class _TraktNextUp extends State<TraktNextUp> {
                     itemCount: list.length,
                     itemBuilder: (context, index) {
                       final state = list[index];
+                      
                       return TraktNextUpItem(key: ValueKey(state.tmdbId), state: state);
                     },
                   ),
@@ -147,9 +148,9 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
       onPressed: (context) {
         final state = widget.state;
         if (state is ShowItem) {
-          AppRouter.appRouter.push('/player?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
+          AppRouter.appRouter.push('/player?media=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
         } else {
-          AppRouter.appRouter.push('/player?movie=${state.tmdbId}');
+          AppRouter.appRouter.push('/player?media=${state.tmdbId}');
         }
       },
     ),
@@ -209,7 +210,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
               orientation: Orientation.landscape,
               contextItems: contextItems(),
               onTap: () {
-                context.push('/player?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
+                context.push('/player?media=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
               },
               image: snapshot.hasData
                   ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl ?? '', fit: BoxFit.fitHeight, height: 20)
@@ -267,7 +268,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
               orientation: Orientation.landscape,
               contextItems: contextItems(),
               onTap: () {
-                context.push('/player?movie=${state.tmdbId}');
+                context.push('/player?media=${state.tmdbId}');
               },
               image: snapshot.hasData
                   ? CachedNetworkImage(imageUrl: snapshot.data!.images!.backdrops.first.url, fit: BoxFit.cover)
