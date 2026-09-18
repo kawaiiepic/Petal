@@ -86,7 +86,11 @@ jobs:
           security list-keychain -d user -s "$KEYCHAIN_PATH"
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+          security cms -D -i "$PP_PATH" > $RUNNER_TEMP/profile.plist
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" $RUNNER_TEMP/profile.plist)
+          echo "Profile UUID: $PROFILE_UUID"
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Debug signing identities
         run: |
