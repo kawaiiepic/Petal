@@ -15,7 +15,7 @@ migration:
     - platform: root
       create_revision: nixpkgs000000000000000000000000000000000
       base_revision: nixpkgs000000000000000000000000000000000
-    - platform: android
+    - platform: ios
       create_revision: nixpkgs000000000000000000000000000000000
       base_revision: nixpkgs000000000000000000000000000000000
 
