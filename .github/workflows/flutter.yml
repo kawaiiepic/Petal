@@ -101,17 +101,22 @@ jobs:
             -exportOptionsPlist ios/ExportOptions.plist \
             -exportPath build/ios/ipa
 
+          ls -la build/ios/ipa
+          IPA_PATH=$(ls -1 build/ios/ipa/*.ipa | head -n 1)
+          echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
+          echo "Found IPA: $IPA_PATH"
+
       - name: Upload IPA
         uses: actions/upload-artifact@v7
         with:
           name: release-ios_ipa
-          path: build/ios/ipa/*.ipa
+          path: ${{ env.IPA_PATH }}
           archive: false
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v5
         with:
-          app-path: build/ios/ipa/*.ipa
+          app-path: ${{ env.IPA_PATH }}
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
