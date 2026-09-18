@@ -64,17 +64,6 @@ jobs:
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
 
-      - name: Debug signing identities
-        run: |
-          echo "=== Available identities ==="
-          security find-identity -v -p codesigning
-          echo ""
-          echo "=== Keychain list ==="
-          security list-keychains
-          echo ""
-          echo "=== Provisioning profiles ==="
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || true
-
       - name: Install certificate and profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -98,6 +87,17 @@ jobs:
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Debug signing identities
+        run: |
+          echo "=== Available identities ==="
+          security find-identity -v -p codesigning
+          echo ""
+          echo "=== Keychain list ==="
+          security list-keychains
+          echo ""
+          echo "=== Provisioning profiles ==="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || true
 
       - name: Build signed IPA
         run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
