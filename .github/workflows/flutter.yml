@@ -84,24 +84,21 @@ jobs:
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
           security find-identity -v -p codesigning
 
-      - name: Build Flutter iOS (unsigned)
-        run: flutter build ios --release --no-codesign --config-only
-
       - name: Archive and export signed IPA
         run: |
           flutter build ios --release --no-codesign
 
+          # Do not pass PROVISIONING_PROFILE* here — xcodebuild applies those
+          # flags to Pods and Swift packages, which cannot use an App Store profile.
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath build/ios/archive/Runner.xcarchive \
             archive \
-            CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=7H8MNYGZ49 \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE="$PROFILE_UUID" \
-            PROVISIONING_PROFILE_SPECIFIER="Petal"
+            CODE_SIGN_STYLE=Manual
 
           mkdir -p build/ios/ipa
           xcodebuild -exportArchive \
