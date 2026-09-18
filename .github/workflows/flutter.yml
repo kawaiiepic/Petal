@@ -55,6 +55,15 @@ jobs:
           cd ios
           pod install --repo-update
 
+      - name: Debug certificate
+        run: |
+          echo "Base64 length: ${#BUILD_CERTIFICATE_BASE64}"
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode > /tmp/test.p12
+          ls -la /tmp/test.p12
+          file /tmp/test.p12
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+
       - name: Install certificate and profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
