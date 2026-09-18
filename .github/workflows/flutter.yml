@@ -28,11 +28,13 @@ jobs:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           archive: false
-  ios-build:
+    ios-build:
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - name: Clone repository
         uses: actions/checkout@v6
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -40,23 +42,57 @@ jobs:
           flutter-version: 3.47.2
           cache: true
           pub-cache: true
+
       - run: flutter pub get
       - run: flutter pub run git_stamp --build-type full
-      - name: Build Flutter IPA
+
+      - name: Install CocoaPods
         run: |
-          flutter build ios --release --no-codesign
-          cd build/ios/iphoneos
-          mkdir Payload
-          cd Payload
-          ln -s ../Runner.app
-          cd ..
-          zip -r bookadapt_unsigned.ipa Payload
+          cd ios
+          pod install --repo-update
+
+      - name: Install certificate and profile
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$CERTIFICATE_PATH"
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o "$PP_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Build signed IPA
+        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
       - name: Upload IPA
         uses: actions/upload-artifact@v7
         with:
           name: release-ios_ipa
-          path: build/ios/iphoneos/*.ipa
+          path: build/ios/ipa/*.ipa
           archive: false
+
+      - name: Upload to TestFlight
+        uses: apple-actions/upload-testflight-build@v5
+        with:
+          app-path: build/ios/ipa/*.ipa
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          wait-for-processing: false
   linux-build:
     runs-on: ubuntu-latest
     steps:
@@ -128,6 +164,6 @@ jobs:
           prerelease: true
           files: |
             artifacts/app-release.apk/app-release.apk
-            artifacts/bookadapt_unsigned.ipa/bookadapt_unsigned.ipa
+            artifacts/release-ios_ipa/*.ipa
             artifacts/petal-linux-x64.tar.gz/petal-linux-x64.tar.gz
             artifacts/blssmpetal.exe/blssmpetal.exe
