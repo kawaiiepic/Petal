@@ -23,7 +23,7 @@ jobs:
 
       - run: flutter pub get
       - run: flutter pub run git_stamp --build-type full
-      - run: flutter build apk
+      - run: flutter build apk --build-name=0.3.2 --build-number=${{ github.run_number }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
@@ -84,8 +84,11 @@ jobs:
           security find-identity -v -p codesigning
 
       - name: Archive and export signed IPA
+        env:
+          BUILD_NAME: 0.3.2
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          flutter build ios --release --no-codesign
+          flutter build ios --release --no-codesign --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
 
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -93,7 +96,11 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath build/ios/archive/Runner.xcarchive \
             archive \
-            DEVELOPMENT_TEAM=7H8MNYGZ49
+            DEVELOPMENT_TEAM=7H8MNYGZ49 \
+            MARKETING_VERSION="$BUILD_NAME" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            FLUTTER_BUILD_NAME="$BUILD_NAME" \
+            FLUTTER_BUILD_NUMBER="$BUILD_NUMBER"
 
           mkdir -p build/ios/ipa
           xcodebuild -exportArchive \
@@ -105,6 +112,7 @@ jobs:
           IPA_PATH=$(ls -1 build/ios/ipa/*.ipa | head -n 1)
           echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
           echo "Found IPA: $IPA_PATH"
+          echo "Using CFBundleShortVersionString=$BUILD_NAME CFBundleVersion=$BUILD_NUMBER"
 
       - name: Upload IPA
         uses: actions/upload-artifact@v7
