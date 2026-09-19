@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:go_router/go_router.dart';
@@ -28,18 +29,28 @@ class _LoginState extends State<Login> {
     try {
       final email = emailController.text;
       final password = passwordController.text;
+      print("Trying login with email: $email and password: $password");
       final response = await BackendApi.dio.post("${Api.ServerUrl}/users/login", data: {"email": email, "password": password});
+      print(response.data);
       if (response.data["success"] != true) {
+        setState(() {
+          error = response.data["error"];
+        });
         throw Exception("Invalid credentials");
       }
       if (mounted) {
-        BackendApi.authState.setLoggedIn(true);
-        BackendApi.authState.setProfile((await BackendApi.profiles()).first);
+        BackendApi.verifySession();
         context.go('/');
       }
-    } catch (e) {
+    } on DioException catch (e) {
+      print(e.response?.statusCode); // 400
+      print(e.response?.data); // validation message
+      print(e.requestOptions.headers);
+      print(e.requestOptions.data);
+
       setState(() {
-        error = e.toString();
+        final d = e.response?.data;
+        error = d is Map ? (d['errors']?[0]?['message'] ?? d['error'] ?? d['message'])?.toString() : e.message;
       });
     } finally {
       setState(() {
@@ -70,7 +81,7 @@ class _LoginState extends State<Login> {
         throw Exception("Registration failed");
       }
       if (mounted) {
-        BackendApi.authState.setLoggedIn(true);
+        BackendApi.verifySession();
         context.go('/');
       }
     } catch (e) {
@@ -101,6 +112,7 @@ class _LoginState extends State<Login> {
                   TextField(
                     controller: usernameController,
                     placeholder: Text('Username'),
+                    onSubmitted: (value) => loading ? null : (register ? handleRegister() : handleLogin()),
                     // decoration: const InputDecoration(labelText: "Username", border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 16),
@@ -108,6 +120,7 @@ class _LoginState extends State<Login> {
                 TextField(
                   controller: emailController,
                   placeholder: Text('Email'),
+                  onSubmitted: (value) => loading ? null : (register ? handleRegister() : handleLogin()),
                   // decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
@@ -115,6 +128,11 @@ class _LoginState extends State<Login> {
                   controller: passwordController,
                   obscureText: true,
                   placeholder: Text('Password'),
+                  onSubmitted: (value) => loading ? null : (register ? handleRegister() : handleLogin()),
+                  features: [
+                    InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
+                    InputFeature.passwordToggle(mode: PasswordPeekMode.hold),
+                  ],
                   // decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
                 ),
                 if (register) ...[
@@ -122,6 +140,8 @@ class _LoginState extends State<Login> {
                   TextField(
                     controller: registrationTokenController,
                     placeholder: Text('Registration Token'),
+                    onSubmitted: (value) => loading ? null : (register ? handleRegister() : handleLogin()),
+                    features: [InputFeature.passwordToggle(mode: PasswordPeekMode.hold)],
                     // decoration: const InputDecoration(labelText: "Registration Token", border: OutlineInputBorder()),
                   ),
                 ],
@@ -133,7 +153,7 @@ class _LoginState extends State<Login> {
                   child: Button.primary(
                     onPressed: loading ? null : (register ? handleRegister : handleLogin),
                     child: loading
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : Text(register ? "Register" : "Login"),
                   ),
                 ),

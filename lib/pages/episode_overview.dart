@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/models/media_state.dart';
+import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/router/router.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -505,15 +506,22 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                                     ValueListenableBuilder(
                                                       valueListenable: BackendCache.watchHistory,
                                                       builder: (context, history, child) {
-                                                        final entry = history.firstWhereOrNull(
-                                                          (h) => h.tmdbId == show?.id && h.season == episode.seasonNumber && h.episode == episode.episodeNumber,
-                                                        );
+                                                        final entry = history
+                                                            .where((h) => h.tmdbId == show?.id && h.mediaType == MediaType.show)
+                                                            .expand((h) => h.episodes.map((e) => (item: h, ep: e)))
+                                                            .cast<({WatchHistoryItem item, EpisodeProgress ep})?>()
+                                                            .firstWhere(
+                                                              (pair) => pair!.ep.season == episode.seasonNumber && pair.ep.episode == episode.episodeNumber,
+                                                              orElse: () => null,
+                                                            );
 
-                                                        if (entry == null || entry.completion <= 0.0) {
+                                                        final progress = entry?.ep.completion;
+
+                                                        if (progress == null || progress <= 0.0) {
                                                           return const SizedBox.shrink();
                                                         }
 
-                                                        final isCompleted = entry.completion >= 1.0;
+                                                        final isCompleted = progress >= 1.0;
 
                                                         if (isCompleted) {
                                                           return const Positioned(
@@ -527,11 +535,7 @@ class _EpisodeOverviewState extends State<EpisodeOverview> {
                                                           bottom: 2,
                                                           left: 5,
                                                           right: 5,
-                                                          child: LinearProgressIndicator(
-                                                            value: entry.completion,
-                                                            minHeight: 5,
-                                                            borderRadius: BorderRadius.circular(8),
-                                                          ),
+                                                          child: LinearProgressIndicator(value: progress, minHeight: 5, borderRadius: BorderRadius.circular(8)),
                                                         );
                                                       },
                                                     ),

@@ -323,12 +323,6 @@ class _SearchState extends State<Search> {
                 //   ),
                 // ),
                 const InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
-                // Hint shows a small tooltip-like popup for the input field.
-                InputFeature.hint(
-                  popupBuilder: (context) {
-                    return const TooltipContainer(child: Text('This is for your username'));
-                  },
-                ),
               ],
               controller: _textController,
               placeholder: const Text('Search TV Shows, Movies & more...'),

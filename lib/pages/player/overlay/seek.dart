@@ -1,5 +1,3 @@
-
-
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Seek extends StatefulWidget {

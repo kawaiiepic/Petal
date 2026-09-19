@@ -4,9 +4,20 @@ extension MediaTypeExtension on MediaType {
   String get toTmdbSafe {
     switch (this) {
       case MediaType.movie:
-        return "series";
-      case MediaType.show:
         return "movie";
+      case MediaType.show:
+        return "series";
+      default:
+        return "";
+    }
+  }
+
+  String get toBackendSafe {
+    switch (this) {
+      case MediaType.movie:
+        return "movie";
+      case MediaType.show:
+        return "episode";
       default:
         return "";
     }

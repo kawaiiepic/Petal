@@ -143,15 +143,17 @@ class _Profile extends State<UserProfile> {
               child: Column(
                 // spacing: 4,
                 children: [
-                  CachedNetworkImage(
-                    imageUrl: '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
-                    imageBuilder: (context, imageProvider) => Avatar(
-                      initials: '',
-                      provider: imageProvider,
-                      size: 4.w,
-                      badge: AvatarBadge(size: 1.w, color: Colors.green),
-                    ),
-                  ),
+                  BackendApi.authState.selectedProfile?.avatar != null
+                      ? CachedNetworkImage(
+                          imageUrl: '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
+                          imageBuilder: (context, imageProvider) => Avatar(
+                            initials: '',
+                            provider: imageProvider,
+                            size: 4.w,
+                            badge: AvatarBadge(size: 1.w, color: Colors.green),
+                          ),
+                        )
+                      : Icon(RadixIcons.avatar, size: 4.w),
                   Text(BackendApi.authState.selectedProfile?.name ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -166,7 +168,7 @@ class _Profile extends State<UserProfile> {
 class _ProfileCard extends StatefulWidget {
   final String id;
   final String name;
-  final String avatar;
+  final String? avatar;
   final bool add;
   final VoidCallback? onSelect;
   final Future<void> Function(String username)? onCreate;
@@ -261,13 +263,14 @@ class _ProfileCardState extends State<_ProfileCard> {
                   alignment: Alignment.center,
                   children: [
                     if (!widget.add)
-                      CachedNetworkImage(
-                        fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
-                        imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
-                        imageBuilder: (context, imageProvider) =>
-                            Avatar(initials: '', provider: imageProvider, size: 70, badge: selectedSession != null ? const AvatarBadge() : null),
-                        errorWidget: (context, url, error) => const Icon(RadixIcons.avatar, size: 70),
-                      ),
+                      widget.avatar != null
+                          ? CachedNetworkImage(
+                              fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                              imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
+                              imageBuilder: (context, imageProvider) =>
+                                  Avatar(initials: '', provider: imageProvider, size: 70, badge: selectedSession != null ? const AvatarBadge() : null),
+                            )
+                          : const Icon(RadixIcons.avatar, size: 70),
 
                     if (widget.add)
                       Container(

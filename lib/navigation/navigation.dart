@@ -29,12 +29,12 @@ class Navigation extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 // mainAxisSize: MainAxisSize.min,
                 children: [
-                  SvgPicture.asset('assets/images/logo-clean.svg', height: 4.sw, width: 4.sw),
+                  SvgPicture.asset('assets/images/logo-clean.svg', height: 3.w, width: 3.w),
                   Search(),
                   Row(
                     children: [
                       Button.text(
-                        child: Icon(BootstrapIcons.collectionFill, size: 4.w),
+                        child: Icon(BootstrapIcons.collectionFill, size: 2.w),
                         onPressed: () => PetalApp.rootNavigatorKey.currentContext?.push('/collection'),
                       ),
                       UserProfile(),

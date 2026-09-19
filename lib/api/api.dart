@@ -36,8 +36,7 @@ class Api {
   static Future<void> _onBackendRecovered() async {
     healthy.value = true;
     if (await BackendApi.verifySession()) {
-      BackendApi.authState.setLoggedIn(true);
-      BackendApi.authState.setProfile((await BackendApi.profiles()).first);
+
     }
     CatalogApi.clearCache();
   }

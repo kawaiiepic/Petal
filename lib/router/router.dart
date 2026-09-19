@@ -97,6 +97,7 @@ class AppRouter {
           final mediaId = state.uri.queryParameters['media'];
           final season = state.uri.queryParameters['s'];
           final episode = state.uri.queryParameters['e'];
+          final progress = state.uri.queryParameters['p'];
           final streamItem = state.extra as StreamItem?;
 
           return StreamPlayer(

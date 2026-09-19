@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:mime/mime.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/api_cache.dart';
@@ -15,6 +16,7 @@ import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:petal/models/session.dart';
+import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class BackendApi {
@@ -51,6 +53,18 @@ class BackendApi {
 
   static Future<bool> verifySession() async {
     print("Verifying session");
+    print(await cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/users/verify")));
+    final cookies = await cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/users/verify"));
+    for (final c in cookies) {
+      if (c.name == "auth") {
+        Map<String, dynamic> decodedToken = JwtDecoder.decode(c.value);
+        print(decodedToken);
+
+        BackendApi.authState.setLoggedIn(decodedToken);
+        BackendApi.authState.setProfile((await BackendApi.profiles()).first);
+      }
+    }
+
     try {
       final response = await dio.get("${Api.ServerUrl}/users/verify");
       print("Response code for verify.");
@@ -74,7 +88,7 @@ class BackendApi {
 
   static Future<void> signOut() async {
     await cookieJar.deleteAll();
-    authState.setLoggedIn(false);
+    authState.setLoggedIn(null);
   }
 
   static Future<void> uploadProfile(Uint8List imageData) async {
@@ -186,32 +200,34 @@ class BackendApi {
     return items;
   }
 
-  static Future<void> setProgress(int tmdbId, String mediaType, int season, int episode, double progress) async {
-    final url = '${Api.ServerUrl}/track/state/${authState.selectedProfile?.id}/$tmdbId/$mediaType/$season/$episode';
+static Future<void> setProgress(int tmdbId, MediaType mediaType, double progress, {int? season, int? episode}) async {
+    final profileId = authState.selectedProfile?.id;
+    final type = mediaType.toBackendSafe;
+    final url = '${Api.ServerUrl}/track/state/$profileId/$type/$tmdbId';
+
+    final data = <String, dynamic>{'completion': progress};
+    if (type == 'episode') {
+      data['season'] = season;
+      data['episode'] = episode;
+    }
 
     final list = [...BackendCache.continueWatching.value];
 
     if (progress >= 1.0) {
-      // Finished — the server needs to recompute next_episode (via TMDB),
-      // so we can't fake this locally. Fire the update, then refetch.
-      await dio.put(url, data: {"completion": progress, "updated_at": DateTime.now().millisecondsSinceEpoch});
-
+      await dio.put(url, data: data);
       Misc.sendNotification(const Text('Updated'), const Text('Episode has been marked as watched.'));
-
-      await BackendCache.fetchContinueWatching(); // re-fetches and repopulates BackendCache.continueWatching
+      await BackendCache.fetchContinueWatching();
       return;
     }
 
-    // In-progress — safe to update optimistically without server round-trip.
-    if (mediaType == 'movie') {
+    if (type == 'movie') {
       final index = list.indexWhere((item) => item is MovieItem && item.tmdbId == tmdbId);
-
       if (index != -1) {
         list[index] = MovieItem(tmdbId: tmdbId, completion: progress);
       } else {
         list.insert(0, MovieItem(tmdbId: tmdbId, completion: progress));
       }
-    } else {
+    } else if (season != null && episode != null) {
       final showIndex = list.indexWhere((item) => item is ShowItem && item.tmdbId == tmdbId);
 
       if (showIndex != -1) {
@@ -222,13 +238,11 @@ class BackendApi {
         if (seasonIndex != -1) {
           final episodes = [...seasons[seasonIndex].episodes];
           final episodeIndex = episodes.indexWhere((e) => e.episode == episode);
-
           if (episodeIndex != -1) {
             episodes[episodeIndex] = SeasonEpisode(episode: episode, completion: progress);
           } else {
             episodes.add(SeasonEpisode(episode: episode, completion: progress));
           }
-
           seasons[seasonIndex] = Season(number: season, episodes: episodes);
         } else {
           seasons.add(
@@ -241,7 +255,7 @@ class BackendApi {
 
         list[showIndex] = ShowItem(
           tmdbId: tmdbId,
-          nextEpisode: NextEpisode(season: season, episode: episode, completion: 0),
+          nextEpisode: NextEpisode(season: season, episode: episode, completion: progress),
           seasons: seasons,
         );
       } else {
@@ -249,7 +263,7 @@ class BackendApi {
           0,
           ShowItem(
             tmdbId: tmdbId,
-            nextEpisode: NextEpisode(season: season, episode: episode, completion: 0),
+            nextEpisode: NextEpisode(season: season, episode: episode, completion: progress),
             seasons: [
               Season(
                 number: season,
@@ -262,7 +276,6 @@ class BackendApi {
     }
 
     BackendCache.continueWatching.value = list;
-
-    await dio.put(url, data: {"completion": progress, "updated_at": DateTime.now().millisecondsSinceEpoch});
+    await dio.put(url, data: data);
   }
 }

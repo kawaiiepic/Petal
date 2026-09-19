@@ -26,50 +26,56 @@ class _TraktNextUp extends State<TraktNextUp> {
   void initState() {
     super.initState();
     _controller = ScrollController();
+    _onAuth();
+    BackendApi.authState.addListener(_onAuth);
+  }
 
-    BackendApi.authState.addListener(() {
-      setState(() {
-        BackendCache.fetchContinueWatching();
-      });
-    });
+  void _onAuth() {
+    if (BackendApi.authState.selectedProfile != null) {
+      BackendCache.fetchContinueWatching();
+    }
+  }
+
+  @override
+  void dispose() {
+    BackendApi.authState.removeListener(_onAuth);
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp);
-    return Column(
-      spacing: 8,
-      children: [
-        Text('Continue Watching', style: style),
-        ValueListenableBuilder(
-          valueListenable: BackendCache.continueWatching,
-          builder: (context, list, child) {
-            if (list.isEmpty) {
-              return Text('No items to continue watching');
-            } else {
-              return SizedBox(
-                height: 25.h,
-                child: ScrollableWidget(
+    return ValueListenableBuilder(
+      valueListenable: BackendCache.continueWatching,
+      builder: (context, list, child) {
+        if (list.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          spacing: 8,
+          children: [
+            Text('Continue Watching', style: style),
+            SizedBox(
+              height: 25.h,
+              child: ScrollableWidget(
+                controller: _controller,
+                offset: -25,
+                child: ListView.builder(
                   controller: _controller,
-                  offset: -25,
-                  child: ListView.builder(
-                    controller: _controller,
-                    scrollDirection: Axis.horizontal,
-                    key: const PageStorageKey<String>('unique_key_for_this_list'),
-
-                    itemCount: list.length,
-                    itemBuilder: (context, index) {
-                      final state = list[index];
-                      
-                      return TraktNextUpItem(key: ValueKey(state.tmdbId), state: state);
-                    },
-                  ),
+                  scrollDirection: Axis.horizontal,
+                  key: const PageStorageKey<String>('unique_key_for_this_list'),
+                  itemCount: list.length,
+                  itemBuilder: (context, index) {
+                    final state = list[index];
+                    return TraktNextUpItem(key: ValueKey('${state.mediaType}-${state.tmdbId}'), state: state);
+                  },
                 ),
-              );
-            }
-          },
-        ),
-      ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -105,15 +111,13 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
     final newState = widget.state;
 
     if (oldState is ShowItem && newState is ShowItem) {
-      final episodeChanged = oldState.nextEpisode!.season != newState.nextEpisode!.season || oldState.nextEpisode!.episode != newState.nextEpisode!.episode;
-
-      // Show itself can't change since tmdbId is the list key, but the
-      // episode (and therefore its thumbnail/title) can.
-      if (episodeChanged) {
-        _futureEpisode = TMDB.tvEpisode(newState.tmdbId, newState.nextEpisode!.season, newState.nextEpisode!.episode);
+      final oldNext = oldState.nextEpisode;
+      final newNext = newState.nextEpisode;
+      final episodeChanged = oldNext?.season != newNext?.season || oldNext?.episode != newNext?.episode;
+      if (episodeChanged && newNext != null) {
+        _futureEpisode = TMDB.tvEpisode(newState.tmdbId, newNext.season, newNext.episode);
       }
     } else if (oldState.tmdbId != newState.tmdbId || oldState.runtimeType != newState.runtimeType) {
-      // Defensive: item type/id changed under the same key somehow — reload everything.
       _loadFutures(newState);
     }
   }
@@ -121,7 +125,8 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
   void _loadFutures(ContinueWatchingItem state) {
     if (state is ShowItem) {
       _futureShow = TMDB.tvShow(state.tmdbId);
-      _futureEpisode = TMDB.tvEpisode(state.tmdbId, state.nextEpisode!.season, state.nextEpisode!.episode);
+      final next = state.nextEpisode;
+      _futureEpisode = next == null ? null : TMDB.tvEpisode(state.tmdbId, next.season, next.episode);
     } else {
       _futureMovie = TMDB.movie(state.tmdbId);
     }
@@ -129,15 +134,11 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final state = widget.state;
-
-    if (state is ShowItem) {
-      return episodeWidget(state);
-    } else if (state is MovieItem) {
-      return movieWidget(state);
-    }
-
-    return Container();
+    if (state is ShowItem) return episodeWidget(state);
+    if (state is MovieItem) return movieWidget(state);
+    return const SizedBox.shrink();
   }
 
   List<MenuItem> contextItems() => [
@@ -147,7 +148,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
       child: const Text('Resume'),
       onPressed: (context) {
         final state = widget.state;
-        if (state is ShowItem) {
+        if (state is ShowItem && state.nextEpisode != null) {
           AppRouter.appRouter.push('/player?media=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
         } else {
           AppRouter.appRouter.push('/player?media=${state.tmdbId}');
@@ -159,7 +160,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
       child: const Text('Select Source'),
       onPressed: (context) {
         final state = widget.state;
-        if (state is ShowItem) {
+        if (state is ShowItem && state.nextEpisode != null) {
           AppRouter.appRouter.push('/streams?show=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
         } else {
           AppRouter.appRouter.push('/streams?movie=${state.tmdbId}');
@@ -185,10 +186,10 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
       child: const Text('Mark as Watched'),
       onPressed: (context) {
         final state = widget.state;
-        if (state is ShowItem) {
-          BackendApi.setProgress(state.tmdbId, state.mediaType, state.nextEpisode!.season, state.nextEpisode!.episode, 1.0);
+        if (state is ShowItem && state.nextEpisode != null) {
+          BackendApi.setProgress(state.tmdbId, state.mediaType, 1.0, season: state.nextEpisode!.season, episode: state.nextEpisode!.episode);
         } else {
-          BackendApi.setProgress(state.tmdbId, state.mediaType, 0, 0, 1.0);
+          BackendApi.setProgress(state.tmdbId, state.mediaType, 1.0);
         }
       },
     ),
@@ -198,65 +199,69 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
     MenuButton(leading: const Icon(LucideIcons.delete), child: const Text('Remove from Continue Watching')),
   ];
 
-  Widget episodeWidget(ShowItem state) => FutureBuilder(
-    future: _futureEpisode,
-    builder: (context, snapshot) => Padding(
-      padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
-      child: Column(
-        spacing: 8,
-        children: [
-          Expanded(
-            child: HoverableItem(
-              orientation: Orientation.landscape,
-              contextItems: contextItems(),
-              onTap: () {
-                context.push('/player?media=${state.tmdbId}&s=${state.nextEpisode!.season}&e=${state.nextEpisode!.episode}');
-              },
-              image: snapshot.hasData
-                  ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl ?? '', fit: BoxFit.fitHeight, height: 20)
-                  : Avatar(initials: '', borderRadius: 12).asSkeleton(),
-              extraWidget: state.nextEpisode!.completion > 0.0 && state.nextEpisode!.completion < 1.0
-                  ? Positioned(
-                      bottom: 8,
-                      left: 8,
-                      right: 8,
-                      child: SizedBox(
-                        child: LinearProgressIndicator(value: state.nextEpisode!.completion, minHeight: 5, borderRadius: BorderRadius.circular(8)),
-                      ),
-                    )
-                  : null,
+  Widget episodeWidget(ShowItem state) {
+    final next = state.nextEpisode;
+    return FutureBuilder<TmdbEpisode>(
+      future: _futureEpisode,
+      builder: (context, snapshot) => Padding(
+        padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
+        child: Column(
+          spacing: 8,
+          children: [
+            Expanded(
+              child: HoverableItem(
+                orientation: Orientation.landscape,
+                contextItems: contextItems(),
+                onTap: () {
+                  if (next == null) return;
+                  context.push(
+                    '/player?media=${state.tmdbId}&s=${next.season}&e=${next.episode}${next.completion > 0.0 && next.completion < 1.0 ? '&p=${next.completion}' : ''}',
+                  );
+                },
+                image: snapshot.hasData
+                    ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl ?? '', fit: BoxFit.fitHeight, height: 20)
+                    : Avatar(initials: '', borderRadius: 12).asSkeleton(),
+                extraWidget: next != null && next.completion > 0.0 && next.completion < 1.0
+                    ? Positioned(
+                        bottom: 8,
+                        left: 8,
+                        right: 8,
+                        child: SizedBox(
+                          child: LinearProgressIndicator(value: next.completion, minHeight: 5, borderRadius: BorderRadius.circular(8)),
+                        ),
+                      )
+                    : null,
+              ),
             ),
-          ),
-
-          SizedBox(
-            height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
-            child: Column(
-              children: [
-                FutureBuilder(
-                  future: _futureShow,
-                  builder: (context, snap2) => Text(
-                    !snap2.hasData ? "00x00 Loading..." : "${state.nextEpisode!.season}x${state.nextEpisode!.episode} ${snap2.data!.name}",
+            SizedBox(
+              height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
+              child: Column(
+                children: [
+                  FutureBuilder<TmdbShow>(
+                    future: _futureShow,
+                    builder: (context, snap2) => Text(
+                      !snap2.hasData || next == null ? 'Loading...' : '${next.season}x${next.episode} ${snap2.data!.name}',
+                      style: TextStyle(fontSize: 15.px),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ).asSkeleton(snapshot: snap2),
+                  ),
+                  Text(
+                    !snapshot.hasData ? 'Loading...' : snapshot.data!.name,
                     style: TextStyle(fontSize: 15.px),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                  ).asSkeleton(snapshot: snap2),
-                ),
-
-                Text(
-                  !snapshot.hasData ? "Loading..." : snapshot.data!.name,
-                  style: TextStyle(fontSize: 15.px),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    ).asSkeleton(snapshot: snapshot),
-  );
+          ],
+        ),
+      ).asSkeleton(snapshot: snapshot),
+    );
+  }
 
-  Widget movieWidget(MovieItem state) => FutureBuilder(
+  Widget movieWidget(MovieItem state) => FutureBuilder<TmdbMovie>(
     future: _futureMovie,
     builder: (context, snapshot) => Padding(
       padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
@@ -268,7 +273,7 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
               orientation: Orientation.landscape,
               contextItems: contextItems(),
               onTap: () {
-                context.push('/player?media=${state.tmdbId}');
+                context.push('/player?media=${state.tmdbId}${state.completion > 0.0 && state.completion < 1.0 ? '&p=${state.completion}' : ''}');
               },
               image: snapshot.hasData
                   ? CachedNetworkImage(imageUrl: snapshot.data!.images!.backdrops.first.url, fit: BoxFit.cover)
@@ -285,11 +290,10 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
                   : null,
             ),
           ),
-
           SizedBox(
             height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
             child: Text(
-              !snapshot.hasData ? "Loading..." : snapshot.data!.title,
+              !snapshot.hasData ? 'Loading...' : snapshot.data!.title,
               style: TextStyle(fontSize: 15.px),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
