@@ -12,7 +12,6 @@ import 'package:petal/models/profile.dart';
 import 'package:petal/models/session.dart';
 import 'package:petal/widgets/crop.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class UserProfile extends StatefulWidget {
   const UserProfile({super.key});
@@ -47,6 +46,8 @@ class _Profile extends State<UserProfile> {
 
   @override
   Widget build(BuildContext context) {
+    const avatarSize = 32.0;
+
     return FutureBuilder<List<Profile>>(
       future: _profilesFuture,
       builder: (context, snapshot) {
@@ -58,7 +59,7 @@ class _Profile extends State<UserProfile> {
               style: ButtonVariance.text,
               onPressed: () {
                 showDropdown(
-                  context: buttonContext, // scoped to the button, not the whole page
+                  context: buttonContext,
                   builder: (context) {
                     return DropdownMenu(
                       children: [
@@ -86,7 +87,6 @@ class _Profile extends State<UserProfile> {
                                     children: [
                                       const Text('Switch Profile', textAlign: TextAlign.center),
                                       const SizedBox(height: 20),
-
                                       Wrap(
                                         spacing: 20,
                                         runSpacing: 20,
@@ -141,7 +141,7 @@ class _Profile extends State<UserProfile> {
                 );
               },
               child: Column(
-                // spacing: 4,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   BackendApi.authState.selectedProfile?.avatar != null
                       ? CachedNetworkImage(
@@ -149,12 +149,12 @@ class _Profile extends State<UserProfile> {
                           imageBuilder: (context, imageProvider) => Avatar(
                             initials: '',
                             provider: imageProvider,
-                            size: 4.w,
-                            badge: AvatarBadge(size: 1.w, color: Colors.green),
+                            size: avatarSize,
+                            badge: const AvatarBadge(size: 8, color: Colors.green),
                           ),
                         )
-                      : Icon(RadixIcons.avatar, size: 4.w),
-                  Text(BackendApi.authState.selectedProfile?.name ?? '', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      : const Icon(RadixIcons.avatar, size: avatarSize),
+                  Text(BackendApi.authState.selectedProfile?.name ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             );
@@ -236,7 +236,6 @@ class _ProfileCardState extends State<_ProfileCard> {
   Widget build(BuildContext context) {
     final isSelected = BackendApi.authState.selectedProfile?.id == widget.id;
 
-    print(widget.id);
     return MouseRegion(
       onEnter: (_) => setState(() => hovering = true),
       onExit: (_) => setState(() => hovering = false),
@@ -265,13 +264,12 @@ class _ProfileCardState extends State<_ProfileCard> {
                     if (!widget.add)
                       widget.avatar != null
                           ? CachedNetworkImage(
-                              fit: BoxFit.cover, // fill can distort aspect ratio; cover crops instead
+                              fit: BoxFit.cover,
                               imageUrl: '${Api.ProfileUrl}/${widget.avatar}',
                               imageBuilder: (context, imageProvider) =>
                                   Avatar(initials: '', provider: imageProvider, size: 70, badge: selectedSession != null ? const AvatarBadge() : null),
                             )
                           : const Icon(RadixIcons.avatar, size: 70),
-
                     if (widget.add)
                       Container(
                         width: 70,
@@ -279,7 +277,6 @@ class _ProfileCardState extends State<_ProfileCard> {
                         decoration: BoxDecoration(color: Colors.black.withAlpha(100), shape: BoxShape.circle),
                         child: const Icon(LucideIcons.plus, color: Colors.white, size: 28),
                       ),
-
                     if (hovering && isSelected)
                       Container(
                         width: 70,
@@ -289,9 +286,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                       ),
                   ],
                 ),
-
                 const SizedBox(height: 8),
-
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -299,9 +294,8 @@ class _ProfileCardState extends State<_ProfileCard> {
                     if (isSelected) ...[const SizedBox(width: 5), const Icon(LucideIcons.check, size: 16)],
                   ],
                 ),
-
                 if (selectedSession != null) Text('${selectedSession.title}'),
-              ], // {"type":"sessions","sessions":[{"profileId":"1f10c83e-7021-44db-9b62-7f0afcb85263","tmdbId":603,"mediaType":"movie","season":null,"episode":null,"position":120,"duration":8160,"lastSeen":1789216264771}]}
+              ],
             );
           },
         ),
