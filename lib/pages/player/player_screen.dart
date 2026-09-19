@@ -13,6 +13,7 @@ import 'package:petal/pages/player/overlay/player_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class StreamPlayer extends StatefulWidget {
@@ -34,6 +35,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   bool zoomVideo = false;
 
   Timer? _saveProgress;
+  StreamSubscription<(bool, Duration)>? _discordSub;
 
   @override
   void initState() {
@@ -53,6 +55,42 @@ class StreamPlayerState extends State<StreamPlayer> {
     });
 
     _startStream();
+  }
+
+  void _setupDiscord() {
+    _discordSub?.cancel();
+
+    final stream$ = Rx.combineLatest2<bool, Duration, (bool, Duration)>(
+      player.stream.playing.startWith(player.state.playing),
+      player.stream.duration.startWith(player.state.duration),
+      (playing, duration) => (playing, duration),
+    ).where((data) => data.$2 > Duration.zero).distinct();
+
+    _discordSub = stream$.listen((data) async {
+      final episode = widget.episode;
+      if (episode != null) {
+        final show = await TMDB.tvShow(widget.mediaId);
+        final ep = await TMDB.tvEpisode(widget.mediaId, episode.seasonNumber, episode.episodeNumber);
+        Discord.updateStatus(
+          show.name,
+          '${ep.seasonNumber}x${ep.episodeNumber} ${ep.name}',
+          player.state.position,
+          data.$2,
+          ep.stillUrl ?? '',
+          data.$1,
+        );
+      } else {
+        final movie = await TMDB.movie(widget.mediaId);
+        Discord.updateStatus(
+          '${movie.title} (${movie.releaseDate.year})',
+          movie.genres.map((item) => item.name).join(', '),
+          player.state.position,
+          data.$2,
+          movie.images?.posters.first.url ?? '',
+          data.$1,
+        );
+      }
+    });
   }
 
   void saveProgressTask() {
@@ -75,7 +113,6 @@ class StreamPlayerState extends State<StreamPlayer> {
         trailing: PrimaryButton(
           size: ButtonSize.small,
           onPressed: () {
-            // Close the toast programmatically when clicking Undo.
             overlay.close();
           },
           child: const Text('Retry'),
@@ -101,6 +138,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     print(selectedStream.url);
 
     await player.open(Media(selectedStream.url, extras: {'mediaId': widget.mediaId, 'episode': widget.episode}));
+    _setupDiscord();
 
     player.stream.tracks.listen((event) {
       applyPreferredTracks(
@@ -263,10 +301,11 @@ class StreamPlayerState extends State<StreamPlayer> {
   @override
   void dispose() {
     print("Disposing...");
+    _saveProgress?.cancel();
+    _discordSub?.cancel();
     Discord.resetStatus();
     controller.pictureInPicture.stop();
     player.dispose();
-    // closeStream();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
   }
