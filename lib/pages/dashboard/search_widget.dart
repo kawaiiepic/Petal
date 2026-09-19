@@ -189,6 +189,8 @@ class _SearchState extends State<Search> {
       return;
     }
 
+    if (_overlayController.hasOpenOverlay) return;
+
     _overlayController.show(
       context,
       PopoverConfiguration(
@@ -196,11 +198,12 @@ class _SearchState extends State<Search> {
         anchorAlignment: Alignment.topCenter,
         widthConstraint: PopoverConstraint.flexible,
         heightConstraint: PopoverConstraint.flexible,
-
+        modal: false,
+        consumeOutsideTaps: false,
+        dismissBackdropFocus: false,
+        barrierDismissable: false,
       ),
-      builder: (context) {
-        return _buildSearchResults(context);
-      },
+      builder: (context) => _buildSearchResults(context),
     );
   }
 
