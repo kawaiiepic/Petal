@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:petal/api/api.dart';
-import 'package:petal/api/discord.dart';
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
@@ -11,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:petal/pages/player/overlay/control_button.dart';
 import 'package:petal/pages/player/overlay/episode_drawer.dart';
+import 'package:petal/pages/player/overlay/next_up_card.dart';
 import 'package:petal/pages/player/overlay/play_pause_button.dart';
 import 'package:petal/pages/player/overlay/position_display.dart';
 import 'package:petal/pages/player/overlay/seek_indicator.dart';
@@ -18,7 +18,6 @@ import 'package:petal/pages/player/overlay/seek_slider.dart';
 import 'package:petal/pages/player/overlay/track_menus.dart';
 import 'package:petal/pages/player/overlay/volume_button.dart';
 import 'package:petal/pages/splash.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 Widget videoControls(VideoState state) {
@@ -48,7 +47,6 @@ class _PlayerControls extends State<PlayerControls> {
   Timer? _leftSeekTimer;
   Timer? _rightSeekTimer;
   late Future<TmdbEpisode?> _nextUpEpisode;
-  StreamSubscription<(bool, Duration)>? _discordSub;
 
   Map<String, dynamic>? extras;
   late Player player;
@@ -56,6 +54,7 @@ class _PlayerControls extends State<PlayerControls> {
   late int mediaId;
   late Episode episode;
   bool init = false;
+  StreamSubscription? _playlistSub;
 
   void _seekBackward() {
     final newPosition = widget.state.widget.controller.player.state.position - const Duration(seconds: 10);
@@ -107,8 +106,6 @@ class _PlayerControls extends State<PlayerControls> {
     }
   }
 
-  StreamSubscription? _playlistSub;
-
   @override
   void initState() {
     super.initState();
@@ -141,43 +138,6 @@ class _PlayerControls extends State<PlayerControls> {
     } else {
       _movie = TMDB.movie(mediaId);
     }
-
-    _discordSub?.cancel();
-    _setupDiscordSub();
-  }
-
-  void _setupDiscordSub() {
-    final stream$ = Rx.combineLatest2<bool, Duration, (bool, Duration)>(
-      player.stream.playing.startWith(player.state.playing),
-      player.stream.duration.startWith(player.state.duration),
-      (playing, duration) => (playing, duration),
-    ).where((data) => data.$2 > Duration.zero).distinct();
-
-    _discordSub = stream$.listen((data) {
-      if (_isShow) {
-        _showData.then((show) {
-          Discord.updateStatus(
-            show.$1.name,
-            '${show.$2.seasonNumber}x${show.$2.episodeNumber} ${show.$2.name}',
-            player.state.position,
-            data.$2,
-            show.$2.stillUrl!,
-            data.$1,
-          );
-        });
-      } else {
-        _movie.then((movie) {
-          Discord.updateStatus(
-            '${movie.title} (${movie.releaseDate.year})',
-            movie.genres.map((item) => item.name).join(', '),
-            player.state.position,
-            data.$2,
-            movie.images?.posters.first.url ?? '',
-            data.$1,
-          );
-        });
-      }
-    });
   }
 
   void _startHideTimer() {
@@ -228,7 +188,6 @@ class _PlayerControls extends State<PlayerControls> {
     _leftSeekTimer?.cancel();
     _rightSeekTimer?.cancel();
     _hideTimer?.cancel();
-    _discordSub?.cancel();
     _playlistSub?.cancel();
     super.dispose();
   }
@@ -267,6 +226,17 @@ class _PlayerControls extends State<PlayerControls> {
             ),
             SeekIndicator(visible: _showLeftSeek, seconds: _leftSeekSeconds, isLeft: true),
             SeekIndicator(visible: _showRightSeek, seconds: _rightSeekSeconds, isLeft: false),
+            if (_isShow)
+              Positioned(
+                right: 20,
+                bottom: 40,
+                child: NextUpCard(
+                  player: player,
+                  nextEpisode: _nextUpEpisode,
+                  uiIsActive: _showControls,
+                  playNextEpisode: _playNextEpisode,
+                ),
+              ),
           ],
         ),
       ),
