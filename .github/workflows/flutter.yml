@@ -55,15 +55,6 @@ jobs:
           cd ios
           pod install --repo-update
 
-      - name: Debug certificate
-        run: |
-          echo "Base64 length: ${#BUILD_CERTIFICATE_BASE64}"
-          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode > /tmp/test.p12
-          ls -la /tmp/test.p12
-          file /tmp/test.p12
-        env:
-          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-
       - name: Install certificate and profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -90,33 +81,42 @@ jobs:
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" $RUNNER_TEMP/profile.plist)
           echo "Profile UUID: $PROFILE_UUID"
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
-
-      - name: Debug signing identities
-        run: |
-          echo "=== Available identities ==="
           security find-identity -v -p codesigning
-          echo ""
-          echo "=== Keychain list ==="
-          security list-keychains
-          echo ""
-          echo "=== Provisioning profiles ==="
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || true
 
-      - name: Build signed IPA
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+      - name: Archive and export signed IPA
+        run: |
+          flutter build ios --release --no-codesign
+
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            archive \
+            DEVELOPMENT_TEAM=7H8MNYGZ49
+
+          mkdir -p build/ios/ipa
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -exportPath build/ios/ipa
+
+          ls -la build/ios/ipa
+          IPA_PATH=$(ls -1 build/ios/ipa/*.ipa | head -n 1)
+          echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
+          echo "Found IPA: $IPA_PATH"
 
       - name: Upload IPA
         uses: actions/upload-artifact@v7
         with:
           name: release-ios_ipa
-          path: build/ios/ipa/*.ipa
+          path: ${{ env.IPA_PATH }}
           archive: false
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v5
         with:
-          app-path: build/ios/ipa/*.ipa
+          app-path: ${{ env.IPA_PATH }}
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
