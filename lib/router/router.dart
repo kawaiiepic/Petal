@@ -103,6 +103,7 @@ class AppRouter {
           return StreamPlayer(
             mediaId: int.parse(mediaId!),
             episode: (season != null && episode != null) ? Episode(seasonNumber: int.parse(season), episodeNumber: int.parse(episode)) : null,
+            progress: progress != null ? double.parse(progress) : null,
             stream: streamItem,
           );
         },
