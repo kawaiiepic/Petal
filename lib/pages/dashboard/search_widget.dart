@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';
-import 'package:go_router/go_router.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog_item.dart';
+import 'package:petal/router/router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
@@ -21,87 +21,73 @@ enum SearchType {
 }
 
 class SearchControllerModel extends ChangeNotifier {
-  Timer? _debounce;
   String _currentQuery = '';
   int _requestId = 0;
+
+  String get currentQuery => _currentQuery;
 
   List<SearchResult> results = [];
   bool loading = false;
 
   Future<void> search(String query, List<Addon> addons) async {
-    if (_currentQuery.trim() == query.trim()) {
+    final trimmed = query.trim();
+    _currentQuery = trimmed;
+
+    final int thisRequestId = ++_requestId;
+
+    if (trimmed.isEmpty) {
+      results = [];
+      loading = false;
+      notifyListeners();
       return;
     }
 
-    _debounce?.cancel();
+    loading = true;
+    notifyListeners();
 
-    _debounce = Timer(const Duration(milliseconds: 400), () async {
-      _currentQuery = query;
+    try {
+      final raw = await StreamApi.searchCatalogItems(trimmed, addons);
 
-      final int thisRequestId = ++_requestId;
-
-      if (query.isEmpty) {
-        results = [];
-        loading = false;
-        notifyListeners();
+      if (thisRequestId != _requestId) {
         return;
       }
 
-      loading = true;
-      notifyListeners();
-
-      try {
-        final raw = await StreamApi.searchCatalogItems(query, addons);
-
-        if (thisRequestId != _requestId) {
-          return;
-        }
-
-        final enriched = await Future.wait(
-          raw.map((item) async {
-            return SearchResult(
-              id: item.id,
-              name: item.name,
-              type: item.type,
-              slug: item.slug,
-              poster: item.poster,
-              background: item.background,
-              logo: item.logo,
-              description: item.description,
-              year: item.year,
-              runtime: item.runtime,
-              imdbRating: item.imdbRating,
-              awards: item.awards,
-              country: item.country,
-              releaseInfo: item.releaseInfo,
-              genres: item.genres,
-              cast: item.cast,
-              directors: item.directors,
-              writers: item.writers,
-              trailers: item.trailers,
-              seasons: item.seasons,
-            );
-          }),
+      final enriched = raw.map((item) {
+        return SearchResult(
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          slug: item.slug,
+          poster: item.poster,
+          background: item.background,
+          logo: item.logo,
+          description: item.description,
+          year: item.year,
+          runtime: item.runtime,
+          imdbRating: item.imdbRating,
+          awards: item.awards,
+          country: item.country,
+          releaseInfo: item.releaseInfo,
+          genres: item.genres,
+          cast: item.cast,
+          directors: item.directors,
+          writers: item.writers,
+          trailers: item.trailers,
+          seasons: item.seasons,
         );
+      }).toList();
 
-        if (thisRequestId != _requestId) {
-          return;
-        }
-
-        results = enriched.whereType<SearchResult>().toList();
-      } finally {
-        if (thisRequestId == _requestId) {
-          loading = false;
-          notifyListeners();
-        }
+      if (thisRequestId != _requestId) {
+        return;
       }
-    });
-  }
 
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    super.dispose();
+      results = enriched;
+    } finally {
+      if (thisRequestId == _requestId) {
+        loading = false;
+        notifyListeners();
+      }
+    }
   }
 }
 
@@ -161,31 +147,38 @@ class _SearchState extends State<Search> {
         _addons = addons;
       });
     });
-
-    _textController.addListener(_onSearchChanged);
   }
 
-  void _onSearchChanged() {
+  Future<void> _submitSearch() async {
     final addons = _addons;
+    final query = _textController.text.trim();
 
-    if (addons == null) {
-      return;
-    }
-
-    final query = _textController.text;
-
-    searchModel.search(query, addons);
-
-    if (query.isEmpty) {
+    if (addons == null || query.isEmpty) {
       _overlayController.close();
       return;
     }
 
     _showSearchOverlay();
+    await searchModel.search(query, addons);
+  }
+
+  void _openResult(SearchResult choice) {
+    final type = choice.type == 'series' ? 'series' : 'movie';
+    var id = choice.id;
+    if (id.contains(':')) {
+      id = id.split(':').first;
+    }
+
+    _overlayController.close();
+    _textController.clear();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppRouter.appRouter.push('/$type?imdb=$id');
+    });
   }
 
   void _showSearchOverlay() {
-    if (!mounted || _textController.text.isEmpty) {
+    if (!mounted) {
       return;
     }
 
@@ -201,13 +194,13 @@ class _SearchState extends State<Search> {
         modal: false,
         consumeOutsideTaps: false,
         dismissBackdropFocus: false,
-        barrierDismissable: false,
+        barrierDismissable: true,
       ),
-      builder: (context) => _buildSearchResults(context),
+      builder: (context) => _buildSearchResults(),
     );
   }
 
-  Widget _buildSearchResults(BuildContext context) {
+  Widget _buildSearchResults() {
     return Container(
       constraints: BoxConstraints(maxWidth: 50.w, maxHeight: 30.h, minWidth: 50.w, minHeight: 10.h),
       decoration: BoxDecoration(
@@ -243,7 +236,13 @@ class _SearchState extends State<Search> {
             }
           }).toList();
 
-          final matches = extractTop(query: searchModel._currentQuery, choices: filtered, limit: 10, cutoff: 80, getter: (x) => x.name);
+          final matches = extractTop(
+            query: searchModel.currentQuery,
+            choices: filtered,
+            limit: 10,
+            cutoff: 50,
+            getter: (x) => x.name,
+          );
 
           if (matches.isEmpty) {
             return const Padding(padding: EdgeInsets.all(16), child: Text('No results found.'));
@@ -257,19 +256,16 @@ class _SearchState extends State<Search> {
                 children: matches.map((item) {
                   final choice = item.choice;
                   return Padding(
-                    padding: EdgeInsetsGeometry.all(2),
+                    padding: const EdgeInsets.all(2),
                     child: Button.ghost(
-                      leading: choice.type == "movie" ? Icon(LucideIcons.ticket) : Icon(LucideIcons.tv),
-                      alignment: Alignment.center,
+                      leading: choice.type == 'movie' ? const Icon(LucideIcons.ticket) : const Icon(LucideIcons.tv),
+                      alignment: Alignment.centerLeft,
                       child: Text(
                         '${choice.name} // '
                         '${choice.type.toUpperCase()} // '
                         '${choice.releaseInfo}',
                       ),
-                      onPressed: () {
-                        _overlayController.close();
-                        context.push('/${choice.type}?imdb=${choice.id}');
-                      },
+                      onPressed: () => _openResult(choice),
                     ),
                   );
                 }).toList(),
@@ -286,49 +282,20 @@ class _SearchState extends State<Search> {
       constraints: BoxConstraints(minHeight: 20, maxWidth: 50.w),
       child: Row(
         children: [
-          // Padding(padding: const EdgeInsets.only(left: 4), child: _buildTypeMenu(searchType)),
           Expanded(
             child: TextField(
-              onTap: _showSearchOverlay,
-              features: [
-                // InputFeature.leading(
-                //   Select<SearchType>(
-                //     // How to render each selected item as text in the field.
-                //     padding: EdgeInsets.fromLTRB(12, 2, 12, 2),
-                //     borderRadius: BorderRadius.circular(8),
-                //     itemBuilder: (context, item) {
-                //       return Text(item.title);
-                //     },
-                //     // Limit the popup size so it doesn't grow too large in the docs view.
-                //     popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
-                //     onChanged: (value) {
-                //       setState(() {
-                //         // Save the currently selected value (or null to clear).
-                //         if (value == null) return;
-                //         searchTypeNotifier.value = value;
-                //       });
-                //     },
-                //     // The current selection bound to this field.
-                //     value: searchTypeNotifier.value,
-                //     placeholder: const Text('Media Type'),
-                //     popup: SelectPopup(
-                //       items: SelectItemList(
-                //         children: SearchType.values
-                //             .map(
-                //               (v) => SelectItemButton(
-                //                 value: v,
-                //                 child: Text(v.title, style: TextStyle(fontSize: 12)),
-                //               ),
-                //             )
-                //             .toList(),
-                //       ),
-                //     ).call,
-                //   ),
-                // ),
-                const InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
-              ],
               controller: _textController,
               placeholder: const Text('Search TV Shows, Movies & more...'),
+              onSubmitted: (_) => _submitSearch(),
+              features: [
+                const InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
+                InputFeature.trailing(
+                  IconButton.ghost(
+                    icon: const Icon(LucideIcons.search),
+                    onPressed: _submitSearch,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -354,7 +321,6 @@ class _SearchState extends State<Search> {
 
   @override
   void dispose() {
-    _textController.removeListener(_onSearchChanged);
     _textController.dispose();
     _overlayController.dispose();
     searchTypeNotifier.dispose();
