@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:petal/api/query_proxy.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/resource.dart';
-import 'package:http/http.dart' as http;
 
 class Addon {
   final String id;
@@ -36,9 +36,16 @@ class Addon {
 
   Future<void> fetchManifest() async {
     try {
-      final response = await http.get(QueryProxy.wrapUri(manifestUrl));
-      if (response.statusCode == 200) {
-        manifest = jsonDecode(response.body) as Map<String, dynamic>;
+      final response = await BackendApi.dio.get(QueryProxy.wrap(manifestUrl));
+      if (response.statusCode != 200) return;
+
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        manifest = data;
+      } else if (data is Map) {
+        manifest = Map<String, dynamic>.from(data);
+      } else if (data is String) {
+        manifest = jsonDecode(data) as Map<String, dynamic>;
       }
     } catch (e) {
       print('Error fetching manifest for $id: $e');
