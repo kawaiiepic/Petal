@@ -7,12 +7,18 @@ import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/models/custom_model.dart';
-import 'package:http/http.dart' as http;
 
 import 'package:petal/models/stream.dart';
 import 'package:petal/widgets/connection_error.dart';
 
 class StreamApi {
+  static Map<String, dynamic> _asMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    if (data is String) return jsonDecode(data) as Map<String, dynamic>;
+    return <String, dynamic>{};
+  }
+
   static Future<List<StreamItem>> fetchStreams(String imdbId, Episode? episode) async {
     final addons = await ApiCache.getAddons();
     addons.forEach((addon) {
@@ -42,11 +48,12 @@ class StreamApi {
 
       print(url);
 
-      final res = await BackendApi.dio.get(QueryProxy.wrap(url)).timeout(const Duration(seconds: 20));
+      final res = await BackendApi.dio.get(QueryProxy.wrap(url));
 
       if (res.statusCode != 200) return [];
 
-      final streams = (res.data['streams'] as List? ?? []).map((s) => StreamItem.fromJson(s, addon)).toList();
+      final data = _asMap(res.data);
+      final streams = (data['streams'] as List? ?? []).map((s) => StreamItem.fromJson(s, addon)).toList();
 
       return streams;
     } catch (_) {
@@ -129,13 +136,13 @@ class StreamApi {
         attempted++;
 
         try {
-          final res = await http.get(QueryProxy.wrapUri(url)).timeout(const Duration(seconds: 12));
+          final res = await BackendApi.dio.get(QueryProxy.wrap(url));
           if (res.statusCode != 200) {
             failed++;
             continue;
           }
 
-          final data = jsonDecode(res.body);
+          final data = _asMap(res.data);
           final metas = data['metas'] as List? ?? [];
           allItems.addAll(metas.map((m) => CatalogItem.fromJson(m)));
         } catch (e) {
@@ -155,9 +162,9 @@ class StreamApi {
   static Future<CatalogItem?> fetchCatalogItemById(String id, String type, {String baseUrl = 'https://v3-cinemeta.strem.io/meta'}) async {
     final url = '$baseUrl/$type/$id.json';
     try {
-      final res = await http.get(QueryProxy.wrapUri(url)).timeout(const Duration(seconds: 12));
+      final res = await BackendApi.dio.get(QueryProxy.wrap(url));
       if (res.statusCode != 200) return null;
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final data = _asMap(res.data);
       return CatalogItem.fromJson(data['meta']);
     } catch (e) {
       print('Error fetching CatalogItem $id: $e');
