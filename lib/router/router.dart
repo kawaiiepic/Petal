@@ -15,6 +15,7 @@ import 'package:petal/pages/offline.dart';
 import 'package:petal/pages/player/player_screen.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/pages/streams.dart';
+import 'package:petal/pages/trakt_import_page.dart';
 import 'package:petal/widgets/catalog/catalog_widget.dart';
 import 'package:go_router/go_router.dart';
 
@@ -93,6 +94,7 @@ class AppRouter {
       ),
 
       GoRoute(path: '/settings', builder: (context, state) => Settings()),
+      GoRoute(path: '/trakt-import', builder: (context, state) => const TraktImportPage()),
       GoRoute(
         path: '/licenses',
         builder: (context, state) => OpenSourceLicenses(
