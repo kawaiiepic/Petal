@@ -27,8 +27,6 @@ class BackendApi {
 
   static WatchPresenceClient presence = WatchPresenceClient();
 
-  // static final ValueNotifier<bool> validSession = ValueNotifier(false);
-
   static Future<void> init() async {
     prepareCookieManager();
     BackendApi.authState.addListener(() {
@@ -44,7 +42,13 @@ class BackendApi {
   }
 
   static Future<void> prepareCookieManager() async {
-    dio = Dio();
+    dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 20),
+        sendTimeout: const Duration(seconds: 20),
+      ),
+    );
     final directory = await getApplicationCacheDirectory();
     print(directory.path);
     cookieJar = PersistCookieJar(ignoreExpires: true, storage: FileStorage("${directory.path}/.cookies/"));
@@ -76,7 +80,6 @@ class BackendApi {
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        // Expected case: no valid session — just treat as logged out
         print("No valid session");
       } else {
         print("Error verifying session: $e");
@@ -133,14 +136,12 @@ class BackendApi {
       final data = response.data;
       final addonsJson = data['result'] as List;
 
-      // map to list of futures
       final futures = addonsJson.map((json) async {
         var addon = Addon.fromJson(json);
         await addon.fetchManifest();
         return addon;
       }).toList();
 
-      // wait for all futures to complete
       final addons = await Future.wait(futures);
       return addons;
     } else {
@@ -158,13 +159,11 @@ class BackendApi {
 
     final json = response.data['result'] as List;
 
-    // map to list of futures
     final futures = json.map((json) async {
       var addon = Profile.fromJson(json);
       return addon;
     }).toList();
 
-    // wait for all futures to complete
     final addons = await Future.wait(futures);
     return addons;
   }
