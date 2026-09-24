@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
+import 'package:petal/api/external_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StreamsPage extends StatefulWidget {
@@ -167,15 +168,19 @@ class StreamTile extends StatelessWidget {
           Text(style: TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 11.sp : 13.sp), stream.title),
         ],
       ),
-      onPressed: () {
+      onPressed: () async {
         if (stream.external) {
           launchUrl(Uri.parse(stream.url));
+          return;
+        }
+        if (await ExternalPlayer.open(stream.url)) {
+          return;
+        }
+        if (!context.mounted) return;
+        if (episode != null) {
+          context.pushReplacement('/player?media=$tmdbId&s=${episode?.seasonNumber}&e=${episode?.episodeNumber}', extra: stream);
         } else {
-          if (episode != null) {
-            context.pushReplacement('/player?media=$tmdbId&s=${episode?.seasonNumber}&e=${episode?.episodeNumber}', extra: stream);
-          } else {
-            context.pushReplacement('/player?media=$tmdbId', extra: stream);
-          }
+          context.pushReplacement('/player?media=$tmdbId', extra: stream);
         }
       },
     );
