@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petal/api/api.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
@@ -16,16 +17,18 @@ class CatalogItemWidget extends StatefulWidget {
 
 class _CatalogItemWidget extends State<CatalogItemWidget> {
   CatalogItem? catalogItem;
+  late final String _posterUrl;
 
   @override
   void initState() {
     super.initState();
     catalogItem = widget.catalogItem;
-    final poster = catalogItem?.poster;
-    if (poster != null && poster.isNotEmpty) {
+    final poster = catalogItem?.poster ?? '';
+    _posterUrl = poster.isEmpty || poster.contains('blossomvale.dev') ? poster : Api.proxyImage(poster);
+    if (_posterUrl.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        precacheImage(CachedNetworkImageProvider(poster), context);
+        precacheImage(CachedNetworkImageProvider(_posterUrl), context);
       });
     }
   }
@@ -36,7 +39,7 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
     child: HoverableItem(
       image: catalogItem != null
           ? CachedNetworkImage(
-              imageUrl: catalogItem!.poster,
+              imageUrl: _posterUrl,
               fit: BoxFit.cover,
               memCacheWidth: 400,
               fadeInDuration: const Duration(milliseconds: 150),
