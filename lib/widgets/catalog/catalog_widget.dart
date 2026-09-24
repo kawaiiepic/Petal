@@ -97,9 +97,10 @@ class _CatalogWidget extends State<CatalogWidget> {
               )
             else
               SliverList(
-                delegate: SliverChildListDelegate([
-                  for (final catalog in catalogs) _CatalogSection(catalog: catalog),
-                ]),
+                delegate: SliverChildListDelegate(
+                  [for (final catalog in catalogs) _CatalogSection(key: ValueKey('${catalog.id}-${catalog.type}'), catalog: catalog)],
+                  addAutomaticKeepAlives: true,
+                ),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
@@ -109,26 +110,35 @@ class _CatalogWidget extends State<CatalogWidget> {
   }
 }
 
-class _CatalogSection extends StatelessWidget {
+class _CatalogSection extends StatefulWidget {
   final Catalog catalog;
 
-  const _CatalogSection({required this.catalog});
+  const _CatalogSection({super.key, required this.catalog});
+
+  @override
+  State<_CatalogSection> createState() => _CatalogSectionState();
+}
+
+class _CatalogSectionState extends State<_CatalogSection> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return FutureBuilder<List<CatalogItem>>(
-      future: ApiCache.getCatalogItems(catalog),
+      future: ApiCache.getCatalogItems(widget.catalog),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: ConnectionErrorView(
               error: snapshot.error,
-              title: "Couldn't load ${catalog.name}",
+              title: "Couldn't load ${widget.catalog.name}",
             ),
           );
         }
-        return CatalogRow(key: ValueKey('${catalog.id}-${catalog.type}'), catalog: catalog, catalogItems: snapshot.data);
+        return CatalogRow(catalog: widget.catalog, catalogItems: snapshot.data);
       },
     );
   }
