@@ -3,6 +3,7 @@ import 'package:petal/api/stream_helper.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
+import 'package:petal/widgets/connection_error.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class SearchResultsPage extends StatefulWidget {
@@ -27,8 +28,14 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   void didUpdateWidget(covariant SearchResultsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.query != widget.query) {
-      _future = _load(widget.query);
+      _reload();
     }
+  }
+
+  void _reload() {
+    setState(() {
+      _future = _load(widget.query);
+    });
   }
 
   Future<List<CatalogItem>> _load(String query) async {
@@ -68,6 +75,10 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
       child: FutureBuilder<List<CatalogItem>>(
         future: _future,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return ConnectionErrorView(error: snapshot.error, onRetry: _reload);
+          }
+
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
