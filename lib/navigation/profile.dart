@@ -67,6 +67,7 @@ class _Profile extends State<UserProfile> {
                         MenuDivider(),
                         MenuButton(onPressed: (_) async => PetalApp.rootNavigatorKey.currentContext?.push('/addons'), child: const Text('Addons')),
                         MenuButton(onPressed: (_) async => PetalApp.rootNavigatorKey.currentContext?.push('/settings'), child: const Text('Settings')),
+                        MenuButton(onPressed: (_) async => PetalApp.rootNavigatorKey.currentContext?.push('/trakt-import'), child: const Text('Import from Trakt')),
                         MenuDivider(),
                         MenuButton(
                           onPressed: (_) async {
