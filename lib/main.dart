@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/discord.dart';
 import 'package:petal/api/query_proxy.dart';
+import 'package:petal/api/user_library.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/router/router.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +15,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppTheme.load();
   await QueryProxy.load();
+  await UserLibrary.load();
 
   MediaKit.ensureInitialized();
   Discord.init();
