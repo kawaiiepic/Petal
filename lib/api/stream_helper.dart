@@ -9,6 +9,7 @@ import 'package:petal/models/custom_model.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:petal/models/stream.dart';
+import 'package:petal/widgets/connection_error.dart';
 
 class StreamApi {
   static Future<List<StreamItem>> fetchStreams(String imdbId, Episode? episode) async {
@@ -23,7 +24,6 @@ class StreamApi {
 
     print("Fetching stream: ${streamAddons.length} addons");
 
-    // Fetch all addons in parallel
     final results = await Future.wait(streamAddons.map((addon) => _fetchFromAddon(addon, type, id, episode)));
 
     final expanded = results.expand((s) => s).toList();
@@ -47,14 +47,7 @@ class StreamApi {
 
       final streams = (res.data['streams'] as List? ?? []).map((s) => StreamItem.fromJson(s, addon)).toList();
 
-      if (episode == null) return streams;
-
       return streams;
-
-      final tag = 'S${episode.seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')}';
-      // return streams
-      //     .where((s) => s.season == episode.seasonNumber && s.episode == episode.episodeNumber || s.name.toUpperCase().contains(tag) || s.external)
-      //     .toList();
     } catch (_) {
       return [];
     }
@@ -63,10 +56,7 @@ class StreamApi {
   static StreamItem? streamFromUrl(List<StreamItem> streams, String url) {
     if (streams.isEmpty) return null;
 
-    // print("Trying to find: $url");
-
     return streams.firstWhere((s) {
-      // print("Stream URL: ${s.url}");
       if (s.url == url) return true;
       return false;
     });
@@ -77,7 +67,6 @@ class StreamApi {
 
     print("Auto selecting stream");
 
-    // sort by score descending, pick the top one
     final sorted = [...streams]..sort((a, b) => _score(b).compareTo(_score(a)));
 
     print("Selected: ${sorted.first.title}");
@@ -89,7 +78,6 @@ class StreamApi {
 
     final name = s.name.toUpperCase();
 
-    // Resolution
     if (name.contains('2160P') || name.contains('4K')) {
       score += 40;
     } else if (name.contains('1080P'))
@@ -99,7 +87,6 @@ class StreamApi {
     else if (name.contains('480P'))
       score += 10;
 
-    // Source quality
     if (name.contains('BLURAY') || name.contains('BLU-RAY')) {
       score += 15;
     } else if (name.contains('WEB-DL') || name.contains('WEBDL'))
@@ -111,18 +98,13 @@ class StreamApi {
 
     if (name.contains("WEB")) score += 20;
 
-    // HDR
     if (name.contains('HDR') || name.contains('DOLBY')) score += 5;
 
-    // Penalize CAM/TS
     if (name.contains('CAM') || name.contains('.TS')) score -= 30;
 
     if (name.contains('⚡')) score += 30;
 
-    // Prefer non-external (direct play)
     if (!s.external) score += 5;
-
-    // print("${s.title} has score $score");
 
     return score;
   }
@@ -130,6 +112,8 @@ class StreamApi {
   static Future<List<CatalogItem>> searchCatalogItems(String query, List<Addon> addons) async {
     final List<CatalogItem> allItems = [];
     final encodedQuery = Uri.encodeComponent(query);
+    var attempted = 0;
+    var failed = 0;
 
     for (final addon in addons) {
       if (!addon.enabledResources.contains('catalog')) continue;
@@ -137,55 +121,50 @@ class StreamApi {
       final List<Catalog> catalogs = (addon.manifest?["catalogs"] as List<dynamic>?)?.map((c) => Catalog.fromJson(c as Map<String, dynamic>)).toList() ?? [];
 
       for (final Catalog catalog in catalogs) {
-        // Only catalogs that support search
         final supportsSearch = catalog.extra.any((e) => e.name == 'search');
         if (!supportsSearch) continue;
 
         final url = '${addon.baseUrl}/catalog/${catalog.type}/${catalog.id}/search=$encodedQuery.json';
+        attempted++;
 
         try {
-          final res = await http.get(Uri.parse(url));
-          if (res.statusCode != 200) continue;
+          final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
+          if (res.statusCode != 200) {
+            failed++;
+            continue;
+          }
 
           final data = jsonDecode(res.body);
           final metas = data['metas'] as List? ?? [];
-
-          final items = metas.map((m) => CatalogItem.fromJson(m));
-
-          allItems.addAll(items);
-        } catch (_) {
-          print("Exception!!");
+          allItems.addAll(metas.map((m) => CatalogItem.fromJson(m)));
+        } catch (e) {
+          failed++;
+          print('Search request failed: $e');
         }
       }
     }
+
+    if (allItems.isEmpty && attempted > 0 && failed == attempted) {
+      throw const ConnectionException('Could not reach any catalog addon.');
+    }
+
     return allItems;
   }
 
   static Future<CatalogItem?> fetchCatalogItemById(String id, String type, {String baseUrl = 'https://v3-cinemeta.strem.io/meta'}) async {
     final url = '$baseUrl/$type/$id.json';
     try {
-      final res = await http.get(Uri.parse(url));
+      final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return null;
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       return CatalogItem.fromJson(data['meta']);
     } catch (e) {
       print('Error fetching CatalogItem $id: $e');
-      return null;
+      throw ConnectionException('Could not load this title.');
     }
   }
 
   static Future<CatalogItem?> fetchCatalogItem(CatalogItem item, {String baseUrl = 'https://v3-cinemeta.strem.io/meta'}) async {
-    final url = '$baseUrl/${item.type}/${item.id}.json';
-
-    try {
-      final res = await http.get(Uri.parse(url));
-      if (res.statusCode != 200) return null;
-
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
-      return CatalogItem.fromJson(data['meta']);
-    } catch (e) {
-      print('Error fetching CatalogItem ${item.id}: $e');
-      return null;
-    }
+    return fetchCatalogItemById(item.id, item.type, baseUrl: baseUrl);
   }
 }
