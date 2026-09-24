@@ -15,9 +15,12 @@ class CatalogItemWidget extends StatefulWidget {
   State<StatefulWidget> createState() => _CatalogItemWidget();
 }
 
-class _CatalogItemWidget extends State<CatalogItemWidget> {
+class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliveClientMixin {
   CatalogItem? catalogItem;
   late final String _posterUrl;
+
+  @override
+  bool get wantKeepAlive => catalogItem != null;
 
   @override
   void initState() {
@@ -34,61 +37,64 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
-    child: HoverableItem(
-      image: catalogItem != null
-          ? CachedNetworkImage(
-              imageUrl: _posterUrl,
-              fit: BoxFit.cover,
-              memCacheWidth: 400,
-              fadeInDuration: const Duration(milliseconds: 150),
-              placeholder: (context, url) => Container(color: Colors.white.withAlpha(20)).asSkeleton(leaf: true),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.white.withAlpha(30),
-                child: Column(
-                  spacing: 8,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(LucideIcons.tv, size: 50),
-                    Text(catalogItem!.name, textAlign: TextAlign.center),
-                  ],
+  Widget build(BuildContext context) {
+    super.build(context);
+    return Padding(
+      padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
+      child: HoverableItem(
+        image: catalogItem != null
+            ? CachedNetworkImage(
+                imageUrl: _posterUrl,
+                fit: BoxFit.cover,
+                memCacheWidth: 400,
+                fadeInDuration: Duration.zero,
+                placeholder: (context, url) => Container(color: Colors.white.withAlpha(20)).asSkeleton(leaf: true),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.white.withAlpha(30),
+                  child: Column(
+                    spacing: 8,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(LucideIcons.tv, size: 50),
+                      Text(catalogItem!.name, textAlign: TextAlign.center),
+                    ],
+                  ),
                 ),
-              ),
-            )
-          : Avatar(initials: '', borderRadius: 12).asSkeleton(),
-      onTap: () {
-        if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
-      },
-      contextItems: [
-        MenuButton(
-          leading: const Icon(LucideIcons.play),
-          trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
-          onPressed: (_) {},
-          child: const Text('Play'),
-        ),
-        MenuButton(
-          leading: const Icon(LucideIcons.info),
-          trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
-          onPressed: (_) {},
-          child: const Text('Select Source'),
-        ),
-        const MenuDivider(),
-        MenuButton(leading: const Icon(LucideIcons.info), onPressed: (_) {}, child: const Text('More Info')),
-        const MenuDivider(),
-        MenuButton(
-          leading: const Icon(LucideIcons.bookmark),
-          onPressed: (_) {},
-          child: Text(true ? 'Remove from Watchlist' : 'Add to Watchlist'),
-        ),
-        MenuButton(
-          leading: const Icon(LucideIcons.thumbsUp),
-          onPressed: (_) {},
-          child: const Text('Rate'),
-        ),
-      ],
-    ),
-  );
+              )
+            : Avatar(initials: '', borderRadius: 12).asSkeleton(),
+        onTap: () {
+          if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
+        },
+        contextItems: [
+          MenuButton(
+            leading: const Icon(LucideIcons.play),
+            trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
+            onPressed: (_) {},
+            child: const Text('Play'),
+          ),
+          MenuButton(
+            leading: const Icon(LucideIcons.info),
+            trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+            onPressed: (_) {},
+            child: const Text('Select Source'),
+          ),
+          const MenuDivider(),
+          MenuButton(leading: const Icon(LucideIcons.info), onPressed: (_) {}, child: const Text('More Info')),
+          const MenuDivider(),
+          MenuButton(
+            leading: const Icon(LucideIcons.bookmark),
+            onPressed: (_) {},
+            child: Text(true ? 'Remove from Watchlist' : 'Add to Watchlist'),
+          ),
+          MenuButton(
+            leading: const Icon(LucideIcons.thumbsUp),
+            onPressed: (_) {},
+            child: const Text('Rate'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class HoverableItem extends StatefulWidget {
