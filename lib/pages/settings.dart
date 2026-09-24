@@ -4,6 +4,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:petal/api/query_proxy.dart';
 import 'package:petal/git_stamp/git_stamp.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -42,14 +43,23 @@ class _SettingsState extends State<Settings> {
   late final Future<PackageInfo> _packageInfo;
   late final Future<Response> _contributors;
   late final Future<Response> _latestRemoteCommit;
+  late final TextEditingController _proxyUrlController;
 
   @override
   void initState() {
     super.initState();
     _packageInfo = PackageInfo.fromPlatform();
     _contributors = get(Uri.parse('https://api.github.com/repos/kawaiiepic/Petal/contributors'));
-    _latestRemoteCommit = get(Uri.parse('https://api.github.com/repos/kawaiiepic/Petal/commits/${GitStamp.buildBranch}'));
+    _latestRemoteCommit = get(Uri.parse('https://github.com/kawaiiepic/Petal/commits'.replaceFirst('https://github.com/kawaiiepic/Petal/commits', 'https://api.github.com/repos/kawaiiepic/Petal/commits/${GitStamp.buildBranch}')));
+    _proxyUrlController = TextEditingController(text: QueryProxy.url.value);
+    QueryProxy.url.addListener(_syncProxyField);
     _loadSelectedPlayer();
+  }
+
+  void _syncProxyField() {
+    if (_proxyUrlController.text != QueryProxy.url.value) {
+      _proxyUrlController.text = QueryProxy.url.value;
+    }
   }
 
   Future<void> _loadSelectedPlayer() async {
@@ -76,6 +86,13 @@ class _SettingsState extends State<Settings> {
   Future<void> _clearImageCache() async {
     await DefaultCacheManager().emptyCache();
     if (!mounted) return;
+  }
+
+  @override
+  void dispose() {
+    QueryProxy.url.removeListener(_syncProxyField);
+    _proxyUrlController.dispose();
+    super.dispose();
   }
 
   @override
@@ -209,11 +226,9 @@ class _SettingsState extends State<Settings> {
                 title: const Text("External Player"),
                 subtitle: const Text("Choose your preferred player"),
                 trailing: Select<String>(
-                  // How to render each selected item as text in the field.
                   itemBuilder: (context, item) {
                     return Text(item);
                   },
-                  // Limit the popup size so it doesn't grow too large in the docs view.
                   popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
                   onChanged: (value) {
                     setState(() {
@@ -221,13 +236,11 @@ class _SettingsState extends State<Settings> {
                       _setSelectedPlayer(value);
                     });
                   },
-                  // The current selection bound to this field.
                   value: selectedPlayer,
                   placeholder: const Text('Select a player'),
                   popup: const SelectPopup(
                     items: SelectItemList(
                       children: [
-                        // A simple static list of options.
                         SelectItemButton(value: 'Disabled', child: Text('Disabled')),
                         SelectItemButton(value: 'Outplayer', child: Text('Outplayer')),
                         SelectItemButton(value: 'MX Player', child: Text('MX Player')),
@@ -247,11 +260,9 @@ class _SettingsState extends State<Settings> {
                   title: const Text("Theme"),
                   subtitle: const Text("Choose light, dark, or system"),
                   trailing: Select<ThemeMode>(
-                    // How to render each selected item as text in the field.
                     itemBuilder: (context, item) {
                       return Text(item.name.toUpperCase());
                     },
-                    // Limit the popup size so it doesn't grow too large in the docs view.
                     popupConstraints: const BoxConstraints(maxHeight: 300, maxWidth: 200),
                     onChanged: (value) {
                       setState(() {
@@ -259,13 +270,11 @@ class _SettingsState extends State<Settings> {
                         AppTheme.set(value);
                       });
                     },
-                    // The current selection bound to this field.
                     value: mode,
                     placeholder: const Text('Change theme'),
                     popup: const SelectPopup(
                       items: SelectItemList(
                         children: [
-                          // A simple static list of options.
                           SelectItemButton(value: ThemeMode.system, child: Text('System')),
                           SelectItemButton(value: ThemeMode.light, child: Text('Light')),
                           SelectItemButton(value: ThemeMode.dark, child: Text('Dark')),
@@ -273,6 +282,42 @@ class _SettingsState extends State<Settings> {
                       ),
                     ).call,
                   ),
+                ),
+              ),
+            ),
+
+            Card(
+              child: ValueListenableBuilder<bool>(
+                valueListenable: QueryProxy.enabled,
+                builder: (context, proxyOn, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Basic(
+                      leading: const Icon(LucideIcons.globe),
+                      leadingAlignment: Alignment.center,
+                      title: const Text("Proxy all queries"),
+                      subtitle: const Text("Send catalog, search, and addon requests through your backend"),
+                      trailing: Switch(
+                        value: proxyOn,
+                        onChanged: (value) => QueryProxy.setEnabled(value),
+                      ),
+                    ),
+                    if (proxyOn) ...[
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: TextField(
+                          controller: _proxyUrlController,
+                          placeholder: Text(QueryProxy.defaultUrl),
+                          onSubmitted: QueryProxy.setUrl,
+                          onEditingComplete: () => QueryProxy.setUrl(_proxyUrlController.text),
+                          features: const [
+                            InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -308,8 +353,6 @@ class _SettingsState extends State<Settings> {
 
             Button.card(
               leading: const Icon(LucideIcons.badgeInfo),
-              // title: const Text("Licenses"),
-              // subtitle: const Text("Open source licenses"),
               trailing: Icon(LucideIcons.link2),
               onPressed: () async {
                 final info = await _packageInfo;
