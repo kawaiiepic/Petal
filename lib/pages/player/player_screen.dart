@@ -60,7 +60,7 @@ class StreamPlayerState extends State<StreamPlayer> {
 
   Future<void> _leave() async {
     await PlayerOrientation.restorePortrait();
-    if (mounted) context.pop();
+    if (mounted && Navigator.of(context).canPop()) context.pop();
   }
 
   void _setupDiscord() {
@@ -319,10 +319,8 @@ class StreamPlayerState extends State<StreamPlayer> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        await _leave();
+      onPopInvokedWithResult: (didPop, result) {
+        PlayerOrientation.restorePortrait();
       },
       child: Video(
         controller: controller,
