@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart' show showLicensePage;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:petal/git_stamp/git_stamp.dart';
@@ -166,7 +166,6 @@ class _SettingsState extends State<Settings> {
                                 );
                               },
                             ),
-                            // Button.link(leading: Icon(Icons.add_link_rounded), child: Text('Version: ${GitStamp.latestCommit?.hash.substring(0, 7)}')),
                             FutureBuilder<Response>(
                               future: _latestRemoteCommit,
                               builder: (context, snapshot) {
@@ -315,7 +314,9 @@ class _SettingsState extends State<Settings> {
               onPressed: () async {
                 final info = await _packageInfo;
                 if (!context.mounted) return;
-                showLicensePage(context: context, applicationName: info.appName, applicationVersion: "${info.version}+${info.buildNumber}");
+                final name = Uri.encodeQueryComponent(info.appName);
+                final version = Uri.encodeQueryComponent('${info.version}+${info.buildNumber}');
+                context.push('/licenses?name=$name&version=$version');
               },
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Licenses"), const Text("Open source licenses")]),
             ),

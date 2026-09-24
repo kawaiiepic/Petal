@@ -9,6 +9,7 @@ import 'package:petal/pages/collection.dart';
 import 'package:petal/pages/dashboard/search_results_page.dart';
 import 'package:petal/pages/episode_overview.dart';
 import 'package:petal/pages/login.dart';
+import 'package:petal/pages/licenses.dart';
 import 'package:petal/pages/movie_overview.dart';
 import 'package:petal/pages/offline.dart';
 import 'package:petal/pages/player/player_screen.dart';
@@ -92,6 +93,13 @@ class AppRouter {
       ),
 
       GoRoute(path: '/settings', builder: (context, state) => Settings()),
+      GoRoute(
+        path: '/licenses',
+        builder: (context, state) => OpenSourceLicenses(
+          applicationName: state.uri.queryParameters['name'] ?? 'Petal',
+          applicationVersion: state.uri.queryParameters['version'] ?? '',
+        ),
+      ),
       GoRoute(path: '/addons', builder: (context, state) => Addons()),
       GoRoute(path: '/offline', builder: (context, state) => Offline()),
       GoRoute(path: '/login', builder: (context, state) => Login()),

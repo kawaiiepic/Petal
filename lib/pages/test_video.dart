@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
 import 'dart:html' as html;
 import 'dart:ui_web' as web;
+
+import 'package:petal/widgets/back_button.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class TestVideo extends StatefulWidget {
   final String streamUrl;
@@ -23,7 +25,7 @@ class _TestVideo extends State<TestVideo> {
 
       final source = html.SourceElement()
         ..src = widget.streamUrl
-        ..type = 'video/mp4'; // 👈 set MIME type here
+        ..type = 'video/mp4';
 
       video.children.add(source);
 
@@ -34,10 +36,14 @@ class _TestVideo extends State<TestVideo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Flutter Web Iframe")),
-      body: Center(
+      headers: [
+        AppBar(
+          title: const Text('Flutter Web Iframe'),
+          leading: [BackButton()],
+        ),
+      ],
+      child: const Center(
         child: SizedBox(
-          // Use SizedBox or Container to define the dimensions
           width: 500,
           height: 500,
           child: HtmlElementView(viewType: 'iframeElement'),
