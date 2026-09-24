@@ -99,7 +99,7 @@ class UserLibrary {
     final target = watched ? 0.0 : 1.0;
 
     if (type == MediaType.movie) {
-      await BackendApi.setProgress(tmdbId, MediaType.movie, target, notify: false);
+      await BackendApi.setProgress(tmdbId, MediaType.movie, target);
     } else {
       final resolved = show ?? await TMDB.tvShow(tmdbId);
       final seasons = resolved.mainSeasons.isNotEmpty ? resolved.mainSeasons : resolved.seasons.where((s) => s.seasonNumber > 0).toList();
@@ -107,11 +107,11 @@ class UserLibrary {
       for (final season in seasons) {
         final count = season.episodeCount <= 0 ? 1 : season.episodeCount;
         for (var episode = 1; episode <= count; episode++) {
-          jobs.add(BackendApi.setProgress(tmdbId, MediaType.show, target, season: season.seasonNumber, episode: episode, notify: false));
+          jobs.add(BackendApi.setProgress(tmdbId, MediaType.show, target, season: season.seasonNumber, episode: episode));
         }
       }
       if (jobs.isEmpty) {
-        await BackendApi.setProgress(tmdbId, MediaType.show, target, season: 1, episode: 1, notify: false);
+        await BackendApi.setProgress(tmdbId, MediaType.show, target, season: 1, episode: 1);
       } else {
         for (var i = 0; i < jobs.length; i += 8) {
           await Future.wait(jobs.sublist(i, i + 8 > jobs.length ? jobs.length : i + 8));
