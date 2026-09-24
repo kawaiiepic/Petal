@@ -1,7 +1,7 @@
-import 'package:flutter/services.dart';
-import 'package:petal/models/catalog_item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petal/models/catalog_item.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
@@ -21,6 +21,13 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
   void initState() {
     super.initState();
     catalogItem = widget.catalogItem;
+    final poster = catalogItem?.poster;
+    if (poster != null && poster.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        precacheImage(CachedNetworkImageProvider(poster), context);
+      });
+    }
   }
 
   @override
@@ -31,7 +38,9 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
           ? CachedNetworkImage(
               imageUrl: catalogItem!.poster,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(color: Colors.pink.withAlpha(1)).asSkeleton(leaf: true),
+              memCacheWidth: 400,
+              fadeInDuration: const Duration(milliseconds: 150),
+              placeholder: (context, url) => Container(color: Colors.white.withAlpha(20)).asSkeleton(leaf: true),
               errorWidget: (context, url, error) => Container(
                 color: Colors.white.withAlpha(30),
                 child: Column(
@@ -66,16 +75,12 @@ class _CatalogItemWidget extends State<CatalogItemWidget> {
         const MenuDivider(),
         MenuButton(
           leading: const Icon(LucideIcons.bookmark),
-          onPressed: (_) {
-            // toggle watchlist state for item.id
-          },
+          onPressed: (_) {},
           child: Text(true ? 'Remove from Watchlist' : 'Add to Watchlist'),
         ),
         MenuButton(
           leading: const Icon(LucideIcons.thumbsUp),
-          onPressed: (_) {
-            // like/rate item.id
-          },
+          onPressed: (_) {},
           child: const Text('Rate'),
         ),
       ],
@@ -110,7 +115,6 @@ class _HoverableItem extends State<HoverableItem> {
       }),
       child: GestureDetector(
         onTap: widget.onTap,
-
         child: ContextMenu(
           enabled: widget.contextItems != null,
           items: widget.contextItems ?? [],
