@@ -3,6 +3,7 @@ import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
+import 'package:petal/api/trakt/library_api.dart';
 import 'package:petal/models/media_state.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -55,7 +56,7 @@ class UserLibrary {
     }
 
     try {
-      final rows = await BackendApi.fetchLibrary();
+      final rows = await LibraryApi.fetch();
       final nextWatchlist = <String>{};
       final nextRatings = <String, TitleRating>{};
       for (final row in rows) {
@@ -103,7 +104,7 @@ class UserLibrary {
     }
     watchlist.value = next;
     try {
-      await BackendApi.upsertLibrary(tmdbId: tmdbId, mediaType: type, watchlisted: adding);
+      await LibraryApi.upsert(tmdbId: tmdbId, mediaType: type, watchlisted: adding);
     } catch (_) {
       await load();
     }
@@ -120,7 +121,7 @@ class UserLibrary {
     };
     ratings.value = {...ratings.value, key: nextRating};
     try {
-      await BackendApi.upsertLibrary(tmdbId: tmdbId, mediaType: type, rating: nextRating.name);
+      await LibraryApi.upsert(tmdbId: tmdbId, mediaType: type, rating: nextRating.name);
     } catch (_) {
       await load();
     }
