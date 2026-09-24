@@ -49,6 +49,10 @@ class _CatalogWidget extends State<CatalogWidget> {
       throw const ConnectionException('Could not load catalogs.');
     }
 
+    for (final catalog in catalogs) {
+      ApiCache.getCatalogItems(catalog);
+    }
+
     return catalogs;
   }
 
@@ -73,6 +77,7 @@ class _CatalogWidget extends State<CatalogWidget> {
         final loading = snapshot.connectionState != ConnectionState.done;
 
         return CustomScrollView(
+          cacheExtent: 2500,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(child: TraktNextUp(key: ValueKey('traktNextUp'))),
@@ -92,9 +97,9 @@ class _CatalogWidget extends State<CatalogWidget> {
               )
             else
               SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  return _CatalogSection(catalog: catalogs[index]);
-                }, childCount: catalogs.length),
+                delegate: SliverChildListDelegate([
+                  for (final catalog in catalogs) _CatalogSection(catalog: catalog),
+                ]),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
