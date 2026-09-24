@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:petal/api/query_proxy.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/widgets/connection_error.dart';
@@ -19,7 +20,7 @@ class CatalogApi {
     }
 
     try {
-      final response = await http.get(uri).timeout(const Duration(seconds: 12));
+      final response = await http.get(QueryProxy.wrapUri(uri.toString())).timeout(const Duration(seconds: 12));
 
       if (response.statusCode != 200) {
         throw ConnectionException('Failed to fetch catalog (${response.statusCode}).');
