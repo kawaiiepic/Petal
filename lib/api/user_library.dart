@@ -12,6 +12,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum TitleRating { none, like, love }
 
+class LibraryTitle {
+  final int tmdbId;
+  final MediaType type;
+  final TitleRating rating;
+  final bool watchlisted;
+
+  const LibraryTitle({required this.tmdbId, required this.type, this.rating = TitleRating.none, this.watchlisted = false});
+}
+
 class UserLibrary {
   static const _watchlistKey = 'user_watchlist';
   static const _ratingsKey = 'user_ratings';
@@ -20,6 +29,27 @@ class UserLibrary {
   static final ValueNotifier<Map<String, TitleRating>> ratings = ValueNotifier(<String, TitleRating>{});
 
   static String _id(int tmdbId, MediaType type) => '${type.name}:$tmdbId';
+
+  static LibraryTitle? parseKey(String key, {TitleRating rating = TitleRating.none, bool watchlisted = false}) {
+    final parts = key.split(':');
+    if (parts.length != 2) return null;
+    final id = int.tryParse(parts[1]);
+    if (id == null) return null;
+    final type = parts[0] == 'show' ? MediaType.show : MediaType.movie;
+    return LibraryTitle(tmdbId: id, type: type, rating: rating, watchlisted: watchlisted);
+  }
+
+  static List<LibraryTitle> watchlistTitles() {
+    return watchlist.value.map((key) => parseKey(key, watchlisted: true)).whereType<LibraryTitle>().toList();
+  }
+
+  static List<LibraryTitle> ratedTitles() {
+    return ratings.value.entries
+        .where((e) => e.value != TitleRating.none)
+        .map((e) => parseKey(e.key, rating: e.value))
+        .whereType<LibraryTitle>()
+        .toList();
+  }
 
   static Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
