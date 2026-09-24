@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:petal/api/query_proxy.dart';
 import 'package:petal/models/resource.dart';
 import 'package:http/http.dart' as http;
 
@@ -8,8 +9,7 @@ class Addon {
   final String userId;
   final String manifestUrl;
   final String baseUrl;
-  Map<String, dynamic>? manifest; // full manifest JSON, may contain logo/icon
-  // user state
+  Map<String, dynamic>? manifest;
   final Set<String> enabledResources;
   final int forced;
 
@@ -34,10 +34,9 @@ class Addon {
     );
   }
 
-  // async method to fetch manifest
   Future<void> fetchManifest() async {
     try {
-      final response = await http.get(Uri.parse(manifestUrl));
+      final response = await http.get(QueryProxy.wrapUri(manifestUrl));
       if (response.statusCode == 200) {
         manifest = jsonDecode(response.body) as Map<String, dynamic>;
       }
