@@ -6,6 +6,7 @@ import 'package:petal/navigation/navigation.dart';
 import 'package:petal/pages/actor_overview.dart';
 import 'package:petal/pages/addons.dart';
 import 'package:petal/pages/collection.dart';
+import 'package:petal/pages/dashboard/search_results_page.dart';
 import 'package:petal/pages/episode_overview.dart';
 import 'package:petal/pages/login.dart';
 import 'package:petal/pages/movie_overview.dart';
@@ -26,11 +27,8 @@ class AppRouter {
       final onOffline = state.matchedLocation == '/offline';
 
       if (BackendApi.authState.initializing) {
-        // Still checking session — hold on the offline/loading screen
         return onOffline ? null : '/offline';
       }
-
-      // if (!Api.healthy.value) return '/offline';
 
       if (!BackendApi.authState.loggedIn && !loggingIn) return '/login';
 
@@ -45,6 +43,13 @@ class AppRouter {
         routes: [GoRoute(path: '/', builder: (context, state) => const CatalogWidget())],
       ),
 
+      GoRoute(
+        path: '/search',
+        builder: (context, state) {
+          final q = state.uri.queryParameters['q'] ?? '';
+          return SearchResultsPage(query: q);
+        },
+      ),
       GoRoute(
         path: '/series',
         builder: (context, state) {
