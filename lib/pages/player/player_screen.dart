@@ -10,6 +10,7 @@ import 'package:petal/models/custom_model.dart';
 import 'package:petal/models/stream.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/pages/player/overlay/player_controls.dart';
+import 'package:petal/pages/player/player_orientation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -43,7 +44,7 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     if (widget.episode != null) mediaType = MediaType.show;
 
-    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    PlayerOrientation.lockLandscape();
 
     saveProgressTask();
 
@@ -51,10 +52,15 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     player.stream.error.listen((event) {
       showToast(context: context, builder: buildToast, location: ToastLocation.bottomLeft);
-      if (mounted) context.pop();
+      _leave();
     });
 
     _startStream();
+  }
+
+  Future<void> _leave() async {
+    await PlayerOrientation.restorePortrait();
+    if (mounted) context.pop();
   }
 
   void _setupDiscord() {
@@ -129,7 +135,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     final stream = widget.stream ?? StreamApi.autoSelectStream(streams);
 
     if (stream == null) {
-      if (mounted) context.pop();
+      if (mounted) await _leave();
       return;
     }
 
@@ -306,18 +312,25 @@ class StreamPlayerState extends State<StreamPlayer> {
     Discord.resetStatus();
     controller.pictureInPicture.stop();
     player.dispose();
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    PlayerOrientation.restorePortrait();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Video(
-      controller: controller,
-      controls: videoControls,
-      fit: BoxFit.contain,
-      aspectRatio: 16 / 9,
-      pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _leave();
+      },
+      child: Video(
+        controller: controller,
+        controls: videoControls,
+        fit: BoxFit.contain,
+        aspectRatio: 16 / 9,
+        pip: const PipConfig(autoEnter: true, preferredSize: Size(1920 / 5, 1080 / 5)),
+      ),
     );
   }
 }
