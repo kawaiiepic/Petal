@@ -26,10 +26,17 @@ class _CatalogRowState extends State<CatalogRow> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final Catalog? catalog = widget.catalog;
     final List<CatalogItem>? catalogItems = widget.catalogItems?.toList();
     final style = TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp);
+    final count = widget.catalogItems != null ? widget.catalogItems!.length : 10;
 
     return Column(
       spacing: 8,
@@ -54,7 +61,8 @@ class _CatalogRowState extends State<CatalogRow> {
             child: ListView.builder(
               controller: _controller,
               scrollDirection: Axis.horizontal,
-              itemCount: widget.catalogItems != null ? widget.catalogItems?.length : 10,
+              cacheExtent: 1200,
+              itemCount: count,
               itemBuilder: (context, index) {
                 return CatalogItemWidget(catalogItem: catalogItems?[index]);
               },
