@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
