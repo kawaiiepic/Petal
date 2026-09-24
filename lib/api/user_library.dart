@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
@@ -8,7 +6,6 @@ import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/models/media_state.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 enum TitleRating { none, like, love }
 
@@ -22,11 +19,9 @@ class LibraryTitle {
 }
 
 class UserLibrary {
-  static const _watchlistKey = 'user_watchlist';
-  static const _ratingsKey = 'user_ratings';
-
   static final ValueNotifier<Set<String>> watchlist = ValueNotifier(<String>{});
   static final ValueNotifier<Map<String, TitleRating>> ratings = ValueNotifier(<String, TitleRating>{});
+  static bool _listening = false;
 
   static String _id(int tmdbId, MediaType type) => '${type.name}:$tmdbId';
 
@@ -52,27 +47,32 @@ class UserLibrary {
   }
 
   static Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    watchlist.value = {...(prefs.getStringList(_watchlistKey) ?? const <String>[])};
-    final raw = prefs.getString(_ratingsKey);
-    if (raw == null || raw.isEmpty) {
-      ratings.value = {};
-      return;
+    if (!_listening) {
+      _listening = true;
+      BackendApi.authState.addListener(() {
+        load();
+      });
     }
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    ratings.value = {
-      for (final entry in decoded.entries) entry.key: TitleRating.values.firstWhere((v) => v.name == entry.value, orElse: () => TitleRating.none),
-    };
-  }
 
-  static Future<void> _persistWatchlist() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_watchlistKey, watchlist.value.toList());
-  }
-
-  static Future<void> _persistRatings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_ratingsKey, jsonEncode({for (final e in ratings.value.entries) e.key: e.value.name}));
+    try {
+      final rows = await BackendApi.fetchLibrary();
+      final nextWatchlist = <String>{};
+      final nextRatings = <String, TitleRating>{};
+      for (final row in rows) {
+        final type = row['media_type'] == 'show' ? MediaType.show : MediaType.movie;
+        final tmdbId = (row['tmdb_id'] as num).toInt();
+        final key = _id(tmdbId, type);
+        if (row['watchlisted'] == true) nextWatchlist.add(key);
+        final ratingName = row['rating'] as String? ?? 'none';
+        final rating = TitleRating.values.firstWhere((v) => v.name == ratingName, orElse: () => TitleRating.none);
+        if (rating != TitleRating.none) nextRatings[key] = rating;
+      }
+      watchlist.value = nextWatchlist;
+      ratings.value = nextRatings;
+    } catch (_) {
+      watchlist.value = {};
+      ratings.value = {};
+    }
   }
 
   static bool isInWatchlist(int tmdbId, MediaType type) => watchlist.value.contains(_id(tmdbId, type));
@@ -102,7 +102,11 @@ class UserLibrary {
       next.remove(key);
     }
     watchlist.value = next;
-    await _persistWatchlist();
+    try {
+      await BackendApi.upsertLibrary(tmdbId: tmdbId, mediaType: type, watchlisted: adding);
+    } catch (_) {
+      await load();
+    }
     Misc.sendNotification(Text(adding ? 'Watchlist' : 'Removed'), Text(adding ? 'Saved${name != null ? ' $name' : ''}.' : 'Taken off your watchlist.'));
   }
 
@@ -115,7 +119,11 @@ class UserLibrary {
       TitleRating.love => TitleRating.none,
     };
     ratings.value = {...ratings.value, key: nextRating};
-    await _persistRatings();
+    try {
+      await BackendApi.upsertLibrary(tmdbId: tmdbId, mediaType: type, rating: nextRating.name);
+    } catch (_) {
+      await load();
+    }
     final label = switch (nextRating) {
       TitleRating.like => 'Liked',
       TitleRating.love => 'Loved',
