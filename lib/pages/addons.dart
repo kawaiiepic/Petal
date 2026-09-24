@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/misc.dart';
+import 'package:petal/api/query_proxy.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:http/http.dart' as http;
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -176,15 +176,18 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
 
   Future<void> initManifest() async {
     try {
-      final manifestRes = await http.get(Uri.parse(widget.manfiestUrl));
-      final manifest = jsonDecode(manifestRes.body);
+      final manifestRes = await BackendApi.dio.get(QueryProxy.wrap(widget.manfiestUrl));
+      final raw = manifestRes.data;
+      final manifest = raw is Map<String, dynamic>
+          ? raw
+          : raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : jsonDecode(raw as String) as Map<String, dynamic>;
 
       setState(() {
         name = manifest['name'];
         desc = manifest['description'];
         logo = manifest['logo'];
-        // configurable = manifest['behaviorHints']['configurable'];
-        // configurable = manifest['behaviorHints']['configurationRequired'];
       });
     } catch (e) {
       throw ("Manifest failed: $e");
