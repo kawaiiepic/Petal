@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:petal/api/api_cache.dart';
+import 'package:petal/api/query_proxy.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
@@ -41,7 +42,7 @@ class StreamApi {
 
       print(url);
 
-      final res = await BackendApi.dio.get(url).timeout(const Duration(seconds: 20));
+      final res = await BackendApi.dio.get(QueryProxy.wrap(url)).timeout(const Duration(seconds: 20));
 
       if (res.statusCode != 200) return [];
 
@@ -128,7 +129,7 @@ class StreamApi {
         attempted++;
 
         try {
-          final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
+          final res = await http.get(QueryProxy.wrapUri(url)).timeout(const Duration(seconds: 12));
           if (res.statusCode != 200) {
             failed++;
             continue;
@@ -154,7 +155,7 @@ class StreamApi {
   static Future<CatalogItem?> fetchCatalogItemById(String id, String type, {String baseUrl = 'https://v3-cinemeta.strem.io/meta'}) async {
     final url = '$baseUrl/$type/$id.json';
     try {
-      final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
+      final res = await http.get(QueryProxy.wrapUri(url)).timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return null;
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       return CatalogItem.fromJson(data['meta']);
