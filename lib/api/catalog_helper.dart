@@ -1,16 +1,23 @@
-import 'dart:async';
 import 'dart:convert';
+
 import 'package:petal/api/query_proxy.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/widgets/connection_error.dart';
-import 'package:http/http.dart' as http;
 
 class CatalogApi {
   static final Map<Uri, List<CatalogItem>> _cache = {};
 
   static void clearCache() {
     _cache.clear();
+  }
+
+  static Map<String, dynamic> _asMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    if (data is String) return jsonDecode(data) as Map<String, dynamic>;
+    throw const ConnectionException('Unexpected catalog response.');
   }
 
   static Future<List<CatalogItem>> fetchCatalogItems(Catalog catalog, {Map<String, String>? filters}) async {
@@ -20,13 +27,13 @@ class CatalogApi {
     }
 
     try {
-      final response = await http.get(QueryProxy.wrapUri(uri.toString())).timeout(const Duration(seconds: 12));
+      final response = await BackendApi.dio.get(QueryProxy.wrap(uri.toString()));
 
       if (response.statusCode != 200) {
         throw ConnectionException('Failed to fetch catalog (${response.statusCode}).');
       }
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = _asMap(response.data);
       final items = (data['metas'] as List).map((e) => CatalogItem.fromJson(e)).toList();
 
       _cache[uri] = items;
