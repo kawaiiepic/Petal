@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/stream_helper.dart';
 import 'package:petal/models/addon.dart';
-import 'package:petal/models/catalog_item.dart';
 import 'package:petal/router/router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -16,17 +15,11 @@ class Search extends StatefulWidget {
 
 class _SearchState extends State<Search> {
   final TextEditingController _textController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  final LayerLink _layerLink = LayerLink();
-
-  OverlayEntry? _overlayEntry;
   Timer? _debounce;
-  Timer? _hideTimer;
   int _requestId = 0;
 
   List<Addon>? _addons;
-  List<CatalogItem> _suggestions = [];
-  bool _loading = false;
+  List<String> _suggestions = [];
 
   @override
   void initState() {
@@ -35,30 +28,15 @@ class _SearchState extends State<Search> {
       if (!mounted) return;
       _addons = addons;
     });
-    _textController.addListener(_onQueryChanged);
-    _focusNode.addListener(() {
-      if (_focusNode.hasFocus) {
-        _hideTimer?.cancel();
-        if (_suggestions.isNotEmpty) _showSuggestions();
-      } else {
-        _hideTimer?.cancel();
-        _hideTimer = Timer(const Duration(milliseconds: 180), _hideSuggestions);
-      }
-    });
   }
 
-  void _onQueryChanged() {
+  void _onChanged(String value) {
     _debounce?.cancel();
-    final query = _textController.text.trim();
+    final query = value.trim();
     if (query.length < 2) {
-      _hideSuggestions();
-      setState(() {
-        _suggestions = [];
-        _loading = false;
-      });
+      setState(() => _suggestions = []);
       return;
     }
-
     _debounce = Timer(const Duration(milliseconds: 280), () {
       _fetchSuggestions(query);
     });
@@ -69,107 +47,52 @@ class _SearchState extends State<Search> {
     if (addons == null) return;
 
     final id = ++_requestId;
-    setState(() => _loading = true);
-    _showSuggestions();
-
     try {
       final raw = await StreamApi.searchCatalogItems(query, addons);
       if (!mounted || id != _requestId) return;
 
       final seen = <String>{};
-      final items = <CatalogItem>[];
+      final names = <String>[];
       for (final item in raw) {
         if (item.type != 'movie' && item.type != 'series') continue;
-        if (!seen.add('${item.type}:${item.id}')) continue;
-        items.add(item);
-        if (items.length >= 8) break;
+        if (item.name.trim().isEmpty) continue;
+        if (!seen.add(item.name.toLowerCase())) continue;
+        names.add(item.name);
+        if (names.length >= 8) break;
       }
 
-      setState(() {
-        _suggestions = items;
-        _loading = false;
-      });
-      _showSuggestions();
+      setState(() => _suggestions = names);
     } catch (_) {
       if (!mounted || id != _requestId) return;
-      setState(() => _loading = false);
-      _showSuggestions();
+      setState(() => _suggestions = []);
     }
-  }
-
-  void _showSuggestions() {
-    _overlayEntry?.remove();
-    if (_suggestions.isEmpty && !_loading) return;
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) {
-        return Positioned(
-          width: 320,
-          child: CompositedTransformFollower(
-            link: _layerLink,
-            showWhenUnlinked: false,
-            offset: const Offset(0, 44),
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 320, minWidth: 240),
-              decoration: BoxDecoration(
-                color: Theme.of(this.context).colorScheme.card,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Theme.of(this.context).colorScheme.border),
-              ),
-              child: _loading && _suggestions.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      shrinkWrap: true,
-                      itemCount: _suggestions.length,
-                      itemBuilder: (context, index) {
-                        final item = _suggestions[index];
-                        return Button.ghost(
-                          alignment: Alignment.centerLeft,
-                          leading: Icon(item.type == 'movie' ? LucideIcons.ticket : LucideIcons.tv),
-                          onPressed: () => _openResults(item.name),
-                          child: Text(
-                            item.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ),
-        );
-      },
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _hideSuggestions() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
   }
 
   void _openResults([String? query]) {
     final q = (query ?? _textController.text).trim();
     if (q.isEmpty) return;
-    _hideTimer?.cancel();
-    _hideSuggestions();
-    _focusNode.unfocus();
     AppRouter.appRouter.push('/search?q=${Uri.encodeQueryComponent(q)}');
   }
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
+    return AutoComplete(
+      suggestions: _suggestions,
+      mode: AutoCompleteMode.replaceAll,
+      popoverConstraints: const BoxConstraints(maxHeight: 280, maxWidth: 420),
+      popoverWidthConstraint: PopoverConstraint.anchorFixedSize,
+      popoverAnchorAlignment: AlignmentDirectional.bottomStart,
+      popoverAlignment: AlignmentDirectional.topStart,
+      completer: (suggestion) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _openResults(suggestion);
+        });
+        return suggestion;
+      },
       child: TextField(
         controller: _textController,
-        focusNode: _focusNode,
         placeholder: const Text('Search TV Shows, Movies & more...'),
+        onChanged: _onChanged,
         onSubmitted: (_) => _openResults(),
         features: [
           const InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
@@ -187,10 +110,7 @@ class _SearchState extends State<Search> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _hideTimer?.cancel();
-    _hideSuggestions();
     _textController.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 }
