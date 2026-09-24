@@ -80,9 +80,11 @@ class _SearchState extends State<Search> {
       suggestions: _suggestions,
       mode: AutoCompleteMode.replaceAll,
       popoverConstraints: const BoxConstraints(maxHeight: 280, maxWidth: 420),
-      popoverWidthConstraint: PopoverConstraint.anchorFixedSize,
-      popoverAnchorAlignment: AlignmentDirectional.bottomStart,
-      popoverAlignment: AlignmentDirectional.topStart,
+      overlayConfiguration: const PopoverConfiguration(
+        alignment: AlignmentDirectional.topStart,
+        anchorAlignment: AlignmentDirectional.bottomStart,
+        widthConstraint: PopoverConstraint.anchorFixedSize,
+      ),
       completer: (suggestion) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _openResults(suggestion);
