@@ -71,9 +71,8 @@ class Api {
 
   static List<Catalog> generateCatalogs(Addon addon) {
     final List<Catalog> catalogs = [];
-    final manifest = addon.manifest!;
-
-    if (manifest['catalogs'] == null) return catalogs;
+    final manifest = addon.manifest;
+    if (manifest == null || manifest['catalogs'] == null) return catalogs;
 
     final baseUrl = addon.id == 'com.linvo.cinemeta' ? 'https://cinemeta-catalogs.strem.io' : addon.baseUrl;
 

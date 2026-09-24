@@ -55,11 +55,20 @@ class _PetalState extends State<PetalApp> {
           routerConfig: AppRouter.appRouter,
           builder: (context, child) => DrawerOverlay(child: child!),
           debugShowCheckedModeBanner: false,
+          scaling: AdaptiveScaling.mobile,
           themeMode: mode,
-          theme: ThemeData(colorScheme: ColorSchemes.lightGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12),
-          darkTheme: ThemeData(colorScheme: ColorSchemes.darkGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12),
+          theme: _theme(ColorSchemes.lightGray.pink),
+          darkTheme: _theme(ColorSchemes.darkGray.pink),
         ),
       ),
     );
   }
+}
+
+/// Solid surfaces, and desktop popup placement.
+///
+/// Phone menus otherwise become full-screen sheets. With a frosted surface
+/// those sheets cover the app as a blank grey page.
+ThemeData _theme(ColorScheme scheme) {
+  return ThemeData(colorScheme: scheme, radius: 0.75, surfaceOpacity: 1, surfaceBlur: 0).copyWith(platform: () => TargetPlatform.linux);
 }

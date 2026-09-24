@@ -1,8 +1,10 @@
 import 'package:petal/api/api_cache.dart';
+import 'package:petal/models/addon.dart';
+import 'package:petal/models/catalog.dart';
+import 'package:petal/models/catalog_item.dart';
 import 'package:petal/widgets/catalog/catalog_row.dart';
 import 'package:petal/widgets/trakt/trakt_next_up.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class CatalogWidget extends StatefulWidget {
   const CatalogWidget({super.key});
@@ -12,42 +14,89 @@ class CatalogWidget extends StatefulWidget {
 }
 
 class _CatalogWidget extends State<CatalogWidget> {
+  late Future<List<Catalog>> _catalogs;
+
+  @override
+  void initState() {
+    super.initState();
+    _catalogs = _loadCatalogs();
+  }
+
+  Future<List<Catalog>> _loadCatalogs() async {
+    final addons = await ApiCache.getAddons();
+    final catalogs = <Catalog>[];
+    for (final addon in addons) {
+      if (!addon.enabledResources.contains('catalog')) continue;
+      catalogs.addAll(await _catalogsFor(addon));
+    }
+    return catalogs;
+  }
+
+  Future<List<Catalog>> _catalogsFor(Addon addon) async {
+    try {
+      if (addon.manifest == null) await addon.fetchManifest();
+      if (addon.manifest == null) return const [];
+      return ApiCache.getCatalogs(addon);
+    } catch (_) {
+      return const [];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      slivers: [
-        SliverToBoxAdapter(
-          child: Column(children: const [TraktNextUp(key: ValueKey("traktNextUp"))]),
-        ),
+    return FutureBuilder<List<Catalog>>(
+      future: _catalogs,
+      builder: (context, snapshot) {
+        final catalogs = snapshot.data ?? const <Catalog>[];
+        final loading = snapshot.connectionState != ConnectionState.done;
 
-        FutureBuilder(
-          future: ApiCache.getAddons(),
-          builder: (context, addonsSnapshot) {
-            final addons = addonsSnapshot.data?.where((addon) => addon.enabledResources.contains("catalog"));
+        return CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            const SliverToBoxAdapter(child: TraktNextUp(key: ValueKey('traktNextUp'))),
+            if (loading && catalogs.isEmpty)
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => const CatalogRow(catalog: null, catalogItems: null),
+                  childCount: 3,
+                ),
+              )
+            else if (!loading && catalogs.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('No shows to browse yet. Add a catalog addon to fill this page.'),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return _CatalogSection(catalog: catalogs[index]);
+                }, childCount: catalogs.length),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          ],
+        );
+      },
+    );
+  }
+}
 
-            final catalogs = addons?.expand((addon) => ApiCache.getCatalogs(addon)).toList();
+class _CatalogSection extends StatelessWidget {
+  final Catalog catalog;
 
-            return SliverFixedExtentList(
-              itemExtent: Device.screenType == ScreenType.desktop ? 25.h : 28.h,
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final catalog = catalogs?[index];
+  const _CatalogSection({required this.catalog});
 
-                if (addonsSnapshot.hasData) {
-                  return FutureBuilder(
-                    future: ApiCache.getCatalogItems(catalog!),
-                    builder: (context, snapshot) {
-                      return CatalogRow(key: ValueKey(catalog.id), catalog: catalog, catalogItems: snapshot.data).asSkeleton(snapshot: snapshot);
-                    },
-                  );
-                } else {
-                  return const CatalogRow(catalog: null, catalogItems: null).asSkeleton(snapshot: addonsSnapshot);
-                }
-              }, childCount: addonsSnapshot.hasData ? catalogs?.length : 4),
-            );
-          },
-        ),
-      ],
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<CatalogItem>>(
+      future: ApiCache.getCatalogItems(catalog),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return CatalogRow(catalog: catalog, catalogItems: const []);
+        }
+        return CatalogRow(key: ValueKey('${catalog.id}-${catalog.type}'), catalog: catalog, catalogItems: snapshot.data);
+      },
     );
   }
 }
