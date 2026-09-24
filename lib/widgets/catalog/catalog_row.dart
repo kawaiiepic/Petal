@@ -16,8 +16,11 @@ class CatalogRow extends StatefulWidget {
   State<StatefulWidget> createState() => _CatalogRowState();
 }
 
-class _CatalogRowState extends State<CatalogRow> {
+class _CatalogRowState extends State<CatalogRow> with AutomaticKeepAliveClientMixin {
   late final ScrollController _controller;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -33,6 +36,7 @@ class _CatalogRowState extends State<CatalogRow> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final Catalog? catalog = widget.catalog;
     final List<CatalogItem>? catalogItems = widget.catalogItems?.toList();
     final style = TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp);
@@ -61,10 +65,12 @@ class _CatalogRowState extends State<CatalogRow> {
             child: ListView.builder(
               controller: _controller,
               scrollDirection: Axis.horizontal,
-              cacheExtent: 1200,
+              cacheExtent: 2000,
+              addAutomaticKeepAlives: true,
               itemCount: count,
               itemBuilder: (context, index) {
-                return CatalogItemWidget(catalogItem: catalogItems?[index]);
+                final item = catalogItems?[index];
+                return CatalogItemWidget(key: ValueKey(item?.id ?? 'skeleton-$index'), catalogItem: item);
               },
             ),
           ),
