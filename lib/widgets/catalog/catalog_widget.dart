@@ -3,6 +3,7 @@ import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/widgets/catalog/catalog_row.dart';
+import 'package:petal/widgets/connection_error.dart';
 import 'package:petal/widgets/trakt/trakt_next_up.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -22,24 +23,41 @@ class _CatalogWidget extends State<CatalogWidget> {
     _catalogs = _loadCatalogs();
   }
 
+  void _reload() {
+    setState(() {
+      _catalogs = _loadCatalogs();
+    });
+  }
+
   Future<List<Catalog>> _loadCatalogs() async {
     final addons = await ApiCache.getAddons();
     final catalogs = <Catalog>[];
+    var catalogAddons = 0;
+    var failedAddons = 0;
+
     for (final addon in addons) {
       if (!addon.enabledResources.contains('catalog')) continue;
-      catalogs.addAll(await _catalogsFor(addon));
+      catalogAddons++;
+      try {
+        catalogs.addAll(await _catalogsFor(addon));
+      } catch (_) {
+        failedAddons++;
+      }
     }
+
+    if (catalogs.isEmpty && catalogAddons > 0 && failedAddons == catalogAddons) {
+      throw const ConnectionException('Could not load catalogs.');
+    }
+
     return catalogs;
   }
 
   Future<List<Catalog>> _catalogsFor(Addon addon) async {
-    try {
-      if (addon.manifest == null) await addon.fetchManifest();
-      if (addon.manifest == null) return const [];
-      return ApiCache.getCatalogs(addon);
-    } catch (_) {
-      return const [];
+    if (addon.manifest == null) await addon.fetchManifest();
+    if (addon.manifest == null) {
+      throw const ConnectionException('Addon manifest unavailable.');
     }
+    return ApiCache.getCatalogs(addon);
   }
 
   @override
@@ -47,6 +65,10 @@ class _CatalogWidget extends State<CatalogWidget> {
     return FutureBuilder<List<Catalog>>(
       future: _catalogs,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return ConnectionErrorView(error: snapshot.error, onRetry: _reload);
+        }
+
         final catalogs = snapshot.data ?? const <Catalog>[];
         final loading = snapshot.connectionState != ConnectionState.done;
 
@@ -93,7 +115,13 @@ class _CatalogSection extends StatelessWidget {
       future: ApiCache.getCatalogItems(catalog),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return CatalogRow(catalog: catalog, catalogItems: const []);
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: ConnectionErrorView(
+              error: snapshot.error,
+              title: "Couldn't load ${catalog.name}",
+            ),
+          );
         }
         return CatalogRow(key: ValueKey('${catalog.id}-${catalog.type}'), catalog: catalog, catalogItems: snapshot.data);
       },
