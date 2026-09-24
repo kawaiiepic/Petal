@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/discord.dart';
+import 'package:petal/api/query_proxy.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/router/router.dart';
 import 'package:go_router/go_router.dart';
@@ -12,8 +13,8 @@ import 'package:window_manager/window_manager.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppTheme.load();
+  await QueryProxy.load();
 
-  // Initialize media_kit backend
   MediaKit.ensureInitialized();
   Discord.init();
 
@@ -26,7 +27,7 @@ void main() async {
 class PetalApp extends StatefulWidget {
   const PetalApp({super.key});
 
-  static final rootNavigatorKey = GlobalKey<NavigatorState>(); // ← root
+  static final rootNavigatorKey = GlobalKey<NavigatorState>();
   static final shellNavigatorKey = GlobalKey<NavigatorState>();
   static final drawerNavigatorKey = GlobalKey<NavigatorState>();
   static final GlobalKey<RefreshTriggerState> refreshTriggerKey = GlobalKey<RefreshTriggerState>();
@@ -43,7 +44,7 @@ class _PetalState extends State<PetalApp> {
     Api.initApi();
   }
 
-  @override // ThemeData(colorScheme: ColorSchemes.darkGray.pink, radius: 0.75, surfaceOpacity: 0.7, surfaceBlur: 12)
+  @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
@@ -65,10 +66,6 @@ class _PetalState extends State<PetalApp> {
   }
 }
 
-/// Solid surfaces, and desktop popup placement.
-///
-/// Phone menus otherwise become full-screen sheets. With a frosted surface
-/// those sheets cover the app as a blank grey page.
 ThemeData _theme(ColorScheme scheme) {
   return ThemeData(colorScheme: scheme, radius: 0.75, surfaceOpacity: 1, surfaceBlur: 0).copyWith(platform: () => TargetPlatform.linux);
 }
