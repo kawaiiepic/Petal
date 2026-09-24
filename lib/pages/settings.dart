@@ -1,10 +1,11 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:petal/api/query_proxy.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/git_stamp/git_stamp.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -41,16 +42,16 @@ class _SettingsState extends State<Settings> {
 
   String selectedPlayer = "Disabled";
   late final Future<PackageInfo> _packageInfo;
-  late final Future<Response> _contributors;
-  late final Future<Response> _latestRemoteCommit;
+  late final Future<Response<dynamic>> _contributors;
+  late final Future<Response<dynamic>> _latestRemoteCommit;
   late final TextEditingController _proxyUrlController;
 
   @override
   void initState() {
     super.initState();
     _packageInfo = PackageInfo.fromPlatform();
-    _contributors = get(Uri.parse('https://api.github.com/repos/kawaiiepic/Petal/contributors'));
-    _latestRemoteCommit = get(Uri.parse('https://github.com/kawaiiepic/Petal/commits'.replaceFirst('https://github.com/kawaiiepic/Petal/commits', 'https://api.github.com/repos/kawaiiepic/Petal/commits/${GitStamp.buildBranch}')));
+    _contributors = BackendApi.dio.get('https://api.github.com/repos/kawaiiepic/Petal/contributors');
+    _latestRemoteCommit = BackendApi.dio.get('https://api.github.com/repos/kawaiiepic/Petal/commits/${GitStamp.buildBranch}');
     _proxyUrlController = TextEditingController(text: QueryProxy.url.value);
     QueryProxy.url.addListener(_syncProxyField);
     _loadSelectedPlayer();
@@ -60,6 +61,19 @@ class _SettingsState extends State<Settings> {
     if (_proxyUrlController.text != QueryProxy.url.value) {
       _proxyUrlController.text = QueryProxy.url.value;
     }
+  }
+
+  List<dynamic> _asList(dynamic data) {
+    if (data is List) return data;
+    if (data is String) return jsonDecode(data) as List<dynamic>;
+    return const [];
+  }
+
+  Map<String, dynamic> _asMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    if (data is String) return jsonDecode(data) as Map<String, dynamic>;
+    return <String, dynamic>{};
   }
 
   Future<void> _loadSelectedPlayer() async {
@@ -136,7 +150,7 @@ class _SettingsState extends State<Settings> {
                           children: [
                             Text("App: ${data.appName}"),
                             Text("Version: ${data.version}+${data.buildNumber}"),
-                            FutureBuilder<Response>(
+                            FutureBuilder<Response<dynamic>>(
                               future: _contributors,
                               builder: (context, snapshot) {
                                 if (snapshot.hasError) {
@@ -151,7 +165,7 @@ class _SettingsState extends State<Settings> {
                                   return const Text("Couldn't load contributors");
                                 }
 
-                                final List<dynamic> contributorsJson = jsonDecode(response.body);
+                                final List<dynamic> contributorsJson = _asList(response.data);
 
                                 final List<Widget> contributorChips = contributorsJson
                                     .map(
@@ -183,7 +197,7 @@ class _SettingsState extends State<Settings> {
                                 );
                               },
                             ),
-                            FutureBuilder<Response>(
+                            FutureBuilder<Response<dynamic>>(
                               future: _latestRemoteCommit,
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState != ConnectionState.done) {
@@ -193,8 +207,8 @@ class _SettingsState extends State<Settings> {
                                   return const Text("Couldn't check latest commit");
                                 }
 
-                                final Map<String, dynamic> data = jsonDecode(snapshot.data!.body);
-                                final String latestSha = data['sha'] as String;
+                                final Map<String, dynamic> commit = _asMap(snapshot.data!.data);
+                                final String latestSha = commit['sha'] as String;
                                 final bool isUpToDate = latestSha == GitStamp.latestCommit?.hash;
 
                                 return Button.link(
