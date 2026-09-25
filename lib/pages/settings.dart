@@ -8,6 +8,7 @@ import 'package:petal/api/query_proxy.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/git_stamp/git_stamp.dart';
 import 'package:petal/widgets/back_button.dart';
+import 'package:petal/widgets/library_import_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -335,6 +336,8 @@ class _SettingsState extends State<Settings> {
                 ),
               ),
             ),
+
+            const LibraryImportCard(),
 
             Divider(),
 
