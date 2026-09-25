@@ -55,7 +55,7 @@ class _CatalogRowState extends State<CatalogRow> with AutomaticKeepAliveClientMi
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
                 children: [
-                  Expanded(child: Text(title, style: style, textAlign: TextAlign.center)),
+                  Expanded(child: Text(title, style: style, textAlign: TextAlign.left)),
                   Icon(_open ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 16),
                 ],
               ),

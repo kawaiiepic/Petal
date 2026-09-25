@@ -1,5 +1,5 @@
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
-import 'package:petal/models/media_state.dart';
 import 'package:petal/widgets/home_section.dart';
 import 'package:petal/widgets/scrollable_widget.dart';
 import 'package:petal/widgets/trakt/trakt_next_up.dart';
@@ -20,6 +20,9 @@ class _InProgressShelfState extends State<InProgressShelf> {
   void initState() {
     super.initState();
     _controller = ScrollController();
+    if (BackendApi.authState.selectedProfile != null) {
+      BackendCache.fetchContinueWatching();
+    }
   }
 
   @override
@@ -28,22 +31,12 @@ class _InProgressShelfState extends State<InProgressShelf> {
     super.dispose();
   }
 
-  bool _started(ContinueWatchingItem item) {
-    if (item is MovieItem) return item.completion > 0 && item.completion < 1;
-    if (item is ShowItem) {
-      final next = item.nextEpisode;
-      return next != null && next.completion > 0 && next.completion < 1;
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: BackendCache.continueWatching,
       builder: (context, list, _) {
-        final visible = list.where(_started).toList();
-        if (visible.isEmpty) return const SizedBox.shrink();
+        if (list.isEmpty) return const SizedBox.shrink();
         return HomeSection(
           title: 'Continue Watching',
           child: SizedBox(
@@ -53,9 +46,9 @@ class _InProgressShelfState extends State<InProgressShelf> {
               child: ListView.builder(
                 controller: _controller,
                 scrollDirection: Axis.horizontal,
-                itemCount: visible.length,
+                itemCount: list.length,
                 itemBuilder: (context, index) {
-                  final state = visible[index];
+                  final state = list[index];
                   return SizedBox(
                     width: 55.w,
                     child: TraktNextUpItem(key: ValueKey('${state.mediaType}-${state.tmdbId}'), state: state),

@@ -16,6 +16,7 @@ class LibraryActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       spacing: 8,
       children: [
         ValueListenableBuilder(
@@ -70,6 +71,53 @@ class LibraryActions extends StatelessWidget {
   }
 }
 
+class OverviewHeroActions extends StatelessWidget {
+  final Widget play;
+  final VoidCallback? onTrailer;
+  final int? tmdbId;
+  final MediaType mediaType;
+  final TmdbShow? show;
+  final String? title;
+
+  const OverviewHeroActions({
+    super.key,
+    required this.play,
+    required this.mediaType,
+    this.onTrailer,
+    this.tmdbId,
+    this.show,
+    this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: 20,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          spacing: 8,
+          children: [
+            play,
+            if (onTrailer != null)
+              Button(
+                onPressed: onTrailer,
+                style: const ButtonStyle.outline().withBorderRadius(
+                  borderRadius: BorderRadius.circular(16),
+                  hoverBorderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(LucideIcons.video, size: 18),
+              ),
+            if (tmdbId != null) LibraryActions(tmdbId: tmdbId!, mediaType: mediaType, show: show, title: title),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RoundAction extends StatelessWidget {
   final IconData icon;
   final bool active;
@@ -85,7 +133,7 @@ class _RoundAction extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         hoverBorderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(icon),
+      child: Icon(icon, size: 18),
     );
   }
 }
