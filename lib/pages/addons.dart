@@ -32,6 +32,13 @@ class _AddonsState extends State<Addons> {
     });
   }
 
+  Widget _sectionTitle(String title) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+
   Widget addonsWidget() => FutureBuilder(
     future: _addonsFuture,
     builder: (context, snapshot) {
@@ -48,7 +55,10 @@ class _AddonsState extends State<Addons> {
         }
 
         if (addons.isEmpty) {
-          return Center(child: Text('No addons found'));
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: Text('No addons found', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+          );
         } else {
           return SortableLayer(
             child: SortableDropFallback(
@@ -56,16 +66,12 @@ class _AddonsState extends State<Addons> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 spacing: 8,
                 children: [
-                  Text('Installed Widgets'),
-                  Accordion(
-                    items: [
-                      for (int i = 0; i < addons.length; i++)
-                        Sortable(
-                          data: SortableData(addons[i]),
-                          child: AddonTile(key: ValueKey(addons[i].id), addon: addons[i], onRemove: () => removeAddon(addons[i]), isDragging: false),
-                        ),
-                    ],
-                  ),
+                  _sectionTitle('Installed widgets'),
+                  for (int i = 0; i < addons.length; i++)
+                    Sortable(
+                      data: SortableData(addons[i]),
+                      child: AddonTile(key: ValueKey(addons[i].id), addon: addons[i], onRemove: () => removeAddon(addons[i])),
+                    ),
                 ],
               ),
             ),
@@ -79,18 +85,19 @@ class _AddonsState extends State<Addons> {
   Widget build(BuildContext context) {
     return Scaffold(
       headers: [
-        AppBar(title: const Text("Addons"), leading: [BackButton()]),
+        AppBar(title: const Text('Addons'), leading: [BackButton()]),
       ],
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          spacing: 30,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 24,
           children: [
             Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: 8,
               children: [
-                Text('Addon URL'),
+                _sectionTitle('Addon URL'),
                 TextField(
                   controller: _textController,
                   hintText: 'https://example.com (full manifest url)',
@@ -130,14 +137,15 @@ class _AddonsState extends State<Addons> {
                     ),
                   ],
                 ),
-                Text('Note: Addon support is very much in alpha'),
+                Text('Note: Addon support is very much in alpha', style: TextStyle(fontSize: Misc.smallSize, color: Colors.white.withValues(alpha: 0.6))),
               ],
             ),
             addonsWidget(),
             Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: 8,
               children: [
-                Text('Recommended Widgets'),
+                _sectionTitle('Recommended widgets'),
                 RecommendAddonTile(manfiestUrl: 'https://v3-cinemeta.strem.io/manifest.json', requireConfig: false, onAdded: _reloadAddons),
                 RecommendAddonTile(manfiestUrl: 'https://comet.elfhosted.com/manifest.json', requireConfig: true, onAdded: _reloadAddons),
               ],
@@ -145,6 +153,67 @@ class _AddonsState extends State<Addons> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AddonLogo extends StatelessWidget {
+  final String? logo;
+
+  const _AddonLogo({this.logo});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: CachedNetworkImage(
+        imageUrl: logo ?? '',
+        imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
+        progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+        errorWidget: (context, url, error) => Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.gray),
+          child: const Icon(LucideIcons.puzzle),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddonHeader extends StatelessWidget {
+  final String name;
+  final String desc;
+  final String? logo;
+  final List<Widget> actions;
+
+  const _AddonHeader({required this.name, required this.desc, this.logo, required this.actions});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _AddonLogo(logo: logo),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name.isEmpty ? 'Loading...' : name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (desc.isNotEmpty)
+                Text(
+                  desc,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: Misc.smallSize, color: Colors.white.withValues(alpha: 0.65)),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Row(mainAxisSize: MainAxisSize.min, children: actions),
+      ],
     );
   }
 }
@@ -164,13 +233,10 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
   String name = '';
   String desc = '';
   String? logo;
-  bool configurable = false;
-  bool mustConfigure = false;
 
   @override
   void initState() {
     super.initState();
-
     initManifest();
   }
 
@@ -185,53 +251,40 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
           : jsonDecode(raw as String) as Map<String, dynamic>;
 
       setState(() {
-        name = manifest['name'];
-        desc = manifest['description'];
-        logo = manifest['logo'];
+        name = manifest['name']?.toString() ?? '';
+        desc = manifest['description']?.toString() ?? '';
+        logo = manifest['logo']?.toString();
       });
     } catch (e) {
-      throw ("Manifest failed: $e");
+      throw ('Manifest failed: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Row(
-        spacing: 8,
-        children: [
-          CachedNetworkImage(
-            imageUrl: logo ?? '',
-            imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
-            progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
-            errorWidget: (context, url, error) => Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.gray),
-              child: Icon(LucideIcons.puzzle),
-            ),
-          ),
-
-          Text(name),
-          Text(desc, style: TextStyle(fontSize: Misc.smallSize)),
-
-          Row(
-            children: [
-              IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(LucideIcons.share)),
-
-              if (widget.requireConfig)
-                IconButton(variance: ButtonVariance.text, onPressed: () {}, icon: const Icon(LucideIcons.settings2))
-              else
-                IconButton(
-                  variance: ButtonVariance.text,
-                  onPressed: () async {
-                    await BackendApi.addUserAddon(widget.manfiestUrl, false);
-                    widget.onAdded();
-                  },
-                  icon: const Icon(LucideIcons.plus),
-                ),
-            ],
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: _AddonHeader(
+          name: name,
+          desc: desc,
+          logo: logo,
+          actions: [
+            IconButton(variance: ButtonVariance.text, density: ButtonDensity.iconDense, onPressed: () {}, icon: const Icon(LucideIcons.share)),
+            if (widget.requireConfig)
+              IconButton(variance: ButtonVariance.text, density: ButtonDensity.iconDense, onPressed: () {}, icon: const Icon(LucideIcons.settings2))
+            else
+              IconButton(
+                variance: ButtonVariance.text,
+                density: ButtonDensity.iconDense,
+                onPressed: () async {
+                  await BackendApi.addUserAddon(widget.manfiestUrl, false);
+                  widget.onAdded();
+                },
+                icon: const Icon(LucideIcons.plus),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -240,9 +293,8 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
 class AddonTile extends StatefulWidget {
   final Addon addon;
   final VoidCallback onRemove;
-  final bool isDragging;
 
-  const AddonTile({super.key, required this.addon, required this.onRemove, this.isDragging = true});
+  const AddonTile({super.key, required this.addon, required this.onRemove});
 
   @override
   State<AddonTile> createState() => _AddonTileState();
@@ -252,6 +304,7 @@ class _AddonTileState extends State<AddonTile> {
   String name = '';
   String desc = '';
   String? logo;
+  bool _open = false;
 
   @override
   void initState() {
@@ -261,45 +314,45 @@ class _AddonTileState extends State<AddonTile> {
 
   Future<void> initManifest() async {
     setState(() {
-      name = widget.addon.manifest?["name"];
-      desc = widget.addon.manifest?['description'];
-      logo = widget.addon.manifest?['logo'];
+      name = widget.addon.manifest?['name']?.toString() ?? '';
+      desc = widget.addon.manifest?['description']?.toString() ?? '';
+      logo = widget.addon.manifest?['logo']?.toString();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AccordionItem(
-      trigger: AccordionTrigger(
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 8,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 10,
           children: [
-            Row(
-              spacing: 8,
-              children: [
-                CachedNetworkImage(
-                  imageUrl: logo ?? '',
-                  imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
-                  progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
-                  errorWidget: (context, url, error) => Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.gray),
-                    child: Icon(LucideIcons.puzzle),
+            GestureDetector(
+              onTap: () => setState(() => _open = !_open),
+              child: _AddonHeader(
+                name: name,
+                desc: desc,
+                logo: logo,
+                actions: [
+                  IconButton(
+                    variance: ButtonVariance.text,
+                    density: ButtonDensity.iconDense,
+                    onPressed: () => setState(() => _open = !_open),
+                    icon: Icon(_open ? LucideIcons.chevronUp : LucideIcons.chevronDown),
                   ),
-                ),
-                Text(name),
-                Text(desc, style: TextStyle(fontSize: Misc.smallSize)),
-                widget.addon.forced == 1
-                    ? IconButton(variance: ButtonVariance.text, onPressed: null, icon: const Icon(LucideIcons.lock))
-                    : IconButton(variance: ButtonVariance.text, onPressed: widget.onRemove, icon: const Icon(LucideIcons.circleX)),
-              ],
+                  widget.addon.forced == 1
+                      ? IconButton(variance: ButtonVariance.text, density: ButtonDensity.iconDense, onPressed: null, icon: const Icon(LucideIcons.lock))
+                      : IconButton(variance: ButtonVariance.text, density: ButtonDensity.iconDense, onPressed: widget.onRemove, icon: const Icon(LucideIcons.circleX)),
+                ],
+              ),
             ),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: widget.addon.resources.map((resource) {
                 final enabled = widget.addon.enabledResources.contains(resource.name);
-
                 return Toggle(
                   value: !enabled,
                   child: Text(resource.name[0].toUpperCase() + resource.name.substring(1)),
@@ -318,28 +371,26 @@ class _AddonTileState extends State<AddonTile> {
                 );
               }).toList(),
             ),
+            if (_open)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 8,
+                children: [
+                  Text(
+                    widget.addon.manifestUrl,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(decoration: TextDecoration.underline, decorationStyle: TextDecorationStyle.dotted),
+                  ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 240),
+                    child: SingleChildScrollView(
+                      child: SelectableText(const JsonEncoder.withIndent(' ').convert(widget.addon.manifest), textScaler: const TextScaler.linear(1)),
+                    ),
+                  ),
+                ],
+              ),
           ],
-        ),
-      ),
-      content: SizedBox(
-        height: 300,
-        width: double.infinity,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 8,
-              children: [
-                Text(
-                  widget.addon.manifestUrl,
-                  maxLines: 1,
-                  style: TextStyle(decoration: TextDecoration.underline, decorationStyle: TextDecorationStyle.dotted),
-                ),
-                Container(child: SelectableText(JsonEncoder.withIndent(' ').convert(widget.addon.manifest), textScaler: TextScaler.linear(1))),
-              ],
-            ),
-          ),
         ),
       ),
     );
