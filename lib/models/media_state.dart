@@ -1,5 +1,23 @@
 import 'package:petal/models/trakt/enum/media_type.dart';
 
+DateTime? _fromUnix(num? raw) {
+  final value = raw?.toInt();
+  if (value == null || value == 0) return null;
+  return DateTime.fromMillisecondsSinceEpoch(value * 1000);
+}
+
+List<DateTime> _watchesFrom(dynamic raw, DateTime? fallback) {
+  final out = <DateTime>[];
+  if (raw is List) {
+    for (final item in raw) {
+      final date = _fromUnix(item as num?);
+      if (date != null) out.add(date);
+    }
+  }
+  if (out.isEmpty && fallback != null) out.add(fallback);
+  return out;
+}
+
 class NextEpisode {
   final int season;
   final int episode;
@@ -87,17 +105,27 @@ class EpisodeProgress {
   final double completion;
   final DateTime? watchedAt;
   final int plays;
+  final List<DateTime> watches;
 
-  EpisodeProgress({required this.season, required this.episode, required this.completion, this.watchedAt, this.plays = 0});
+  EpisodeProgress({
+    required this.season,
+    required this.episode,
+    required this.completion,
+    this.watchedAt,
+    this.plays = 0,
+    this.watches = const [],
+  });
 
   factory EpisodeProgress.fromJson(Map<String, dynamic> json) {
-    final watchedRaw = (json['watched_at'] as num?)?.toInt();
+    final watchedAt = _fromUnix(json['watched_at'] as num?);
+    final watches = _watchesFrom(json['watches'], watchedAt);
     return EpisodeProgress(
       season: (json['season'] as num?)?.toInt() ?? 0,
       episode: (json['episode'] as num?)?.toInt() ?? 0,
       completion: (json['completion'] as num?)?.toDouble() ?? 0.0,
-      watchedAt: watchedRaw == null || watchedRaw == 0 ? null : DateTime.fromMillisecondsSinceEpoch(watchedRaw * 1000),
-      plays: (json['plays'] as num?)?.toInt() ?? 0,
+      watchedAt: watches.isNotEmpty ? watches.last : watchedAt,
+      plays: (json['plays'] as num?)?.toInt() ?? watches.length,
+      watches: watches,
     );
   }
 }
@@ -109,6 +137,7 @@ class WatchHistoryItem {
   final DateTime updatedAt;
   final DateTime? watchedAt;
   final int plays;
+  final List<DateTime> watches;
   final List<EpisodeProgress> episodes;
 
   WatchHistoryItem({
@@ -118,15 +147,16 @@ class WatchHistoryItem {
     required this.updatedAt,
     this.watchedAt,
     this.plays = 0,
+    this.watches = const [],
     this.episodes = const [],
   });
 
   factory WatchHistoryItem.fromJson(Map<String, dynamic> json) {
     final typeStr = json['media_type'] as String? ?? '';
     final mediaType = typeStr == 'movie' ? MediaType.movie : MediaType.show;
-    final updatedRaw = (json['updated_at'] as num?)?.toInt() ?? 0;
-    final watchedRaw = (json['watched_at'] as num?)?.toInt();
-
+    final updatedAt = _fromUnix(json['updated_at'] as num?) ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final watchedAt = _fromUnix(json['watched_at'] as num?);
+    final watches = _watchesFrom(json['watches'], watchedAt);
     final episodes = (json['episodes'] as List<dynamic>? ?? []).map((e) => EpisodeProgress.fromJson(e as Map<String, dynamic>)).toList();
 
     final completion = mediaType == MediaType.movie
@@ -137,9 +167,10 @@ class WatchHistoryItem {
       tmdbId: (json['tmdb_id'] as num).toInt(),
       mediaType: mediaType,
       completion: completion,
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedRaw * 1000),
-      watchedAt: watchedRaw == null || watchedRaw == 0 ? null : DateTime.fromMillisecondsSinceEpoch(watchedRaw * 1000),
-      plays: (json['plays'] as num?)?.toInt() ?? 0,
+      updatedAt: updatedAt,
+      watchedAt: watches.isNotEmpty ? watches.last : watchedAt,
+      plays: (json['plays'] as num?)?.toInt() ?? watches.length,
+      watches: watches,
       episodes: episodes,
     );
   }
