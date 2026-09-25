@@ -8,6 +8,7 @@ import 'package:petal/models/media_state.dart';
 import 'package:petal/router/router.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
 import 'package:petal/widgets/scrollable_widget.dart';
+import 'package:petal/widgets/watch_meta_overlay.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:sizer/sizer.dart';
@@ -234,34 +235,53 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
                 image: snapshot.hasData
                     ? CachedNetworkImage(imageUrl: snapshot.data!.stillUrl ?? '', fit: BoxFit.fitHeight, height: 20)
                     : Avatar(initials: '', borderRadius: 12).asSkeleton(),
-                extraWidget: next != null && next.completion > 0.0 && next.completion < 1.0
-                    ? Positioned(
-                        bottom: 8,
-                        left: 8,
-                        right: 8,
-                        child: SizedBox(
-                          child: LinearProgressIndicator(value: next.completion, minHeight: 5, borderRadius: BorderRadius.circular(8)),
+                extraWidget: Positioned(
+                  left: 8,
+                  right: 8,
+                  bottom: 8,
+                  child: FutureBuilder<TmdbShow>(
+                    future: _futureShow,
+                    builder: (context, showSnap) {
+                      final episode = snapshot.data;
+                      final show = showSnap.data;
+                      final runtime = WatchMeta.episodeMinutes(show, episodeRuntime: episode?.runtime);
+                      final aired = show == null ? 0 : WatchMeta.airedEpisodes(show);
+                      final watched = WatchMeta.watchedEpisodesFromShow(state);
+                      final left = aired > 0 ? (aired - watched).clamp(0, aired) : 0;
+                      return WatchMetaOverlay(
+                        durationLabel: WatchMeta.minutes(runtime),
+                        remainingLabel: WatchMeta.remainingLabel(
+                          left: left,
+                          minutesEach: runtime,
+                          currentCompletion: next?.completion ?? 0,
                         ),
-                      )
-                    : null,
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
             SizedBox(
               height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   FutureBuilder<TmdbShow>(
                     future: _futureShow,
                     builder: (context, snap2) => Text(
-                      !snap2.hasData || next == null ? 'Loading...' : '${next.season}x${next.episode} ${snap2.data!.name}',
-                      style: TextStyle(fontSize: 15.px),
+                      !snap2.hasData ? 'Loading...' : snap2.data!.name,
+                      style: TextStyle(fontSize: 15.px, fontWeight: FontWeight.w600),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ).asSkeleton(snapshot: snap2),
                   ),
                   Text(
-                    !snapshot.hasData ? 'Loading...' : snapshot.data!.name,
-                    style: TextStyle(fontSize: 15.px),
+                    next == null
+                        ? 'Loading...'
+                        : snapshot.hasData
+                            ? 'S${next.season} \u00b7 E${next.episode} - ${snapshot.data!.name}'
+                            : 'S${next.season} \u00b7 E${next.episode}',
+                    style: TextStyle(fontSize: 13.px, color: Colors.white.withValues(alpha: 0.7)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -291,16 +311,21 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
               image: snapshot.hasData
                   ? CachedNetworkImage(imageUrl: snapshot.data!.images!.backdrops.first.url, fit: BoxFit.cover)
                   : Avatar(initials: '', borderRadius: 12).asSkeleton(),
-              extraWidget: state.completion > 0.0 && state.completion < 1.0
-                  ? Positioned(
-                      bottom: 8,
-                      left: 8,
-                      right: 8,
-                      child: SizedBox(
-                        child: LinearProgressIndicator(value: state.completion, minHeight: 5, borderRadius: BorderRadius.circular(8)),
-                      ),
-                    )
-                  : null,
+              extraWidget: Positioned(
+                left: 8,
+                right: 8,
+                bottom: 8,
+                child: WatchMetaOverlay(
+                  durationLabel: WatchMeta.minutes(snapshot.data?.runtime ?? 0),
+                  remainingLabel: () {
+                    final runtime = snapshot.data?.runtime ?? 0;
+                    if (runtime <= 0 || state.completion <= 0 || state.completion >= 1) return null;
+                    final left = ((1 - state.completion) * runtime).round();
+                    final label = WatchMeta.minutes(left);
+                    return label.isEmpty ? null : '$label left';
+                  }(),
+                ),
+              ),
             ),
           ),
           SizedBox(
