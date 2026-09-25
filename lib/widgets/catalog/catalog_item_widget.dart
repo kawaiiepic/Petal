@@ -78,7 +78,7 @@ class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliv
             child: const Text('Play'),
           ),
           MenuButton(
-            leading: const Icon(LucideIcons.info),
+            leading: const Icon(LucideIcons.server),
             trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
             onPressed: (_) {
               if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
@@ -159,76 +159,6 @@ class HoverableItem extends StatefulWidget {
 
 class _HoverableItem extends State<HoverableItem> {
   bool _isHovering = false;
-  OverlayEntry? _menu;
-
-  @override
-  void dispose() {
-    _hideMenu();
-    super.dispose();
-  }
-
-  void _hideMenu() {
-    _menu?.remove();
-    _menu = null;
-  }
-
-  void _showMenu() {
-    final items = widget.contextItems;
-    if (items == null || items.isEmpty) return;
-    _hideMenu();
-
-    final box = context.findRenderObject() as RenderBox?;
-    final overlay = Overlay.of(context, rootOverlay: true);
-    final origin = box?.localToGlobal(Offset.zero) ?? Offset.zero;
-    final size = box?.size ?? Size.zero;
-    final screen = MediaQuery.sizeOf(context);
-    final top = (origin.dy + size.height + 8).clamp(24.0, screen.height - 240);
-
-    _menu = OverlayEntry(
-      builder: (ctx) {
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _hideMenu,
-                behavior: HitTestBehavior.opaque,
-                child: Container(color: Colors.black.withValues(alpha: 0.35)),
-              ),
-            ),
-            Positioned(
-              left: 24,
-              right: 24,
-              top: top,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final item in items)
-                        if (item is MenuButton)
-                          Button.ghost(
-                            alignment: Alignment.centerLeft,
-                            onPressed: () {
-                              _hideMenu();
-                              item.onPressed?.call(context);
-                            },
-                            leading: item.leading,
-                            child: item.child ?? const SizedBox.shrink(),
-                          )
-                        else if (item is MenuDivider)
-                          const Divider(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-    overlay.insert(_menu!);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -255,19 +185,22 @@ class _HoverableItem extends State<HoverableItem> {
       ),
     );
 
-    return MouseRegion(
+    final tappable = MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
-        onLongPress: widget.contextItems == null ? null : _showMenu,
-        child: ContextMenu(
-          enabled: widget.contextItems != null,
-          items: widget.contextItems ?? [],
-          child: card,
-        ),
+        child: card,
       ),
+    );
+
+    if (widget.contextItems == null || widget.contextItems!.isEmpty) return tappable;
+
+    return ContextMenu(
+      enabled: true,
+      items: widget.contextItems!,
+      child: tappable,
     );
   }
 }
