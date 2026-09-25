@@ -8,6 +8,7 @@ import 'package:petal/pages/addons.dart';
 import 'package:petal/pages/collection.dart';
 import 'package:petal/pages/comments_page.dart';
 import 'package:petal/pages/dashboard/search_results_page.dart';
+import 'package:petal/pages/episode_detail.dart';
 import 'package:petal/pages/episode_overview.dart';
 import 'package:petal/pages/login.dart';
 import 'package:petal/pages/licenses.dart';
@@ -62,6 +63,15 @@ class AppRouter {
           final imdbId = state.uri.queryParameters['imdb'];
 
           return EpisodeOverview(tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null, imdbId: imdbId);
+        },
+      ),
+      GoRoute(
+        path: '/episode',
+        builder: (context, state) {
+          final tmdb = int.tryParse(state.uri.queryParameters['tmdb'] ?? '') ?? 0;
+          final season = int.tryParse(state.uri.queryParameters['s'] ?? '') ?? 1;
+          final episode = int.tryParse(state.uri.queryParameters['e'] ?? '') ?? 1;
+          return EpisodeDetailPage(tmdbId: tmdb, season: season, episode: episode);
         },
       ),
       GoRoute(
