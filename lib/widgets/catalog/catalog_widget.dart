@@ -2,6 +2,7 @@ import 'package:petal/api/api_cache.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
+import 'package:petal/pages/downloads_page.dart';
 import 'package:petal/widgets/catalog/catalog_row.dart';
 import 'package:petal/widgets/connection_error.dart';
 import 'package:petal/widgets/dashboard_stats.dart';
@@ -86,9 +87,7 @@ class _CatalogWidget extends State<CatalogWidget> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(child: SurpriseWatchlistButton()),
-            const SliverToBoxAdapter(child: FriendActivity()),
             const SliverToBoxAdapter(child: UpcomingEpisodes()),
-            const SliverToBoxAdapter(child: ReleaseCalendar()),
             const SliverToBoxAdapter(child: OnDeckShelf()),
             const SliverToBoxAdapter(child: StartNowShelf()),
             const SliverToBoxAdapter(child: InProgressShelf()),
@@ -118,6 +117,9 @@ class _CatalogWidget extends State<CatalogWidget> {
                   addAutomaticKeepAlives: true,
                 ),
               ),
+            const SliverToBoxAdapter(child: DownloadsShelf()),
+            const SliverToBoxAdapter(child: FriendActivity()),
+            const SliverToBoxAdapter(child: ReleaseCalendar()),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         );
@@ -128,7 +130,6 @@ class _CatalogWidget extends State<CatalogWidget> {
 
 class _CatalogSection extends StatefulWidget {
   final Catalog catalog;
-
   const _CatalogSection({super.key, required this.catalog});
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/discord.dart';
 import 'package:petal/api/query_proxy.dart';
+import 'package:petal/api/download_manager.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/router/router.dart';
@@ -17,6 +18,7 @@ void main() async {
   await AppTheme.load();
   await QueryProxy.load();
   await UserLibrary.load();
+  await DownloadManager.load();
 
   MediaKit.ensureInitialized();
   Discord.init();
@@ -43,7 +45,6 @@ class _PetalState extends State<PetalApp> {
   @override
   void initState() {
     super.initState();
-
     Api.initApi();
   }
 
