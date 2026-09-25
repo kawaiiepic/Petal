@@ -14,6 +14,7 @@ import 'package:petal/pages/movie_overview.dart';
 import 'package:petal/pages/offline.dart';
 import 'package:petal/pages/player/player_screen.dart';
 import 'package:petal/pages/settings.dart';
+import 'package:petal/pages/stats_page.dart';
 import 'package:petal/pages/streams.dart';
 import 'package:petal/pages/trakt_import_page.dart';
 import 'package:petal/widgets/catalog/catalog_widget.dart';
@@ -71,6 +72,7 @@ class AppRouter {
         },
       ),
       GoRoute(path: '/collection', builder: (context, state) => Collection()),
+      GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
       GoRoute(
         path: '/person/:id',
         builder: (context, state) => ActorOverview(personId: int.parse(state.pathParameters['id']!)),
