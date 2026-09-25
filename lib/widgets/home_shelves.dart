@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/api/user_library.dart';
@@ -14,6 +15,7 @@ import 'package:petal/widgets/home_section.dart';
 import 'package:petal/widgets/poster_shelf.dart';
 import 'package:petal/widgets/scrollable_widget.dart';
 import 'package:petal/widgets/trakt/trakt_next_up.dart';
+import 'package:petal/widgets/watch_meta_overlay.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
@@ -222,6 +224,185 @@ class LikedShelf extends StatelessWidget {
   }
 }
 
+class _RecentWatch {
+  final int tmdbId;
+  final MediaType type;
+  final int? season;
+  final int? episode;
+  final DateTime at;
+
+  const _RecentWatch({required this.tmdbId, required this.type, required this.at, this.season, this.episode});
+}
+
+List<_RecentWatch> _recentWatches(List<WatchHistoryItem> history) {
+  final events = <_RecentWatch>[];
+  for (final item in history) {
+    if (item.mediaType == MediaType.movie) {
+      events.add(_RecentWatch(tmdbId: item.tmdbId, type: MediaType.movie, at: item.watchedAt ?? item.updatedAt));
+      continue;
+    }
+    if (item.episodes.isEmpty) {
+      events.add(_RecentWatch(tmdbId: item.tmdbId, type: MediaType.show, at: item.updatedAt));
+      continue;
+    }
+    for (final episode in item.episodes) {
+      if (episode.completion <= 0 && episode.watches.isEmpty && episode.watchedAt == null) continue;
+      final at = episode.watches.isNotEmpty ? episode.watches.last : (episode.watchedAt ?? item.updatedAt);
+      events.add(_RecentWatch(tmdbId: item.tmdbId, type: MediaType.show, season: episode.season, episode: episode.episode, at: at));
+    }
+  }
+  events.sort((a, b) => b.at.compareTo(a.at));
+  final seen = <int>{};
+  final unique = <_RecentWatch>[];
+  for (final event in events) {
+    if (!seen.add(event.tmdbId)) continue;
+    unique.add(event);
+    if (unique.length >= 12) break;
+  }
+  return unique;
+}
+
+class RecentlyWatchedShelf extends StatefulWidget {
+  final List<WatchHistoryItem> history;
+
+  const RecentlyWatchedShelf({super.key, required this.history});
+
+  @override
+  State<RecentlyWatchedShelf> createState() => _RecentlyWatchedShelfState();
+}
+
+class _RecentlyWatchedShelfState extends State<RecentlyWatchedShelf> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+    BackendCache.fetchWatchHistory();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _recentWatches(widget.history);
+    if (items.isEmpty) return const SizedBox.shrink();
+    return HomeSection(
+      title: 'Recently watched',
+      child: SizedBox(
+        height: 25.h,
+        child: ScrollableWidget(
+          controller: _controller,
+          child: ListView.builder(
+            controller: _controller,
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length,
+            itemBuilder: (context, index) => SizedBox(
+              width: 55.w,
+              child: _RecentWatchCard(item: items[index]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentWatchCard extends StatelessWidget {
+  final _RecentWatch item;
+
+  const _RecentWatchCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final isShow = item.type == MediaType.show && item.season != null && item.episode != null;
+    return FutureBuilder(
+      future: isShow
+          ? Future.wait<dynamic>([TMDB.tvShow(item.tmdbId), TMDB.tvEpisode(item.tmdbId, item.season!, item.episode!)])
+          : item.type == MediaType.show
+              ? TMDB.tvShow(item.tmdbId)
+              : TMDB.movie(item.tmdbId),
+      builder: (context, snapshot) {
+        String? image;
+        String title = '';
+        String subtitle = WatchMeta.relative(item.at);
+
+        if (snapshot.hasData) {
+          if (isShow) {
+            final parts = snapshot.data as List<dynamic>;
+            final show = parts[0] as TmdbShow;
+            final episode = parts[1] as TmdbEpisode;
+            title = show.name;
+            subtitle = 'S${item.season} \u00b7 E${item.episode} - ${episode.name}';
+            final still = episode.stillPath;
+            final backdrop = show.backdropPath;
+            final path = (still != null && still.isNotEmpty) ? still : backdrop;
+            if (path != null && path.isNotEmpty) {
+              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+            }
+          } else if (item.type == MediaType.show) {
+            final show = snapshot.data as TmdbShow;
+            title = show.name;
+            final path = show.backdropPath;
+            if (path != null && path.isNotEmpty) {
+              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+            }
+          } else {
+            final movie = snapshot.data as TmdbMovie;
+            title = movie.title;
+            final path = movie.backdropPath ?? movie.posterPath;
+            if (path != null && path.isNotEmpty) {
+              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+            }
+          }
+        }
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(2.w, 8, 2.w, 8),
+          child: Column(
+            spacing: 8,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: HoverableItem(
+                  orientation: Orientation.landscape,
+                  onTap: () => context.push(item.type == MediaType.show ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
+                  extraWidget: Positioned(
+                    left: 8,
+                    right: 8,
+                    bottom: 8,
+                    child: WatchMetaOverlay(
+                      durationLabel: isShow ? 'S${item.season} \u00b7 E${item.episode}' : null,
+                      remainingLabel: WatchMeta.relative(item.at),
+                    ),
+                  ),
+                  image: image == null
+                      ? Avatar(initials: '', borderRadius: 12).asSkeleton()
+                      : CachedNetworkImage(imageUrl: image, fit: BoxFit.cover),
+                ),
+              ),
+              SizedBox(
+                height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title.isEmpty ? 'Loading...' : title, style: TextStyle(fontSize: 15.px, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(subtitle, style: TextStyle(fontSize: 13.px, color: Colors.white.withValues(alpha: 0.7)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class RecentAndStalledShelves extends StatelessWidget {
   const RecentAndStalledShelves({super.key});
 
@@ -236,7 +417,6 @@ class RecentAndStalledShelves extends StatelessWidget {
           if (existing == null || item.updatedAt.isAfter(existing.updatedAt)) latest[item.tmdbId] = item;
         }
         final items = latest.values.toList()..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        final recent = items.take(12).map((i) => ShelfItem(tmdbId: i.tmdbId, type: i.mediaType)).toList();
         final cutoff = DateTime.now().subtract(const Duration(days: 14));
         final stalled = items.where((i) {
           if (!i.updatedAt.isBefore(cutoff)) return false;
@@ -255,7 +435,7 @@ class RecentAndStalledShelves extends StatelessWidget {
 
         return Column(
           children: [
-            PosterShelf(title: 'Recently watched', items: recent),
+            RecentlyWatchedShelf(history: history),
             PosterShelf(title: 'Stalled', items: stalled),
             PosterShelf(title: 'Most rewatched', items: topRewatched),
           ],
