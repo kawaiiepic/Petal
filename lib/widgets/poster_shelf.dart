@@ -17,26 +17,47 @@ class ShelfItem {
   const ShelfItem({required this.tmdbId, required this.type, this.subtitle});
 }
 
-class PosterShelf extends StatelessWidget {
+class PosterShelf extends StatefulWidget {
   final String title;
   final List<ShelfItem> items;
 
   const PosterShelf({super.key, required this.title, required this.items});
 
   @override
+  State<PosterShelf> createState() => _PosterShelfState();
+}
+
+class _PosterShelfState extends State<PosterShelf> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const SizedBox.shrink();
+    if (widget.items.isEmpty) return const SizedBox.shrink();
     return HomeSection(
-      title: title,
+      title: widget.title,
       child: SizedBox(
         height: 23.h,
         child: ScrollableWidget(
+          controller: _controller,
           child: ListView.separated(
+            controller: _controller,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             scrollDirection: Axis.horizontal,
-            itemCount: items.length,
+            itemCount: widget.items.length,
             separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, index) => SizedBox(width: 28.w, child: _PosterCard(item: items[index])),
+            itemBuilder: (context, index) => SizedBox(width: 28.w, child: _PosterCard(item: widget.items[index])),
           ),
         ),
       ),
