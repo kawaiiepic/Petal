@@ -43,6 +43,7 @@ class WatchStatsSnapshot {
     var shows = 0;
     var movies = 0;
     var episodes = 0;
+    var plays = 0;
     var showsThisMonth = 0;
     var moviesThisMonth = 0;
     var episodesThisMonth = 0;
@@ -52,34 +53,41 @@ class WatchStatsSnapshot {
     void addDay(DateTime raw, int count) {
       final day = DateTime(raw.year, raw.month, raw.day);
       activity[day] = (activity[day] ?? 0) + count;
+      first = first == null || raw.isBefore(first!) ? raw : first;
     }
 
-    for (final item in latest.values) {
-      final local = item.updatedAt.toLocal();
-      first = first == null || local.isBefore(first) ? local : first;
-      final inMonth = !local.isBefore(monthStart) && local.isBefore(monthEnd);
+    bool inMonth(DateTime local) => !local.isBefore(monthStart) && local.isBefore(monthEnd);
 
+    for (final item in latest.values) {
       if (item.mediaType == MediaType.movie) {
         if (item.completion <= 0) continue;
         movies++;
-        addDay(local, 1);
-        if (inMonth) moviesThisMonth++;
+        final when = (item.watchedAt ?? item.updatedAt).toLocal();
+        final count = item.plays > 0 ? item.plays : 1;
+        plays += count;
+        addDay(when, count);
+        if (inMonth(when)) moviesThisMonth++;
       } else {
-        final watchedEps = item.episodes.where((e) => e.completion > 0).length;
-        if (watchedEps == 0 && item.completion <= 0) continue;
+        final watchedEps = item.episodes.where((e) => e.completion > 0).toList();
+        if (watchedEps.isEmpty) continue;
         shows++;
-        final count = watchedEps == 0 ? 1 : watchedEps;
-        episodes += count;
-        addDay(local, count);
-        if (inMonth) {
-          showsThisMonth++;
-          episodesThisMonth += count;
+        var monthHit = false;
+        for (final ep in watchedEps) {
+          episodes++;
+          final count = ep.plays > 0 ? ep.plays : 1;
+          plays += count;
+          final when = (ep.watchedAt ?? item.updatedAt).toLocal();
+          addDay(when, count);
+          if (inMonth(when)) {
+            episodesThisMonth += count;
+            monthHit = true;
+          }
         }
+        if (monthHit) showsThisMonth++;
       }
     }
 
-    final plays = movies + episodes;
-    final spanDays = first == null ? 1 : now.difference(first).inDays.clamp(1, 36500);
+    final spanDays = first == null ? 1 : now.difference(first!).inDays.clamp(1, 36500);
     return WatchStatsSnapshot(
       shows: shows,
       movies: movies,
