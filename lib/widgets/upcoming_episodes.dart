@@ -134,9 +134,10 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
     final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final day = DateTime(date.year, date.month, date.day);
     final diff = day.difference(today).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Tomorrow';
-    if (diff < 7) return 'In $diff days';
+    if (diff == 0) return 'today';
+    if (diff == 1) return 'tomorrow';
+    if (diff == 2) return 'in 2 days';
+    if (diff < 7) return 'in $diff days';
     return '${date.month}/${date.day}';
   }
 
@@ -175,28 +176,27 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
                           Expanded(
                             child: HoverableItem(
                               orientation: Orientation.landscape,
-                              onTap: () => context.push('/series?tmdb=${item.tmdbId}'),
+                              onTap: () => context.push('/episode?tmdb=${item.tmdbId}&s=${item.season}&e=${item.episode}'),
                               image: item.image == null
                                   ? Avatar(initials: '', borderRadius: 12).asSkeleton()
                                   : CachedNetworkImage(imageUrl: item.image!, fit: BoxFit.cover),
+                              extraWidget: Positioned(
+                                left: 8,
+                                bottom: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(color: const Color(0xE6101018), borderRadius: BorderRadius.circular(8)),
+                                  child: Text(_when(item.airDate), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+                                ),
+                              ),
                             ),
                           ),
                           SizedBox(
                             height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
                             child: Column(
                               children: [
-                                Text(
-                                  '${item.season}x${item.episode} ${item.showName}',
-                                  style: TextStyle(fontSize: 15.px),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  '${item.episodeName} \u00b7 ${_when(item.airDate)}',
-                                  style: TextStyle(fontSize: 15.px),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                Text('${item.season}x${item.episode} ${item.showName}', style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text(item.episodeName, style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
                               ],
                             ),
                           ),
