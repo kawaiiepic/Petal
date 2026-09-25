@@ -6,6 +6,7 @@ import 'package:petal/navigation/navigation.dart';
 import 'package:petal/pages/actor_overview.dart';
 import 'package:petal/pages/addons.dart';
 import 'package:petal/pages/collection.dart';
+import 'package:petal/pages/comments_page.dart';
 import 'package:petal/pages/dashboard/search_results_page.dart';
 import 'package:petal/pages/episode_overview.dart';
 import 'package:petal/pages/login.dart';
@@ -13,6 +14,7 @@ import 'package:petal/pages/licenses.dart';
 import 'package:petal/pages/movie_overview.dart';
 import 'package:petal/pages/offline.dart';
 import 'package:petal/pages/player/player_screen.dart';
+import 'package:petal/pages/public_profile_page.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/pages/stats_page.dart';
 import 'package:petal/pages/streams.dart';
@@ -73,6 +75,19 @@ class AppRouter {
       ),
       GoRoute(path: '/collection', builder: (context, state) => Collection()),
       GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
+      GoRoute(
+        path: '/profile/:id',
+        builder: (context, state) => PublicProfilePage(profileId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/comments',
+        builder: (context, state) {
+          final type = state.uri.queryParameters['type'] ?? 'show';
+          final tmdb = int.tryParse(state.uri.queryParameters['tmdb'] ?? '') ?? 0;
+          final title = state.uri.queryParameters['title'] ?? 'Comments';
+          return CommentsPage(mediaType: type, tmdbId: tmdb, title: title);
+        },
+      ),
       GoRoute(
         path: '/person/:id',
         builder: (context, state) => ActorOverview(personId: int.parse(state.pathParameters['id']!)),
