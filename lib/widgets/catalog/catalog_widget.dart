@@ -8,6 +8,7 @@ import 'package:petal/widgets/dashboard_stats.dart';
 import 'package:petal/widgets/friend_activity.dart';
 import 'package:petal/widgets/home_shelves.dart';
 import 'package:petal/widgets/in_progress_shelf.dart';
+import 'package:petal/widgets/release_calendar.dart';
 import 'package:petal/widgets/upcoming_episodes.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -88,7 +89,9 @@ class _CatalogWidget extends State<CatalogWidget> {
             const SliverToBoxAdapter(child: SurpriseWatchlistButton()),
             const SliverToBoxAdapter(child: FriendActivity()),
             const SliverToBoxAdapter(child: UpcomingEpisodes()),
+            const SliverToBoxAdapter(child: ReleaseCalendar()),
             const SliverToBoxAdapter(child: OnDeckShelf()),
+            const SliverToBoxAdapter(child: StartNowShelf()),
             const SliverToBoxAdapter(child: InProgressShelf()),
             const SliverToBoxAdapter(child: WatchlistShelf()),
             const SliverToBoxAdapter(child: LikedShelf()),
