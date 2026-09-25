@@ -1,4 +1,3 @@
-import 'package:go_router/go_router.dart';
 import 'package:petal/main.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -10,8 +9,9 @@ class BackButton extends StatelessWidget {
     return OutlineButton(
       density: ButtonDensity.icon,
       onPressed: () {
-        final nav = PetalApp.rootNavigatorKey.currentContext;
-        if (nav != null && nav.canPop()) nav.pop();
+        final ctx = PetalApp.rootNavigatorKey.currentContext ?? context;
+        final nav = Navigator.of(ctx);
+        if (nav.canPop()) nav.pop();
       },
       child: const Icon(LucideIcons.chevronLeft),
     );

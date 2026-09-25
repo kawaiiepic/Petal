@@ -26,13 +26,15 @@ class EdgeBackSwipe extends StatelessWidget {
   }
 
   bool _canPop() {
-    final nav = PetalApp.rootNavigatorKey.currentContext;
-    return nav != null && nav.canPop();
+    final ctx = PetalApp.rootNavigatorKey.currentContext;
+    return ctx != null && Navigator.of(ctx).canPop();
   }
 
   void _pop() {
-    final nav = PetalApp.rootNavigatorKey.currentContext;
-    if (nav != null && nav.canPop()) nav.pop();
+    final ctx = PetalApp.rootNavigatorKey.currentContext;
+    if (ctx == null) return;
+    final nav = Navigator.of(ctx);
+    if (nav.canPop()) nav.pop();
   }
 
   @override
