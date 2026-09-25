@@ -7,7 +7,7 @@ import 'package:petal/widgets/connection_error.dart';
 import 'package:petal/widgets/dashboard_stats.dart';
 import 'package:petal/widgets/friend_activity.dart';
 import 'package:petal/widgets/home_shelves.dart';
-import 'package:petal/widgets/trakt/trakt_next_up.dart';
+import 'package:petal/widgets/in_progress_shelf.dart';
 import 'package:petal/widgets/upcoming_episodes.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -89,7 +89,7 @@ class _CatalogWidget extends State<CatalogWidget> {
             const SliverToBoxAdapter(child: FriendActivity()),
             const SliverToBoxAdapter(child: UpcomingEpisodes()),
             const SliverToBoxAdapter(child: OnDeckShelf()),
-            const SliverToBoxAdapter(child: TraktNextUp(key: ValueKey('traktNextUp'))),
+            const SliverToBoxAdapter(child: InProgressShelf()),
             const SliverToBoxAdapter(child: WatchlistShelf()),
             const SliverToBoxAdapter(child: LikedShelf()),
             const SliverToBoxAdapter(child: RecentAndStalledShelves()),
