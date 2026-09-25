@@ -1,6 +1,16 @@
 import 'package:petal/models/media_state.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 
+class DayWatch {
+  final int tmdbId;
+  final MediaType type;
+  final int? season;
+  final int? episode;
+  final DateTime at;
+
+  const DayWatch({required this.tmdbId, required this.type, required this.at, this.season, this.episode});
+}
+
 class WatchStatsSnapshot {
   final int shows;
   final int movies;
@@ -10,7 +20,9 @@ class WatchStatsSnapshot {
   final int moviesThisMonth;
   final int episodesThisMonth;
   final double episodesPerDay;
+  final int streak;
   final Map<DateTime, int> activityByDay;
+  final Map<DateTime, List<DayWatch>> titlesByDay;
   final DateTime month;
 
   const WatchStatsSnapshot({
@@ -22,9 +34,25 @@ class WatchStatsSnapshot {
     required this.moviesThisMonth,
     required this.episodesThisMonth,
     required this.episodesPerDay,
+    required this.streak,
     required this.activityByDay,
+    required this.titlesByDay,
     required this.month,
   });
+
+  static int _streakFor(Map<DateTime, int> activity) {
+    final now = DateTime.now();
+    var day = DateTime(now.year, now.month, now.day);
+    if ((activity[day] ?? 0) == 0) {
+      day = day.subtract(const Duration(days: 1));
+    }
+    var streak = 0;
+    while ((activity[day] ?? 0) > 0) {
+      streak++;
+      day = day.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
 
   static WatchStatsSnapshot fromHistory(List<WatchHistoryItem> history, {DateTime? month}) {
     final now = DateTime.now();
@@ -49,10 +77,12 @@ class WatchStatsSnapshot {
     var episodesThisMonth = 0;
     DateTime? first;
     final activity = <DateTime, int>{};
+    final titles = <DateTime, List<DayWatch>>{};
 
-    void addDay(DateTime raw, int count) {
+    void addEvent(DateTime raw, DayWatch watch) {
       final day = DateTime(raw.year, raw.month, raw.day);
-      activity[day] = (activity[day] ?? 0) + count;
+      activity[day] = (activity[day] ?? 0) + 1;
+      titles.putIfAbsent(day, () => []).add(watch);
       first = first == null || raw.isBefore(first!) ? raw : first;
     }
 
@@ -72,7 +102,7 @@ class WatchStatsSnapshot {
         plays += dates.length;
         var monthHit = false;
         for (final when in dates) {
-          addDay(when, 1);
+          addEvent(when, DayWatch(tmdbId: item.tmdbId, type: MediaType.movie, at: when));
           if (inMonth(when)) monthHit = true;
         }
         if (monthHit) moviesThisMonth++;
@@ -86,7 +116,7 @@ class WatchStatsSnapshot {
           final dates = datesFor(ep.watches, ep.watchedAt ?? item.updatedAt);
           plays += dates.isEmpty ? 1 : dates.length;
           for (final when in dates) {
-            addDay(when, 1);
+            addEvent(when, DayWatch(tmdbId: item.tmdbId, type: MediaType.show, at: when, season: ep.season, episode: ep.episode));
             if (inMonth(when)) {
               episodesThisMonth++;
               monthHit = true;
@@ -107,7 +137,9 @@ class WatchStatsSnapshot {
       moviesThisMonth: moviesThisMonth,
       episodesThisMonth: episodesThisMonth,
       episodesPerDay: episodes / spanDays,
+      streak: _streakFor(activity),
       activityByDay: activity,
+      titlesByDay: titles,
       month: monthStart,
     );
   }
