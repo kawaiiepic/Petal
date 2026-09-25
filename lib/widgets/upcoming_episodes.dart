@@ -39,10 +39,12 @@ class UpcomingEpisodes extends StatefulWidget {
 
 class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
   Future<List<UpcomingItem>>? _future;
+  late final ScrollController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = ScrollController();
     BackendCache.fetchWatchHistory();
     BackendCache.watchHistory.addListener(_reload);
     _future = _load();
@@ -51,6 +53,7 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
   @override
   void dispose() {
     BackendCache.watchHistory.removeListener(_reload);
+    _controller.dispose();
     super.dispose();
   }
 
@@ -128,7 +131,9 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
           child: SizedBox(
             height: 25.h,
             child: ScrollableWidget(
+              controller: _controller,
               child: ListView.builder(
+                controller: _controller,
                 scrollDirection: Axis.horizontal,
                 itemCount: items.length,
                 itemBuilder: (context, index) {
