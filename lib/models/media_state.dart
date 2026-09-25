@@ -85,32 +85,47 @@ class EpisodeProgress {
   final int season;
   final int episode;
   final double completion;
+  final DateTime? watchedAt;
+  final int plays;
 
-  EpisodeProgress({required this.season, required this.episode, required this.completion});
+  EpisodeProgress({required this.season, required this.episode, required this.completion, this.watchedAt, this.plays = 0});
 
   factory EpisodeProgress.fromJson(Map<String, dynamic> json) {
+    final watchedRaw = (json['watched_at'] as num?)?.toInt();
     return EpisodeProgress(
       season: (json['season'] as num?)?.toInt() ?? 0,
       episode: (json['episode'] as num?)?.toInt() ?? 0,
       completion: (json['completion'] as num?)?.toDouble() ?? 0.0,
+      watchedAt: watchedRaw == null || watchedRaw == 0 ? null : DateTime.fromMillisecondsSinceEpoch(watchedRaw * 1000),
+      plays: (json['plays'] as num?)?.toInt() ?? 0,
     );
   }
 }
 
-/// Row from GET /track/states/:profile_id
 class WatchHistoryItem {
   final int tmdbId;
   final MediaType mediaType;
   final double completion;
   final DateTime updatedAt;
+  final DateTime? watchedAt;
+  final int plays;
   final List<EpisodeProgress> episodes;
 
-  WatchHistoryItem({required this.tmdbId, required this.mediaType, required this.completion, required this.updatedAt, this.episodes = const []});
+  WatchHistoryItem({
+    required this.tmdbId,
+    required this.mediaType,
+    required this.completion,
+    required this.updatedAt,
+    this.watchedAt,
+    this.plays = 0,
+    this.episodes = const [],
+  });
 
   factory WatchHistoryItem.fromJson(Map<String, dynamic> json) {
     final typeStr = json['media_type'] as String? ?? '';
     final mediaType = typeStr == 'movie' ? MediaType.movie : MediaType.show;
     final updatedRaw = (json['updated_at'] as num?)?.toInt() ?? 0;
+    final watchedRaw = (json['watched_at'] as num?)?.toInt();
 
     final episodes = (json['episodes'] as List<dynamic>? ?? []).map((e) => EpisodeProgress.fromJson(e as Map<String, dynamic>)).toList();
 
@@ -123,6 +138,8 @@ class WatchHistoryItem {
       mediaType: mediaType,
       completion: completion,
       updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedRaw * 1000),
+      watchedAt: watchedRaw == null || watchedRaw == 0 ? null : DateTime.fromMillisecondsSinceEpoch(watchedRaw * 1000),
+      plays: (json['plays'] as num?)?.toInt() ?? 0,
       episodes: episodes,
     );
   }
