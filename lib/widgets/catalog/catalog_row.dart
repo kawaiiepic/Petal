@@ -18,6 +18,7 @@ class CatalogRow extends StatefulWidget {
 
 class _CatalogRowState extends State<CatalogRow> with AutomaticKeepAliveClientMixin {
   late final ScrollController _controller;
+  bool _open = true;
 
   @override
   bool get wantKeepAlive => true;
@@ -41,40 +42,44 @@ class _CatalogRowState extends State<CatalogRow> with AutomaticKeepAliveClientMi
     final List<CatalogItem>? catalogItems = widget.catalogItems?.toList();
     final style = TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp);
     final count = widget.catalogItems != null ? widget.catalogItems!.length : 10;
+    final title = catalog == null ? 'Popular ― Movie' : '${catalog.name} ― ${catalog.type[0].toUpperCase()}${catalog.type.substring(1)}';
 
     return Column(
-      spacing: 8,
       children: [
         Skeleton.keep(
           keep: catalog != null,
-          child: Row(
-            spacing: 8,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(catalog?.name ?? 'Popular', style: style),
-              Text('―', style: style),
-              Text(catalog != null ? (catalog.type[0].toUpperCase() + catalog.type.substring(1)) : 'Movie', style: style),
-            ],
-          ),
-        ),
-
-        SizedBox(
-          height: Device.screenType == ScreenType.desktop ? 22.h : 23.h,
-          child: ScrollableWidget(
-            controller: _controller,
-            child: ListView.builder(
-              controller: _controller,
-              scrollDirection: Axis.horizontal,
-              cacheExtent: 2000,
-              addAutomaticKeepAlives: true,
-              itemCount: count,
-              itemBuilder: (context, index) {
-                final item = catalogItems?[index];
-                return CatalogItemWidget(key: ValueKey(item?.id ?? 'skeleton-$index'), catalogItem: item);
-              },
+          child: Button(
+            style: ButtonVariance.ghost,
+            onPressed: () => setState(() => _open = !_open),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(child: Text(title, style: style, textAlign: TextAlign.center)),
+                  Icon(_open ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 16),
+                ],
+              ),
             ),
           ),
         ),
+        if (_open)
+          SizedBox(
+            height: Device.screenType == ScreenType.desktop ? 22.h : 23.h,
+            child: ScrollableWidget(
+              controller: _controller,
+              child: ListView.builder(
+                controller: _controller,
+                scrollDirection: Axis.horizontal,
+                cacheExtent: 2000,
+                addAutomaticKeepAlives: true,
+                itemCount: count,
+                itemBuilder: (context, index) {
+                  final item = catalogItems?[index];
+                  return CatalogItemWidget(key: ValueKey(item?.id ?? 'skeleton-$index'), catalogItem: item);
+                },
+              ),
+            ),
+          ),
       ],
     );
   }
