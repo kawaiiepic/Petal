@@ -9,8 +9,9 @@ class LibraryActions extends StatelessWidget {
   final int tmdbId;
   final MediaType mediaType;
   final TmdbShow? show;
+  final String? title;
 
-  const LibraryActions({super.key, required this.tmdbId, required this.mediaType, this.show});
+  const LibraryActions({super.key, required this.tmdbId, required this.mediaType, this.show, this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +61,8 @@ class LibraryActions extends StatelessWidget {
           active: false,
           onTap: () {
             final type = mediaType == MediaType.movie ? 'movie' : 'show';
-            context.push('/comments?type=$type&tmdb=$tmdbId&title=Comments');
+            final label = Uri.encodeComponent(title?.trim().isNotEmpty == true ? title! : 'Comments');
+            context.push('/comments?type=$type&tmdb=$tmdbId&title=$label');
           },
         ),
       ],

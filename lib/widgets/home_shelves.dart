@@ -34,12 +34,26 @@ class OnDeckShelf extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: BackendCache.continueWatching,
       builder: (context, list, _) {
-        final items = list.where(_onDeck).take(12).map((item) {
-          final show = item as ShowItem;
-          final next = show.nextEpisode!;
-          return ShelfItem(tmdbId: show.tmdbId, type: MediaType.show, subtitle: 'S${next.season}E${next.episode}');
-        }).toList();
-        return PosterShelf(title: 'On deck', items: items);
+        return ValueListenableBuilder(
+          valueListenable: UserLibrary.watchlist,
+          builder: (context, _, __) {
+            final items = list.where(_onDeck).take(12).map((item) {
+              final show = item as ShowItem;
+              final next = show.nextEpisode!;
+              return ShelfItem(tmdbId: show.tmdbId, type: MediaType.show, subtitle: 'S${next.season}E${next.episode}');
+            }).toList();
+            final seen = {
+              for (final item in items) '${item.type.name}:${item.tmdbId}',
+              for (final item in list.where(_inProgress)) '${item.mediaType.name}:${item.tmdbId}',
+            };
+            final extras = UserLibrary.watchlistTitles()
+                .where((t) => !seen.contains('${t.type.name}:${t.tmdbId}'))
+                .take(4)
+                .map((t) => ShelfItem(tmdbId: t.tmdbId, type: t.type, subtitle: 'Watchlist'))
+                .toList();
+            return PosterShelf(title: 'On deck', items: [...items, ...extras]);
+          },
+        );
       },
     );
   }
