@@ -16,11 +16,12 @@ class LibraryApi {
     required MediaType mediaType,
     bool? watchlisted,
     String? rating,
+    bool merge = false,
   }) async {
     final profileId = BackendApi.authState.selectedProfile?.id;
     if (profileId == null) return;
     final type = mediaType == MediaType.movie ? 'movie' : 'show';
-    final data = <String, dynamic>{};
+    final data = <String, dynamic>{'merge': merge};
     if (watchlisted != null) data['watchlisted'] = watchlisted;
     if (rating != null) data['rating'] = rating;
     await BackendApi.dio.put('${Api.ServerUrl}/track/library/$profileId/$type/$tmdbId', data: data);
