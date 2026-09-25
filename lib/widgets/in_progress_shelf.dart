@@ -6,8 +6,27 @@ import 'package:petal/widgets/trakt/trakt_next_up.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
-class InProgressShelf extends StatelessWidget {
+class InProgressShelf extends StatefulWidget {
   const InProgressShelf({super.key});
+
+  @override
+  State<InProgressShelf> createState() => _InProgressShelfState();
+}
+
+class _InProgressShelfState extends State<InProgressShelf> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   bool _started(ContinueWatchingItem item) {
     if (item is MovieItem) return item.completion > 0 && item.completion < 1;
@@ -30,7 +49,9 @@ class InProgressShelf extends StatelessWidget {
           child: SizedBox(
             height: 25.h,
             child: ScrollableWidget(
+              controller: _controller,
               child: ListView.builder(
+                controller: _controller,
                 scrollDirection: Axis.horizontal,
                 itemCount: visible.length,
                 itemBuilder: (context, index) {
