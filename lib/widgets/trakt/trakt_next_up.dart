@@ -21,6 +21,7 @@ class TraktNextUp extends StatefulWidget {
 
 class _TraktNextUp extends State<TraktNextUp> {
   late final ScrollController _controller;
+  bool _open = true;
 
   @override
   void initState() {
@@ -53,26 +54,38 @@ class _TraktNextUp extends State<TraktNextUp> {
           return const SizedBox.shrink();
         }
         return Column(
-          spacing: 8,
           children: [
-            Text('Continue Watching', style: style),
-            SizedBox(
-              height: 25.h,
-              child: ScrollableWidget(
-                controller: _controller,
-                offset: -25,
-                child: ListView.builder(
-                  controller: _controller,
-                  scrollDirection: Axis.horizontal,
-                  key: const PageStorageKey<String>('unique_key_for_this_list'),
-                  itemCount: list.length,
-                  itemBuilder: (context, index) {
-                    final state = list[index];
-                    return TraktNextUpItem(key: ValueKey('${state.mediaType}-${state.tmdbId}'), state: state);
-                  },
+            Button(
+              style: ButtonVariance.ghost,
+              onPressed: () => setState(() => _open = !_open),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Row(
+                  children: [
+                    Expanded(child: Text('Continue Watching', style: style, textAlign: TextAlign.center)),
+                    Icon(_open ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 16),
+                  ],
                 ),
               ),
             ),
+            if (_open)
+              SizedBox(
+                height: 25.h,
+                child: ScrollableWidget(
+                  controller: _controller,
+                  offset: -25,
+                  child: ListView.builder(
+                    controller: _controller,
+                    scrollDirection: Axis.horizontal,
+                    key: const PageStorageKey<String>('unique_key_for_this_list'),
+                    itemCount: list.length,
+                    itemBuilder: (context, index) {
+                      final state = list[index];
+                      return TraktNextUpItem(key: ValueKey('${state.mediaType}-${state.tmdbId}'), state: state);
+                    },
+                  ),
+                ),
+              ),
           ],
         );
       },
