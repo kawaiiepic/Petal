@@ -15,23 +15,18 @@ class _LibraryImportCardState extends State<LibraryImportCard> {
   String? _status;
 
   Future<void> _pick() async {
-    final picked = await FilePicker.platform.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: const ['zip', 'json', 'csv'],
-      withData: true,
     );
-    if (picked == null || picked.files.isEmpty) return;
-    final file = picked.files.first;
-    final bytes = file.bytes;
-    if (bytes == null) {
-      setState(() => _status = 'Could not read ${file.name}.');
-      return;
-    }
+    if (file == null) return;
+
     setState(() {
       _busy = true;
       _status = 'Importing ${file.name}…';
     });
     try {
+      final bytes = await file.readAsBytes();
       final report = await LibraryImport.importFile(name: file.name, bytes: bytes, source: _source);
       setState(() => _status = report.summary);
     } catch (e) {
