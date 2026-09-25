@@ -85,7 +85,6 @@ class _CatalogWidget extends State<CatalogWidget> {
           cacheExtent: 2500,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            const SliverToBoxAdapter(child: DashboardStats()),
             const SliverToBoxAdapter(child: SurpriseWatchlistButton()),
             const SliverToBoxAdapter(child: FriendActivity()),
             const SliverToBoxAdapter(child: UpcomingEpisodes()),
@@ -97,6 +96,7 @@ class _CatalogWidget extends State<CatalogWidget> {
             const SliverToBoxAdapter(child: LikedShelf()),
             const SliverToBoxAdapter(child: RecentAndStalledShelves()),
             const SliverToBoxAdapter(child: BecauseYouWatchedShelf()),
+            const SliverToBoxAdapter(child: DashboardStats()),
             if (loading && catalogs.isEmpty)
               SliverList(
                 delegate: SliverChildBuilderDelegate(
