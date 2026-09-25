@@ -20,6 +20,11 @@ class _InProgressShelfState extends State<InProgressShelf> {
   void initState() {
     super.initState();
     _controller = ScrollController();
+    _onAuth();
+    BackendApi.authState.addListener(_onAuth);
+  }
+
+  void _onAuth() {
     if (BackendApi.authState.selectedProfile != null) {
       BackendCache.fetchContinueWatching();
     }
@@ -27,6 +32,7 @@ class _InProgressShelfState extends State<InProgressShelf> {
 
   @override
   void dispose() {
+    BackendApi.authState.removeListener(_onAuth);
     _controller.dispose();
     super.dispose();
   }

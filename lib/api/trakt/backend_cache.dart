@@ -8,18 +8,29 @@ class BackendCache {
   static var continueWatching = ValueChangeNotifier<List<ContinueWatchingItem>>([]);
   static var watchHistory = ValueChangeNotifier<List<WatchHistoryItem>>([]);
   static var sessions = ValueChangeNotifier<List<WatchSession>>([]);
+  static Future<void>? _continueWatchingInFlight;
 
-  static Future<void> fetchContinueWatching() async {
+  static Future<void> fetchContinueWatching() {
+    return _continueWatchingInFlight ??= _fetchContinueWatching().whenComplete(() {
+      _continueWatchingInFlight = null;
+    });
+  }
+
+  static Future<void> _fetchContinueWatching() async {
     final items = await BackendApi.continueWatching();
 
     final filtered = <ContinueWatchingItem>[];
 
     for (final item in items) {
       if (item is ShowItem && item.nextEpisode != null) {
-        final episode = await TMDB.tvEpisode(item.tmdbId, item.nextEpisode!.season, item.nextEpisode!.episode);
-        final airDate = episode.airDate; // adjust to your actual field name
-        if (airDate == null || airDate.isAfter(DateTime.now())) {
-          continue; // not released yet — skip it
+        try {
+          final episode = await TMDB.tvEpisode(item.tmdbId, item.nextEpisode!.season, item.nextEpisode!.episode);
+          final airDate = episode.airDate;
+          if (airDate == null || airDate.isAfter(DateTime.now())) {
+            continue;
+          }
+        } catch (_) {
+          // Keep the item if TMDB lookup fails so the shelf can still render.
         }
       }
       filtered.add(item);
