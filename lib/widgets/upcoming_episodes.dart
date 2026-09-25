@@ -132,6 +132,7 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
             height: 25.h,
             child: ScrollableWidget(
               controller: _controller,
+              offset: -25,
               child: ListView.builder(
                 controller: _controller,
                 scrollDirection: Axis.horizontal,
@@ -141,8 +142,9 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
                   return Padding(
                     padding: EdgeInsets.fromLTRB(2.w, 8, 2.w, 8),
                     child: SizedBox(
-                      width: 42.w,
+                      width: 55.w,
                       child: Column(
+                        spacing: 8,
                         children: [
                           Expanded(
                             child: HoverableItem(
@@ -153,9 +155,25 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
                                   : CachedNetworkImage(imageUrl: item.image!, fit: BoxFit.cover),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text('${item.season}x${item.episode} ${item.showName}', maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('${item.episodeName} · ${_when(item.airDate)}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                          SizedBox(
+                            height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
+                            child: Column(
+                              children: [
+                                Text(
+                                  '${item.season}x${item.episode} ${item.showName}',
+                                  style: TextStyle(fontSize: 15.px),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${item.episodeName} · ${_when(item.airDate)}',
+                                  style: TextStyle(fontSize: 15.px),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
