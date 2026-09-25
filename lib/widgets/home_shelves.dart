@@ -1,13 +1,21 @@
 import 'dart:math';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/models/media_state.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
+import 'package:petal/widgets/catalog/catalog_item_widget.dart';
+import 'package:petal/widgets/home_section.dart';
 import 'package:petal/widgets/poster_shelf.dart';
+import 'package:petal/widgets/scrollable_widget.dart';
+import 'package:petal/widgets/trakt/trakt_next_up.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:sizer/sizer.dart';
 
 bool _inProgress(ContinueWatchingItem item) {
   if (item is MovieItem) return item.completion > 0 && item.completion < 1;
@@ -26,8 +34,36 @@ bool _onDeck(ContinueWatchingItem item) {
   return false;
 }
 
-class OnDeckShelf extends StatelessWidget {
+class OnDeckShelf extends StatefulWidget {
   const OnDeckShelf({super.key});
+
+  @override
+  State<OnDeckShelf> createState() => _OnDeckShelfState();
+}
+
+class _OnDeckShelfState extends State<OnDeckShelf> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+    _onAuth();
+    BackendApi.authState.addListener(_onAuth);
+  }
+
+  void _onAuth() {
+    if (BackendApi.authState.selectedProfile != null) {
+      BackendCache.fetchContinueWatching();
+    }
+  }
+
+  @override
+  void dispose() {
+    BackendApi.authState.removeListener(_onAuth);
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,22 +73,119 @@ class OnDeckShelf extends StatelessWidget {
         return ValueListenableBuilder(
           valueListenable: UserLibrary.watchlist,
           builder: (context, _, __) {
-            final items = list.where(_onDeck).take(12).map((item) {
-              final show = item as ShowItem;
-              final next = show.nextEpisode!;
-              return ShelfItem(tmdbId: show.tmdbId, type: MediaType.show, subtitle: 'S${next.season}E${next.episode}');
-            }).toList();
+            final onDeck = list.where(_onDeck).take(12).toList();
             final seen = {
-              for (final item in items) '${item.type.name}:${item.tmdbId}',
+              for (final item in onDeck) '${item.mediaType.name}:${item.tmdbId}',
               for (final item in list.where(_inProgress)) '${item.mediaType.name}:${item.tmdbId}',
             };
-            final extras = UserLibrary.watchlistTitles()
-                .where((t) => !seen.contains('${t.type.name}:${t.tmdbId}'))
-                .take(4)
-                .map((t) => ShelfItem(tmdbId: t.tmdbId, type: t.type, subtitle: 'Watchlist'))
-                .toList();
-            return PosterShelf(title: 'On deck', items: [...items, ...extras]);
+            final extras = UserLibrary.watchlistTitles().where((t) => !seen.contains('${t.type.name}:${t.tmdbId}')).take(4).toList();
+            if (onDeck.isEmpty && extras.isEmpty) return const SizedBox.shrink();
+            return HomeSection(
+              title: 'On deck',
+              child: SizedBox(
+                height: 25.h,
+                child: ScrollableWidget(
+                  controller: _controller,
+                  child: ListView.builder(
+                    controller: _controller,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: onDeck.length + extras.length,
+                    itemBuilder: (context, index) {
+                      if (index < onDeck.length) {
+                        final state = onDeck[index];
+                        return SizedBox(
+                          width: 55.w,
+                          child: TraktNextUpItem(key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'), state: state),
+                        );
+                      }
+                      final extra = extras[index - onDeck.length];
+                      return SizedBox(
+                        width: 55.w,
+                        child: _WatchlistLandscapeCard(item: extra),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
           },
+        );
+      },
+    );
+  }
+}
+
+class _WatchlistLandscapeCard extends StatelessWidget {
+  final LibraryTitle item;
+
+  const _WatchlistLandscapeCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final isShow = item.type == MediaType.show;
+    return FutureBuilder(
+      future: isShow ? TMDB.tvShow(item.tmdbId) : TMDB.movie(item.tmdbId),
+      builder: (context, snapshot) {
+        String? image;
+        String name = '';
+        if (snapshot.hasData) {
+          if (isShow) {
+            final show = snapshot.data as dynamic;
+            final backdrop = show.backdropPath as String?;
+            final poster = show.posterPath as String?;
+            name = (show.name as String?) ?? '';
+            final path = (backdrop != null && backdrop.isNotEmpty) ? backdrop : poster;
+            if (path != null && path.isNotEmpty) {
+              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+            }
+          } else {
+            final movie = snapshot.data as dynamic;
+            final backdrop = movie.backdropPath as String?;
+            final poster = movie.posterPath as String?;
+            name = (movie.title as String?) ?? '';
+            final path = (backdrop != null && backdrop.isNotEmpty) ? backdrop : poster;
+            if (path != null && path.isNotEmpty) {
+              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+            }
+          }
+        }
+        return Padding(
+          padding: EdgeInsets.fromLTRB(2.w, 8, 2.w, 8),
+          child: Column(
+            spacing: 8,
+            children: [
+              Expanded(
+                child: HoverableItem(
+                  orientation: Orientation.landscape,
+                  onTap: () => context.push(isShow ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
+                  contextItems: [
+                    MenuButton(
+                      leading: const Icon(LucideIcons.play),
+                      onPressed: (_) => context.push(isShow ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
+                      child: const Text('Play'),
+                    ),
+                    MenuButton(
+                      leading: const Icon(LucideIcons.info),
+                      onPressed: (_) => context.push(isShow ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
+                      child: const Text('More Info'),
+                    ),
+                  ],
+                  image: image == null
+                      ? Avatar(initials: '', borderRadius: 12).asSkeleton()
+                      : CachedNetworkImage(imageUrl: image, fit: BoxFit.cover),
+                ),
+              ),
+              SizedBox(
+                height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
+                child: Column(
+                  children: [
+                    Text(name.isEmpty ? 'Loading...' : name, style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text('Watchlist', style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
