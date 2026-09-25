@@ -29,6 +29,7 @@ class _DashboardStatsState extends State<DashboardStats> {
             spacing: 8,
             runSpacing: 8,
             children: [
+              _chip(context, LucideIcons.flame, '${stats.streak}', stats.streak == 1 ? 'day streak' : 'day streak'),
               _chip(context, LucideIcons.tv, '${stats.showsThisMonth} shows', 'this month'),
               _chip(context, LucideIcons.clapperboard, '${stats.moviesThisMonth} movies', 'this month'),
               _chip(context, LucideIcons.listVideo, stats.episodesPerDay.toStringAsFixed(1), 'eps / day'),
