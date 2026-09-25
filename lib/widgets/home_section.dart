@@ -5,8 +5,17 @@ class HomeSection extends StatefulWidget {
   final String title;
   final Widget child;
   final bool initiallyOpen;
+  final Widget? trailing;
+  final EdgeInsetsGeometry padding;
 
-  const HomeSection({super.key, required this.title, required this.child, this.initiallyOpen = true});
+  const HomeSection({
+    super.key,
+    required this.title,
+    required this.child,
+    this.initiallyOpen = true,
+    this.trailing,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  });
 
   @override
   State<HomeSection> createState() => _HomeSectionState();
@@ -24,10 +33,11 @@ class _HomeSectionState extends State<HomeSection> {
           style: ButtonVariance.ghost,
           onPressed: () => setState(() => _open = !_open),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: widget.padding,
             child: Row(
               children: [
                 Expanded(child: Text(widget.title, style: style, textAlign: TextAlign.left)),
+                if (widget.trailing != null) ...[widget.trailing!, const SizedBox(width: 8)],
                 Icon(_open ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 16),
               ],
             ),
