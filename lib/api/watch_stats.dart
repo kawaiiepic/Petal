@@ -58,15 +58,24 @@ class WatchStatsSnapshot {
 
     bool inMonth(DateTime local) => !local.isBefore(monthStart) && local.isBefore(monthEnd);
 
+    List<DateTime> datesFor(List<DateTime> watches, DateTime? fallback) {
+      if (watches.isNotEmpty) return watches.map((d) => d.toLocal()).toList();
+      if (fallback != null) return [fallback.toLocal()];
+      return const [];
+    }
+
     for (final item in latest.values) {
       if (item.mediaType == MediaType.movie) {
         if (item.completion <= 0) continue;
         movies++;
-        final when = (item.watchedAt ?? item.updatedAt).toLocal();
-        final count = item.plays > 0 ? item.plays : 1;
-        plays += count;
-        addDay(when, count);
-        if (inMonth(when)) moviesThisMonth++;
+        final dates = datesFor(item.watches, item.watchedAt ?? item.updatedAt);
+        plays += dates.length;
+        var monthHit = false;
+        for (final when in dates) {
+          addDay(when, 1);
+          if (inMonth(when)) monthHit = true;
+        }
+        if (monthHit) moviesThisMonth++;
       } else {
         final watchedEps = item.episodes.where((e) => e.completion > 0).toList();
         if (watchedEps.isEmpty) continue;
@@ -74,13 +83,14 @@ class WatchStatsSnapshot {
         var monthHit = false;
         for (final ep in watchedEps) {
           episodes++;
-          final count = ep.plays > 0 ? ep.plays : 1;
-          plays += count;
-          final when = (ep.watchedAt ?? item.updatedAt).toLocal();
-          addDay(when, count);
-          if (inMonth(when)) {
-            episodesThisMonth += count;
-            monthHit = true;
+          final dates = datesFor(ep.watches, ep.watchedAt ?? item.updatedAt);
+          plays += dates.isEmpty ? 1 : dates.length;
+          for (final when in dates) {
+            addDay(when, 1);
+            if (inMonth(when)) {
+              episodesThisMonth++;
+              monthHit = true;
+            }
           }
         }
         if (monthHit) showsThisMonth++;
