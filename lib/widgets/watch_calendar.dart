@@ -3,9 +3,11 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class WatchCalendar extends StatelessWidget {
   final WatchStatsSnapshot stats;
+  final DateTime? selectedDay;
   final ValueChanged<DateTime>? onMonthChanged;
+  final ValueChanged<DateTime>? onDaySelected;
 
-  const WatchCalendar({super.key, required this.stats, this.onMonthChanged});
+  const WatchCalendar({super.key, required this.stats, this.selectedDay, this.onMonthChanged, this.onDaySelected});
 
   @override
   Widget build(BuildContext context) {
@@ -79,20 +81,25 @@ class WatchCalendar extends StatelessWidget {
 
   Widget _cell({required int index, required int lead, required int daysInMonth, required DateTime month, required int max}) {
     final dayNum = index - lead + 1;
-    if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(height: 28);
+    if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(height: 32);
     final day = DateTime(month.year, month.month, dayNum);
     final count = stats.activityByDay[day] ?? 0;
+    final selected = selectedDay != null && selectedDay!.year == day.year && selectedDay!.month == day.month && selectedDay!.day == day.day;
     final intensity = count == 0 ? 0.08 : (0.18 + (count / max) * 0.82).clamp(0.18, 1.0);
     return Padding(
       padding: const EdgeInsets.all(2),
-      child: Container(
-        height: 28,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: const Color(0xFF7C4DFF).withValues(alpha: intensity),
-          borderRadius: BorderRadius.circular(6),
+      child: GestureDetector(
+        onTap: onDaySelected == null ? null : () => onDaySelected!(day),
+        child: Container(
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFF7C4DFF).withValues(alpha: intensity),
+            borderRadius: BorderRadius.circular(6),
+            border: selected ? Border.all(color: Colors.white, width: 1.5) : null,
+          ),
+          child: Text('$dayNum', style: TextStyle(fontSize: 11, color: count == 0 ? Colors.white.withValues(alpha: 0.45) : Colors.white)),
         ),
-        child: Text('$dayNum', style: TextStyle(fontSize: 11, color: count == 0 ? Colors.white.withValues(alpha: 0.45) : Colors.white)),
       ),
     );
   }
