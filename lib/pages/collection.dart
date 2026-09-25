@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/models/media_state.dart';
@@ -9,6 +10,7 @@ import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/pages/collection_home.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
+import 'package:petal/widgets/watch_meta_overlay.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 enum CollectionStatus { watching, watched, planned, watchlist, liked }
@@ -185,65 +187,30 @@ class CollectionCard extends StatelessWidget {
     return done == 0 ? 'Not started' : '$done watched';
   }
 
-  double? _episodeCompletion(int season, int episode) {
-    for (final e in item.episodes) {
-      if (e.season == season && e.episode == episode) return e.completion;
-    }
-    return null;
-  }
-
-  Future<List<TrackerData>> _showTracker() async {
-    final showId = item.tmdbId;
-    final seasonCount = (tmdb.numberOfSeasons as int?) ?? 1;
-    final data = <TrackerData>[];
-
-    for (var s = 1; s <= seasonCount; s++) {
-      final season = await TMDB.tvSeason(showId, s);
-      final episodes = (season.episodes as List?) ?? const [];
-      final count = episodes.isNotEmpty ? episodes.length : season.episodes.length;
-      if (count == 0) continue;
-
-      var done = 0;
-      var watching = 0;
-      for (var ep = 1; ep <= count; ep++) {
-        final c = _episodeCompletion(s, ep) ?? 0;
-        if (c >= 1) {
-          done++;
-        } else if (c > 0) {
-          watching++;
-        }
-      }
-
-      data.add(
-        TrackerData(
-          level: done >= count
-              ? TrackerLevel.fine
-              : (done > 0 || watching > 0)
-              ? TrackerLevel.warning
-              : TrackerLevel.unknown,
-          tooltip: Text('Season $s  \u00b7  $done/$count'),
-        ),
-      );
-    }
-    return data;
-  }
-
   Widget _progressOverlay() {
     if (item.mediaType == MediaType.movie) {
-      return LinearProgressIndicator(value: item.completion.clamp(0.0, 1.0), minHeight: 6, borderRadius: BorderRadius.circular(8));
+      final runtime = (tmdb as dynamic).runtime as int? ?? 0;
+      String? remaining;
+      if (runtime > 0 && item.completion > 0 && item.completion < 1) {
+        final left = WatchMeta.minutes(((1 - item.completion) * runtime).round());
+        if (left.isNotEmpty) remaining = '$left left';
+      }
+      return WatchMetaOverlay(durationLabel: WatchMeta.minutes(runtime), remainingLabel: remaining);
     }
 
-    return FutureBuilder<List<TrackerData>>(
-      future: _showTracker(),
-      builder: (context, snap) {
-        if (!snap.hasData || snap.data!.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        return ComponentTheme(
-          data: const TrackerTheme(itemHeight: 8, gap: 1),
-          child: Tracker(data: snap.data!),
-        );
-      },
+    final show = tmdb as TmdbShow;
+    final runtime = WatchMeta.episodeMinutes(show);
+    final aired = WatchMeta.airedEpisodes(show);
+    final watched = WatchMeta.watchedEpisodesFromHistory(item);
+    final left = aired > 0 ? (aired - watched).clamp(0, aired) : 0;
+    final inProgress = item.episodes.where((e) => e.completion > 0 && e.completion < 1);
+    return WatchMetaOverlay(
+      durationLabel: WatchMeta.minutes(runtime),
+      remainingLabel: WatchMeta.remainingLabel(
+        left: left,
+        minutesEach: runtime,
+        currentCompletion: inProgress.isEmpty ? 0 : inProgress.last.completion,
+      ),
     );
   }
 
