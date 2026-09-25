@@ -15,19 +15,24 @@ class WatchMetaOverlay extends StatelessWidget {
     if (left.isEmpty && right.isEmpty) return const SizedBox.shrink();
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         if (left.isNotEmpty) _pill(left),
         const Spacer(),
         if (right.isNotEmpty)
           Flexible(
-            child: Align(alignment: Alignment.centerRight, child: _pill(right)),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _pill(right, maxLines: 2),
+            ),
           ),
       ],
     );
   }
 
-  Widget _pill(String text) {
+  Widget _pill(String text, {int maxLines = 1}) {
     return Container(
+      constraints: const BoxConstraints(maxWidth: 120),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0xE6101018),
@@ -35,9 +40,10 @@ class WatchMetaOverlay extends StatelessWidget {
       ),
       child: Text(
         text,
-        maxLines: 1,
+        maxLines: maxLines,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
+        textAlign: TextAlign.right,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white, height: 1.2),
       ),
     );
   }
@@ -109,6 +115,6 @@ class WatchMeta {
     }
     final time = WatchMeta.minutes(minutes);
     if (time.isEmpty) return '$left left';
-    return '$left left \u00b7 $time';
+    return '$left left\n$time';
   }
 }
