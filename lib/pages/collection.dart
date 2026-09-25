@@ -6,6 +6,7 @@ import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/models/media_state.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
+import 'package:petal/pages/collection_home.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -66,9 +67,6 @@ class Collection extends StatefulWidget {
 }
 
 class _Collection extends State<Collection> {
-  int index = 0;
-  CollectionStatus status = CollectionStatus.watching;
-
   @override
   void initState() {
     super.initState();
@@ -79,181 +77,15 @@ class _Collection extends State<Collection> {
   Widget build(BuildContext context) {
     return Scaffold(
       headers: [
-        AppBar(leading: [BackButton()], title: Text('Collection')),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Row(
-            children: [
-              Flexible(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Tabs(
-                    index: index,
-                    onChanged: (value) => setState(() => index = value),
-                    children: const [
-                      TabItem(child: Text('All')),
-                      TabItem(child: Text('Shows')),
-                      TabItem(child: Text('Movies')),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 110, maxWidth: 140),
-                child: Select<CollectionStatus>(
-                  value: status,
-                  itemBuilder: (context, item) => Text(
-                    item.label,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  popup: SelectPopup(
-                    items: SelectItemList(
-                      children: [
-                        for (final s in CollectionStatus.values)
-                          SelectItemButton(value: s, child: Text(s.label)),
-                      ],
-                    ),
-                  ),
-                  onChanged: (value) {
-                    if (value != null) setState(() => status = value);
-                  },
-                ),
-              ),
-            ],
-          ),
+        AppBar(
+          leading: [BackButton()],
+          title: const Text('Collection'),
+          trailing: [
+            IconButton.ghost(icon: const Icon(LucideIcons.activity), onPressed: () => context.push('/stats')),
+          ],
         ),
       ],
-      child: WatchList(filterIndex: index, status: status),
-    );
-  }
-}
-
-class WatchList extends StatelessWidget {
-  final int filterIndex;
-  final CollectionStatus status;
-
-  const WatchList({super.key, required this.filterIndex, required this.status});
-
-  int _columns(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    if (width < 400) return 3;
-    if (width < 700) return 4;
-    if (width < 1100) return 5;
-    return 6;
-  }
-
-  bool _matchesType(MediaType type) {
-    if (filterIndex == 1) return type == MediaType.show;
-    if (filterIndex == 2) return type == MediaType.movie;
-    return true;
-  }
-
-  bool _matchesStatus(WatchHistoryItem item) => switch (status) {
-    CollectionStatus.watching => isWatching(item),
-    CollectionStatus.watched => item.mediaType == MediaType.movie && isFinished(item),
-    CollectionStatus.planned => isPlanned(item),
-    CollectionStatus.watchlist || CollectionStatus.liked => false,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: BackendCache.watchHistory,
-      builder: (context, history, _) {
-        return ValueListenableBuilder(
-          valueListenable: UserLibrary.watchlist,
-          builder: (context, _, __) {
-            return ValueListenableBuilder(
-              valueListenable: UserLibrary.ratings,
-              builder: (context, _, __) {
-                if (status == CollectionStatus.watchlist || status == CollectionStatus.liked) {
-                  final titles = status == CollectionStatus.watchlist ? UserLibrary.watchlistTitles() : UserLibrary.ratedTitles();
-                  final filtered = titles.where((t) => _matchesType(t.type)).toList();
-                  return _libraryGrid(context, filtered);
-                }
-
-                final latestByTmdbId = <int, WatchHistoryItem>{};
-                for (final item in history) {
-                  final existing = latestByTmdbId[item.tmdbId];
-                  if (existing == null || item.updatedAt.isAfter(existing.updatedAt)) {
-                    latestByTmdbId[item.tmdbId] = item;
-                  }
-                }
-
-                var deduped = latestByTmdbId.values.toList()..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-                deduped = deduped.where((i) => _matchesType(i.mediaType) && _matchesStatus(i)).toList();
-
-                if (deduped.isEmpty) {
-                  return const Center(child: Text('Nothing here yet'));
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  itemCount: deduped.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: _columns(context),
-                    childAspectRatio: 2 / 3.15,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                  ),
-                  itemBuilder: (context, index) {
-                    final item = deduped[index];
-                    final isShow = item.mediaType == MediaType.show;
-
-                    return FutureBuilder(
-                      future: isShow ? TMDB.tvShow(item.tmdbId) : TMDB.movie(item.tmdbId),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return Avatar(initials: '', borderRadius: 12).asSkeleton();
-                        }
-
-                        final posterPath = (snapshot.data as dynamic).posterPath as String?;
-                        if (posterPath == null || posterPath.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-
-                        return CollectionCard(
-                          item: item,
-                          tmdb: snapshot.data,
-                          status: status,
-                          poster: HoverableItem(
-                            image: CachedNetworkImage(
-                              imageUrl: Api.proxyImage('https://image.tmdb.org/t/p/w342$posterPath'),
-                              fit: BoxFit.cover,
-                            ),
-                            onTap: () => context.push(isShow ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _libraryGrid(BuildContext context, List<LibraryTitle> titles) {
-    if (titles.isEmpty) {
-      return Center(child: Text(status == CollectionStatus.watchlist ? 'Nothing on your watchlist yet' : 'No liked titles yet'));
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      itemCount: titles.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: _columns(context),
-        childAspectRatio: 2 / 3.15,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-      ),
-      itemBuilder: (context, index) => LibraryPosterCard(title: titles[index]),
+      child: const CollectionHome(),
     );
   }
 }
@@ -389,7 +221,7 @@ class CollectionCard extends StatelessWidget {
               : (done > 0 || watching > 0)
               ? TrackerLevel.warning
               : TrackerLevel.unknown,
-          tooltip: Text('Season $s  ·  $done/$count'),
+          tooltip: Text('Season $s  \u00b7  $done/$count'),
         ),
       );
     }
