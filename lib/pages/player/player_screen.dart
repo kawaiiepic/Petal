@@ -34,6 +34,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   late final VideoController controller;
   late final StreamItem selectedStream;
   bool zoomVideo = false;
+  bool _finishedThisSession = false;
 
   Timer? _saveProgress;
   StreamSubscription<(bool, Duration)>? _discordSub;
@@ -99,15 +100,25 @@ class StreamPlayerState extends State<StreamPlayer> {
     });
   }
 
+  double _ratio() {
+    final duration = player.state.duration.inMilliseconds;
+    if (duration <= 0) return 0;
+    return (player.state.position.inMilliseconds / duration).clamp(0.0, 1.0);
+  }
+
+  void _writeProgress(double value) {
+    BackendApi.setProgress(
+      widget.mediaId,
+      mediaType,
+      value.clamp(0.0, 1.0),
+      season: widget.episode?.seasonNumber,
+      episode: widget.episode?.episodeNumber,
+    );
+  }
+
   void saveProgressTask() {
     _saveProgress = Timer.periodic(const Duration(seconds: 30), (_) {
-      BackendApi.setProgress(
-        widget.mediaId,
-        mediaType,
-        player.state.position.inMinutes / player.state.duration.inMinutes,
-        season: widget.episode?.seasonNumber,
-        episode: widget.episode?.episodeNumber,
-      );
+      _writeProgress(_ratio());
     });
   }
 
@@ -146,6 +157,23 @@ class StreamPlayerState extends State<StreamPlayer> {
     await player.open(Media(selectedStream.url, extras: {'mediaId': widget.mediaId, 'episode': widget.episode}));
     _setupDiscord();
 
+    if (widget.progress == null || widget.progress! <= 0.05) {
+      _writeProgress(0.01);
+    }
+
+    player.stream.completed.listen((done) {
+      if (!done) return;
+      _finishedThisSession = true;
+      _writeProgress(1);
+    });
+
+    player.stream.position.listen((position) {
+      if (_finishedThisSession && position.inSeconds <= 5) {
+        _finishedThisSession = false;
+        _writeProgress(0.01);
+      }
+    });
+
     player.stream.tracks.listen((event) {
       applyPreferredTracks(
         audios: event.audio,
@@ -158,7 +186,9 @@ class StreamPlayerState extends State<StreamPlayer> {
         allowCommentary: false,
       );
 
-      if (widget.progress != null) player.seek(player.state.duration * widget.progress!);
+      if (widget.progress != null && widget.progress! > 0.05) {
+        player.seek(player.state.duration * widget.progress!);
+      }
     });
 
     player.stream.playing.listen((bool playing) {
@@ -301,7 +331,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
   Future<void> closeStream() async {
-    print("Progress is: ${player.state.position.inMinutes / player.state.duration.inMinutes}");
+    print("Progress is: ${_ratio()}");
   }
 
   @override
