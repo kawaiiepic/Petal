@@ -5,6 +5,7 @@ import 'package:petal/api/query_proxy.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/pages/settings.dart';
 import 'package:petal/router/router.dart';
+import 'package:petal/widgets/edge_back_swipe.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -56,7 +57,7 @@ class _PetalState extends State<PetalApp> {
         maxTabletWidth: 500,
         builder: (context, orientation, screenType) => ShadcnApp.router(
           routerConfig: AppRouter.appRouter,
-          builder: (context, child) => DrawerOverlay(child: child!),
+          builder: (context, child) => DrawerOverlay(child: EdgeBackSwipe(child: child!)),
           debugShowCheckedModeBanner: false,
           scaling: AdaptiveScaling.mobile,
           themeMode: mode,
