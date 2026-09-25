@@ -72,45 +72,28 @@ class _OnDeckShelfState extends State<OnDeckShelf> {
     return ValueListenableBuilder(
       valueListenable: BackendCache.continueWatching,
       builder: (context, list, _) {
-        return ValueListenableBuilder(
-          valueListenable: UserLibrary.watchlist,
-          builder: (context, _, __) {
-            final onDeck = list.where(_onDeck).take(12).toList();
-            final seen = {
-              for (final item in onDeck) '${item.mediaType.name}:${item.tmdbId}',
-              for (final item in list.where(_inProgress)) '${item.mediaType.name}:${item.tmdbId}',
-            };
-            final extras = UserLibrary.watchlistTitles().where((t) => !seen.contains('${t.type.name}:${t.tmdbId}')).take(4).toList();
-            if (onDeck.isEmpty && extras.isEmpty) return const SizedBox.shrink();
-            return HomeSection(
-              title: 'On deck',
-              child: SizedBox(
-                height: 25.h,
-                child: ScrollableWidget(
-                  controller: _controller,
-                  child: ListView.builder(
-                    controller: _controller,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: onDeck.length + extras.length,
-                    itemBuilder: (context, index) {
-                      if (index < onDeck.length) {
-                        final state = onDeck[index];
-                        return SizedBox(
-                          width: 55.w,
-                          child: TraktNextUpItem(key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'), state: state),
-                        );
-                      }
-                      final extra = extras[index - onDeck.length];
-                      return SizedBox(
-                        width: 55.w,
-                        child: _WatchlistLandscapeCard(item: extra),
-                      );
-                    },
-                  ),
-                ),
+        final onDeck = list.where(_onDeck).take(12).toList();
+        if (onDeck.isEmpty) return const SizedBox.shrink();
+        return HomeSection(
+          title: 'On deck',
+          child: SizedBox(
+            height: 25.h,
+            child: ScrollableWidget(
+              controller: _controller,
+              child: ListView.builder(
+                controller: _controller,
+                scrollDirection: Axis.horizontal,
+                itemCount: onDeck.length,
+                itemBuilder: (context, index) {
+                  final state = onDeck[index];
+                  return SizedBox(
+                    width: 55.w,
+                    child: TraktNextUpItem(key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'), state: state),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
@@ -182,12 +165,75 @@ class _WatchlistLandscapeCard extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(name.isEmpty ? 'Loading...' : name, style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text('Watchlist', style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text('Start now', style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+class StartNowShelf extends StatefulWidget {
+  const StartNowShelf({super.key});
+
+  @override
+  State<StartNowShelf> createState() => _StartNowShelfState();
+}
+
+class _StartNowShelfState extends State<StartNowShelf> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+    if (BackendApi.authState.selectedProfile != null) {
+      BackendCache.fetchContinueWatching();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: BackendCache.continueWatching,
+      builder: (context, list, _) {
+        return ValueListenableBuilder(
+          valueListenable: UserLibrary.watchlist,
+          builder: (context, _, __) {
+            final seen = {
+              for (final item in list) '${item.mediaType.name}:${item.tmdbId}',
+            };
+            final items = UserLibrary.watchlistTitles().where((title) => title.type == MediaType.show && !seen.contains('${title.type.name}:${title.tmdbId}')).take(12).toList();
+            if (items.isEmpty) return const SizedBox.shrink();
+            return HomeSection(
+              title: 'Start now',
+              child: SizedBox(
+                height: 25.h,
+                child: ScrollableWidget(
+                  controller: _controller,
+                  child: ListView.builder(
+                    controller: _controller,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: items.length,
+                    itemBuilder: (context, index) => SizedBox(
+                      width: 55.w,
+                      child: _WatchlistLandscapeCard(item: items[index]),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
