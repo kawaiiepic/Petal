@@ -8,6 +8,7 @@ import 'package:petal/pages/addons.dart';
 import 'package:petal/pages/collection.dart';
 import 'package:petal/pages/comments_page.dart';
 import 'package:petal/pages/dashboard/search_results_page.dart';
+import 'package:petal/pages/downloads_page.dart';
 import 'package:petal/pages/episode_detail.dart';
 import 'package:petal/pages/episode_overview.dart';
 import 'package:petal/pages/login.dart';
@@ -48,7 +49,6 @@ class AppRouter {
         builder: (context, state, child) => Navigation(state: state, child: child),
         routes: [GoRoute(path: '/', builder: (context, state) => const CatalogWidget())],
       ),
-
       GoRoute(
         path: '/search',
         builder: (context, state) {
@@ -61,7 +61,6 @@ class AppRouter {
         builder: (context, state) {
           final tmdbId = state.uri.queryParameters['tmdb'];
           final imdbId = state.uri.queryParameters['imdb'];
-
           return EpisodeOverview(tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null, imdbId: imdbId);
         },
       ),
@@ -79,7 +78,6 @@ class AppRouter {
         builder: (context, state) {
           final imdbId = state.uri.queryParameters['imdb'];
           final tmdbId = state.uri.queryParameters['tmdb'];
-
           return MovieOverview(tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null, imdbId: imdbId);
         },
       ),
@@ -102,7 +100,6 @@ class AppRouter {
         path: '/person/:id',
         builder: (context, state) => ActorOverview(personId: int.parse(state.pathParameters['id']!)),
       ),
-
       GoRoute(
         parentNavigatorKey: PetalApp.rootNavigatorKey,
         path: '/streams',
@@ -111,15 +108,16 @@ class AppRouter {
           final season = state.uri.queryParameters['s'];
           final episode = state.uri.queryParameters['e'];
           final movieId = state.uri.queryParameters['movie'];
-
+          final download = state.uri.queryParameters['download'] == '1';
           return StreamsPage(
             showId: showId != null ? int.parse(showId) : null,
             episode: (season != null && episode != null) ? Episode(seasonNumber: int.parse(season), episodeNumber: int.parse(episode)) : null,
             movieId: movieId != null ? int.parse(movieId) : null,
+            download: download,
           );
         },
       ),
-
+      GoRoute(path: '/downloads', builder: (context, state) => const DownloadsPage()),
       GoRoute(path: '/settings', builder: (context, state) => Settings()),
       GoRoute(path: '/trakt-import', builder: (context, state) => const TraktImportPage()),
       GoRoute(
@@ -141,7 +139,6 @@ class AppRouter {
           final episode = state.uri.queryParameters['e'];
           final progress = state.uri.queryParameters['p'];
           final streamItem = state.extra as StreamItem?;
-
           return StreamPlayer(
             mediaId: int.parse(mediaId!),
             episode: (season != null && episode != null) ? Episode(seasonNumber: int.parse(season), episodeNumber: int.parse(episode)) : null,
