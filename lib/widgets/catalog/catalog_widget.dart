@@ -4,6 +4,7 @@ import 'package:petal/models/catalog.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/widgets/catalog/catalog_row.dart';
 import 'package:petal/widgets/connection_error.dart';
+import 'package:petal/widgets/dashboard_stats.dart';
 import 'package:petal/widgets/trakt/trakt_next_up.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -80,6 +81,7 @@ class _CatalogWidget extends State<CatalogWidget> {
           cacheExtent: 2500,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
+            const SliverToBoxAdapter(child: DashboardStats()),
             const SliverToBoxAdapter(child: TraktNextUp(key: ValueKey('traktNextUp'))),
             if (loading && catalogs.isEmpty)
               SliverList(
