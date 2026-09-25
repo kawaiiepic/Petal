@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/api/user_library.dart';
@@ -52,6 +53,14 @@ class LibraryActions extends StatelessWidget {
               active: rating != TitleRating.none,
               onTap: () => UserLibrary.cycleRating(tmdbId, mediaType),
             );
+          },
+        ),
+        _RoundAction(
+          icon: LucideIcons.messageCircle,
+          active: false,
+          onTap: () {
+            final type = mediaType == MediaType.movie ? 'movie' : 'show';
+            context.push('/comments?type=$type&tmdb=$tmdbId&title=Comments');
           },
         ),
       ],
