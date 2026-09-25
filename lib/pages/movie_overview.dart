@@ -93,9 +93,15 @@ class _MovieOverviewState extends State<MovieOverview> {
                         alignment: Alignment.center,
                         errorBuilder: (context, error, stackTrace) => SizedBox.expand(),
                       ),
-
-                      AppBar(leading: [BackButton()], surfaceBlur: 0, surfaceOpacity: 0.5, alignment: Alignment.topLeft),
-
+                      const Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: SafeArea(
+                          bottom: false,
+                          child: AppBar(leading: [BackButton()], surfaceBlur: 0, surfaceOpacity: 0.5, alignment: Alignment.topLeft),
+                        ),
+                      ),
                       Positioned(
                         bottom: 100,
                         left: 24,
@@ -108,68 +114,39 @@ class _MovieOverviewState extends State<MovieOverview> {
                           ),
                         ),
                       ),
-
-                      Positioned(
-                        bottom: 24,
-                        left: 24,
-                        child: Row(
-                          spacing: 8,
-                          children: [
-                            ContextMenu(
-                              items: [
-                                MenuButton(
-                                  trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
-                                  onPressed: (_) {
-                                    if (movie != null) {
-                                      AppRouter.appRouter.push('/streams?movie=${movie.id}');
-                                    }
-                                  },
-                                  child: const Text('Select Source'),
-                                ),
-                              ],
-                              child: Skeleton.keep(
-                                child: Button(
-                                  onPressed: () =>
-                                      movie != null ? router.push('/player?media=${movie.id}') : null,
-                                  style: const ButtonStyle.primary().withBorderRadius(
-                                    borderRadius: BorderRadius.circular(16),
-                                    hoverBorderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Row(
-                                    spacing: 8,
-                                    children: [
-                                      Icon(LucideIcons.play),
-                                      Text(style: TextStyle(fontSize: Misc.bodySize), 'Play now'),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                      OverviewHeroActions(
+                        mediaType: MediaType.movie,
+                        tmdbId: _resolvedTmdbId,
+                        title: movie?.title,
+                        onTrailer: trailer != null ? () => launchUrl(Uri.parse(trailer.youtubeUrl)) : null,
+                        play: ContextMenu(
+                          items: [
+                            MenuButton(
+                              trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
+                              onPressed: (_) {
+                                if (movie != null) {
+                                  AppRouter.appRouter.push('/streams?movie=${movie.id}');
+                                }
+                              },
+                              child: const Text('Select Source'),
                             ),
-                            Skeleton.keep(
-                              child: Button(
-                                onPressed: () => trailer != null ? launchUrl(Uri.parse(trailer.youtubeUrl)) : null,
-                                style: const ButtonStyle.outline().withBorderRadius(
-                                  borderRadius: BorderRadius.circular(16),
-                                  hoverBorderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  spacing: 8,
-                                  children: [
-                                    const Icon(LucideIcons.video),
-                                    Text(style: TextStyle(fontSize: Misc.bodySize), 'Trailer'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            if (_resolvedTmdbId != null)
-                              Skeleton.keep(
-                                child: LibraryActions(
-                                  tmdbId: _resolvedTmdbId!,
-                                  mediaType: MediaType.movie,
-                                  title: movie?.title,
-                                ),
-                              ),
                           ],
+                          child: Skeleton.keep(
+                            child: Button(
+                              onPressed: () => movie != null ? router.push('/player?media=${movie.id}') : null,
+                              style: const ButtonStyle.primary().withBorderRadius(
+                                borderRadius: BorderRadius.circular(16),
+                                hoverBorderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                spacing: 8,
+                                children: [
+                                  const Icon(LucideIcons.play),
+                                  Text(style: TextStyle(fontSize: Misc.bodySize), 'Play'),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
