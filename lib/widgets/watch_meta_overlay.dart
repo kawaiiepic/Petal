@@ -44,6 +44,17 @@ class WatchMetaOverlay extends StatelessWidget {
 }
 
 class WatchMeta {
+  static String relative(DateTime date) {
+    final local = date.toLocal();
+    final diff = DateTime.now().difference(local);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${local.month}/${local.day}';
+  }
+
   static String minutes(int minutes) {
     if (minutes <= 0) return '';
     if (minutes < 60) return '${minutes}m';
