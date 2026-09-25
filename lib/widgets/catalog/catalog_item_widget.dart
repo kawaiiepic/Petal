@@ -11,8 +11,9 @@ import 'package:sizer/sizer.dart';
 
 class CatalogItemWidget extends StatefulWidget {
   final CatalogItem? catalogItem;
+  final bool showTitle;
 
-  const CatalogItemWidget({super.key, required this.catalogItem});
+  const CatalogItemWidget({super.key, required this.catalogItem, this.showTitle = false});
 
   @override
   State<StatefulWidget> createState() => _CatalogItemWidget();
@@ -42,33 +43,31 @@ class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliv
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Padding(
-      padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
-      child: HoverableItem(
-        image: catalogItem != null
-            ? CachedNetworkImage(
-                imageUrl: _posterUrl,
-                fit: BoxFit.cover,
-                memCacheWidth: 400,
-                fadeInDuration: Duration.zero,
-                placeholder: (context, url) => Container(color: Colors.white.withAlpha(20)).asSkeleton(leaf: true),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.white.withAlpha(30),
-                  child: Column(
-                    spacing: 8,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(LucideIcons.tv, size: 50),
-                      Text(catalogItem!.name, textAlign: TextAlign.center),
-                    ],
-                  ),
+    final poster = HoverableItem(
+      image: catalogItem != null
+          ? CachedNetworkImage(
+              imageUrl: _posterUrl,
+              fit: BoxFit.cover,
+              memCacheWidth: 400,
+              fadeInDuration: Duration.zero,
+              placeholder: (context, url) => Container(color: Colors.white.withAlpha(20)).asSkeleton(leaf: true),
+              errorWidget: (context, url, error) => Container(
+                color: Colors.white.withAlpha(30),
+                child: Column(
+                  spacing: 8,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(LucideIcons.tv, size: 50),
+                    Text(catalogItem!.name, textAlign: TextAlign.center),
+                  ],
                 ),
-              )
-            : Avatar(initials: '', borderRadius: 12).asSkeleton(),
-        onTap: () {
-          if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
-        },
-        contextItems: [
+              ),
+            )
+          : Avatar(initials: '', borderRadius: 12).asSkeleton(),
+      onTap: () {
+        if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
+      },
+      contextItems: [
           MenuButton(
             leading: const Icon(LucideIcons.play),
             trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
@@ -125,7 +124,31 @@ class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliv
             child: const Text('Rate'),
           ),
         ],
-      ),
+    );
+
+    final title = catalogItem == null
+        ? ''
+        : catalogItem!.year > 0
+            ? '${catalogItem!.name} (${catalogItem!.year})'
+            : catalogItem!.name;
+
+    return Padding(
+      padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
+      child: widget.showTitle
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: poster),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ],
+            )
+          : poster,
     );
   }
 }
