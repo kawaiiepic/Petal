@@ -120,18 +120,19 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                         runSpacing: 8,
                         children: [
                           Button(
-                            onPressed: snapshot.hasData
-                                ? () => context.push('/player?media=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}')
-                                : null,
+                            onPressed: snapshot.hasData ? () => context.push('/player?media=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}') : null,
                             style: const ButtonStyle.primary().withBorderRadius(borderRadius: BorderRadius.circular(16), hoverBorderRadius: BorderRadius.circular(16)),
                             child: const Row(spacing: 8, children: [Icon(LucideIcons.play), Text('Play')]),
                           ),
                           Button(
-                            onPressed: snapshot.hasData
-                                ? () => AppRouter.appRouter.push('/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}')
-                                : null,
+                            onPressed: snapshot.hasData ? () => AppRouter.appRouter.push('/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}') : null,
                             style: const ButtonStyle.outline().withBorderRadius(borderRadius: BorderRadius.circular(16), hoverBorderRadius: BorderRadius.circular(16)),
                             child: const Row(spacing: 8, children: [Icon(LucideIcons.server), Text('Source')]),
+                          ),
+                          Button(
+                            onPressed: snapshot.hasData ? () => AppRouter.appRouter.push('/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}&download=1') : null,
+                            style: const ButtonStyle.outline().withBorderRadius(borderRadius: BorderRadius.circular(16), hoverBorderRadius: BorderRadius.circular(16)),
+                            child: const Row(spacing: 8, children: [Icon(LucideIcons.download), Text('Download')]),
                           ),
                           Button(
                             onPressed: () => context.push('/series?tmdb=${widget.tmdbId}'),
