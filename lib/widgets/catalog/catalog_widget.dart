@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
@@ -51,7 +52,9 @@ class _CatalogWidget extends State<CatalogWidget> {
       }
     }
 
-    if (catalogs.isEmpty && catalogAddons > 0 && failedAddons == catalogAddons) {
+    if (catalogs.isEmpty &&
+        catalogAddons > 0 &&
+        failedAddons == catalogAddons) {
       throw const ConnectionException('Could not load catalogs.');
     }
 
@@ -83,23 +86,24 @@ class _CatalogWidget extends State<CatalogWidget> {
         final loading = snapshot.connectionState != ConnectionState.done;
 
         return CustomScrollView(
-          cacheExtent: 2500,
+          scrollCacheExtent: ScrollCacheExtent.pixels(200),
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(child: SurpriseWatchlistButton()),
+            const SliverToBoxAdapter(child: DashboardStats()),
             const SliverToBoxAdapter(child: UpcomingEpisodes()),
             const SliverToBoxAdapter(child: OnDeckShelf()),
             const SliverToBoxAdapter(child: StartNowShelf()),
-            const SliverToBoxAdapter(child: InProgressShelf()),
+            // const SliverToBoxAdapter(child: InProgressShelf()),
             const SliverToBoxAdapter(child: WatchlistShelf()),
             const SliverToBoxAdapter(child: LikedShelf()),
             const SliverToBoxAdapter(child: RecentAndStalledShelves()),
             const SliverToBoxAdapter(child: BecauseYouWatchedShelf()),
-            const SliverToBoxAdapter(child: DashboardStats()),
             if (loading && catalogs.isEmpty)
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => const CatalogRow(catalog: null, catalogItems: null),
+                  (context, index) =>
+                      const CatalogRow(catalog: null, catalogItems: null),
                   childCount: 3,
                 ),
               )
@@ -107,15 +111,20 @@ class _CatalogWidget extends State<CatalogWidget> {
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.all(24),
-                  child: Text('No shows to browse yet. Add a catalog addon to fill this page.'),
+                  child: Text(
+                    'No shows to browse yet. Add a catalog addon to fill this page.',
+                  ),
                 ),
               )
             else
               SliverList(
-                delegate: SliverChildListDelegate(
-                  [for (final catalog in catalogs) _CatalogSection(key: ValueKey('${catalog.id}-${catalog.type}'), catalog: catalog)],
-                  addAutomaticKeepAlives: true,
-                ),
+                delegate: SliverChildListDelegate([
+                  for (final catalog in catalogs)
+                    _CatalogSection(
+                      key: ValueKey('${catalog.id}-${catalog.type}'),
+                      catalog: catalog,
+                    ),
+                ], addAutomaticKeepAlives: true),
               ),
             const SliverToBoxAdapter(child: DownloadsShelf()),
             const SliverToBoxAdapter(child: FriendActivity()),
@@ -136,7 +145,8 @@ class _CatalogSection extends StatefulWidget {
   State<_CatalogSection> createState() => _CatalogSectionState();
 }
 
-class _CatalogSectionState extends State<_CatalogSection> with AutomaticKeepAliveClientMixin {
+class _CatalogSectionState extends State<_CatalogSection>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 

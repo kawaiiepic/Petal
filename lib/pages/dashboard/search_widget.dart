@@ -26,12 +26,6 @@ class _SearchState extends State<Search> {
       onSubmitted: (_) => _openResults(),
       features: [
         const InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
-        InputFeature.trailing(
-          IconButton.ghost(
-            icon: const Icon(LucideIcons.search),
-            onPressed: _openResults,
-          ),
-        ),
       ],
     );
   }

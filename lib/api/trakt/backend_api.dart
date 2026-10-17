@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:mime/mime.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/api_cache.dart';
@@ -15,7 +14,6 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:petal/models/session.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -28,7 +26,7 @@ class BackendApi {
   static WatchPresenceClient presence = WatchPresenceClient();
 
   static Future<void> init() async {
-    prepareCookieManager();
+    await prepareCookieManager();
     BackendApi.authState.addListener(() {
       BackendCache.fetchWatchHistory();
     });
@@ -51,40 +49,45 @@ class BackendApi {
     );
     final directory = await getApplicationCacheDirectory();
     print(directory.path);
-    cookieJar = PersistCookieJar(ignoreExpires: true, storage: FileStorage("${directory.path}/.cookies/"));
+    cookieJar = PersistCookieJar(
+      storage: FileStorage("${directory.path}/.cookies/"),
+    );
     dio.interceptors.add(CookieManager(cookieJar));
   }
 
   static Future<bool> verifySession() async {
     print("Verifying session");
-    print(await cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/users/verify")));
-    final cookies = await cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/users/verify"));
-    for (final c in cookies) {
-      if (c.name == "auth") {
-        Map<String, dynamic> decodedToken = JwtDecoder.decode(c.value);
-        print(decodedToken);
-
-        BackendApi.authState.setLoggedIn(decodedToken);
-        BackendApi.authState.setProfile((await BackendApi.profiles()).first);
-      }
-    }
 
     try {
+      final uri = Uri.parse("${Api.ServerUrl}/users/verify");
+
+      print("Cookies: ${await cookieJar.loadForRequest(uri)}");
+
       final response = await dio.get("${Api.ServerUrl}/users/verify");
-      print("Response code for verify.");
-      print(response.data);
 
       if (response.data["success"] == true) {
+        final user = Map<String, dynamic>.from(response.data["user"]);
+
+        authState.setLoggedIn(user);
         authState.setInitializing(false);
+
+        final profiles = await BackendApi.profiles();
+        if (profiles.isNotEmpty) {
+          authState.setProfile(profiles.first);
+        }
+
         return true;
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        print("No valid session");
-      } else {
-        print("Error verifying session: $e");
-      }
+      print(
+        "Session verification failed: "
+        "${e.response?.statusCode ?? e.message}",
+      );
+    } catch (e) {
+      print("Error verifying session: $e");
     }
+
+    // Clear logged-in state here using your authState API.
     authState.setInitializing(false);
     return false;
   }
@@ -95,7 +98,9 @@ class BackendApi {
   }
 
   static Future<void> uploadProfile(Uint8List imageData) async {
-    final mimeType = lookupMimeType('', headerBytes: imageData) ?? 'application/octet-stream';
+    final mimeType =
+        lookupMimeType('', headerBytes: imageData) ??
+        'application/octet-stream';
 
     print(mimeType);
 
@@ -107,7 +112,11 @@ class BackendApi {
   }
 
   static Future<void> addUserAddon(String manifestUrl, bool forced) async {
-    final addon = {"manifest_url": manifestUrl, "forced": forced, "config": "string"};
+    final addon = {
+      "manifest_url": manifestUrl,
+      "forced": forced,
+      "config": "string",
+    };
 
     await BackendApi.dio.post("${Api.ServerUrl}/addons", data: addon);
 
@@ -121,11 +130,15 @@ class BackendApi {
   }
 
   static Future<void> addAddonResource(String addonId, String resource) async {
-    await BackendApi.dio.post("${Api.ServerUrl}/addons/$addonId/resources/$resource");
+    await BackendApi.dio.post(
+      "${Api.ServerUrl}/addons/$addonId/resources/$resource",
+    );
   }
 
   static Future<void> delAddonResource(String addonId, String resource) async {
-    await BackendApi.dio.delete("${Api.ServerUrl}/addons/$addonId/resources/$resource");
+    await BackendApi.dio.delete(
+      "${Api.ServerUrl}/addons/$addonId/resources/$resource",
+    );
   }
 
   static Future<List<Addon>> fetchUserAddons() async {
@@ -175,14 +188,19 @@ class BackendApi {
 
   static Future<List<ContinueWatchingItem>> continueWatching() async {
     if (authState.selectedProfile == null) return [];
-    final url = '${Api.ServerUrl}/track/continue/${authState.selectedProfile?.id}';
+    final url =
+        '${Api.ServerUrl}/track/continue/${authState.selectedProfile?.id}';
     final response = await dio.get(url);
 
-    final items = (response.data['result'] as List<dynamic>).map((e) => ContinueWatchingItem.fromJson(e as Map<String, dynamic>)).toList();
+    final items = (response.data['result'] as List<dynamic>)
+        .map((e) => ContinueWatchingItem.fromJson(e as Map<String, dynamic>))
+        .toList();
 
     for (final item in items) {
       if (item is ShowItem) {
-        print('Show ${item.tmdbId}, next up: ${item.nextEpisode?.season}x${item.nextEpisode?.episode}');
+        print(
+          'Show ${item.tmdbId}, next up: ${item.nextEpisode?.season}x${item.nextEpisode?.episode}',
+        );
       } else if (item is MovieItem) {
         print('Movie ${item.tmdbId}, completion: ${item.completion}');
       }
@@ -192,42 +210,64 @@ class BackendApi {
 
   static Future<List<WatchHistoryItem>> watchHistory() async {
     if (authState.selectedProfile == null) return [];
-    final url = '${Api.ServerUrl}/track/states/${authState.selectedProfile?.id}';
+    final url =
+        '${Api.ServerUrl}/track/states/${authState.selectedProfile?.id}';
     final response = await dio.get(url);
 
-    final items = (response.data['result'] as List<dynamic>).map((e) => WatchHistoryItem.fromJson(e as Map<String, dynamic>)).toList();
+    final items = (response.data['result'] as List<dynamic>)
+        .map((e) => WatchHistoryItem.fromJson(e as Map<String, dynamic>))
+        .toList();
     return items;
   }
 
-static Future<void> setProgress(int tmdbId, MediaType mediaType, double progress, {int? season, int? episode}) async {
+  static Future<void> setProgress(
+    int tmdbId,
+    MediaType mediaType,
+    double progress, {
+    int? season,
+    int? episode,
+    DateTime? watchedAt,
+    bool notify = false,
+  }) async {
     final profileId = authState.selectedProfile?.id;
     final type = mediaType.toBackendSafe;
     final url = '${Api.ServerUrl}/track/state/$profileId/$type/$tmdbId';
 
     final data = <String, dynamic>{'completion': progress};
-    if (type == 'episode') {
-      data['season'] = season;
-      data['episode'] = episode;
+
+    if (season != null) data['season'] = season;
+    if (episode != null) data['episode'] = episode;
+    if (watchedAt != null) {
+      data['watched_at'] = watchedAt.toUtc().millisecondsSinceEpoch ~/ 1000;
     }
 
     final list = [...BackendCache.continueWatching.value];
 
     if (progress >= 1.0) {
       await dio.put(url, data: data);
-      Misc.sendNotification(const Text('Updated'), const Text('Episode has been marked as watched.'));
+      if (notify) {
+        Misc.sendNotification(
+          const Text('Updated'),
+          const Text('Episode has been marked as watched.'),
+        );
+      }
       await BackendCache.fetchContinueWatching();
       return;
     }
 
     if (type == 'movie') {
-      final index = list.indexWhere((item) => item is MovieItem && item.tmdbId == tmdbId);
+      final index = list.indexWhere(
+        (item) => item is MovieItem && item.tmdbId == tmdbId,
+      );
       if (index != -1) {
         list[index] = MovieItem(tmdbId: tmdbId, completion: progress);
       } else {
         list.insert(0, MovieItem(tmdbId: tmdbId, completion: progress));
       }
     } else if (season != null && episode != null) {
-      final showIndex = list.indexWhere((item) => item is ShowItem && item.tmdbId == tmdbId);
+      final showIndex = list.indexWhere(
+        (item) => item is ShowItem && item.tmdbId == tmdbId,
+      );
 
       if (showIndex != -1) {
         final show = list[showIndex] as ShowItem;
@@ -238,7 +278,10 @@ static Future<void> setProgress(int tmdbId, MediaType mediaType, double progress
           final episodes = [...seasons[seasonIndex].episodes];
           final episodeIndex = episodes.indexWhere((e) => e.episode == episode);
           if (episodeIndex != -1) {
-            episodes[episodeIndex] = SeasonEpisode(episode: episode, completion: progress);
+            episodes[episodeIndex] = SeasonEpisode(
+              episode: episode,
+              completion: progress,
+            );
           } else {
             episodes.add(SeasonEpisode(episode: episode, completion: progress));
           }
@@ -254,7 +297,11 @@ static Future<void> setProgress(int tmdbId, MediaType mediaType, double progress
 
         list[showIndex] = ShowItem(
           tmdbId: tmdbId,
-          nextEpisode: NextEpisode(season: season, episode: episode, completion: progress),
+          nextEpisode: NextEpisode(
+            season: season,
+            episode: episode,
+            completion: progress,
+          ),
           seasons: seasons,
         );
       } else {
@@ -262,11 +309,17 @@ static Future<void> setProgress(int tmdbId, MediaType mediaType, double progress
           0,
           ShowItem(
             tmdbId: tmdbId,
-            nextEpisode: NextEpisode(season: season, episode: episode, completion: progress),
+            nextEpisode: NextEpisode(
+              season: season,
+              episode: episode,
+              completion: progress,
+            ),
             seasons: [
               Season(
                 number: season,
-                episodes: [SeasonEpisode(episode: episode, completion: progress)],
+                episodes: [
+                  SeasonEpisode(episode: episode, completion: progress),
+                ],
               ),
             ],
           ),

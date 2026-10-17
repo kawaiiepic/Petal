@@ -4,7 +4,6 @@ import 'package:petal/api/tmdb/tmdb_models.dart';
 import 'package:petal/api/trakt/backend_api.dart';
 import 'package:petal/api/trakt/backend_cache.dart';
 import 'package:petal/api/trakt/library_api.dart';
-import 'package:petal/models/media_state.dart';
 import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 

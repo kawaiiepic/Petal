@@ -26,25 +26,41 @@ class _HomeSectionState extends State<HomeSection> {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp, fontWeight: FontWeight.w600);
-    return Column(
-      children: [
-        Button(
-          style: ButtonVariance.ghost,
-          onPressed: () => setState(() => _open = !_open),
-          child: Padding(
-            padding: widget.padding,
+    final style = TextStyle(
+      fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp,
+      fontWeight: FontWeight.w600,
+    );
+    return Padding(
+      padding: widget.padding,
+      child: Column(
+        spacing: 8,
+        children: [
+          Button(
+            style: ButtonVariance.ghost,
+            onPressed: () => setState(() => _open = !_open),
             child: Row(
               children: [
-                Expanded(child: Text(widget.title, style: style, textAlign: TextAlign.left)),
-                if (widget.trailing != null) ...[widget.trailing!, const SizedBox(width: 8)],
-                Icon(_open ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 16),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: style,
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+                if (widget.trailing != null) ...[
+                  widget.trailing!,
+                  const SizedBox(width: 8),
+                ],
+                Icon(
+                  _open ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+                  size: 16,
+                ),
               ],
             ),
           ),
-        ),
-        if (_open) widget.child,
-      ],
+          if (_open) widget.child,
+        ],
+      ),
     );
   }
 }

@@ -57,7 +57,10 @@ class _AddonsState extends State<Addons> {
         if (addons.isEmpty) {
           return Align(
             alignment: Alignment.centerLeft,
-            child: Text('No addons found', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+            child: Text(
+              'No addons found',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+            ),
           );
         } else {
           return SortableLayer(
@@ -70,7 +73,11 @@ class _AddonsState extends State<Addons> {
                   for (int i = 0; i < addons.length; i++)
                     Sortable(
                       data: SortableData(addons[i]),
-                      child: AddonTile(key: ValueKey(addons[i].id), addon: addons[i], onRemove: () => removeAddon(addons[i])),
+                      child: AddonTile(
+                        key: ValueKey(addons[i].id),
+                        addon: addons[i],
+                        onRemove: () => removeAddon(addons[i]),
+                      ),
                     ),
                 ],
               ),
@@ -108,7 +115,8 @@ class _AddonsState extends State<Addons> {
                           if (states.hovered) {
                             return const Icon(LucideIcons.shapes);
                           } else {
-                            return const Icon(LucideIcons.shapes).iconMutedForeground();
+                            return const Icon(LucideIcons.shapes)
+                                .iconMutedForeground();
                           }
                         },
                       ),
@@ -132,12 +140,20 @@ class _AddonsState extends State<Addons> {
                     ),
                     InputFeature.clear(
                       visibility:
-                          (InputFeatureVisibility.textNotEmpty & InputFeatureVisibility.focused) |
-                          (InputFeatureVisibility.textNotEmpty & InputFeatureVisibility.hovered),
+                          (InputFeatureVisibility.textNotEmpty &
+                              InputFeatureVisibility.focused) |
+                          (InputFeatureVisibility.textNotEmpty &
+                              InputFeatureVisibility.hovered),
                     ),
                   ],
                 ),
-                Text('Note: Addon support is very much in alpha', style: TextStyle(fontSize: Misc.smallSize, color: Colors.white.withValues(alpha: 0.6))),
+                Text(
+                  'Note: Addon support is very much in alpha',
+                  style: TextStyle(
+                    fontSize: Misc.smallSize,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
               ],
             ),
             addonsWidget(),
@@ -146,8 +162,16 @@ class _AddonsState extends State<Addons> {
               spacing: 8,
               children: [
                 _sectionTitle('Recommended widgets'),
-                RecommendAddonTile(manfiestUrl: 'https://v3-cinemeta.strem.io/manifest.json', requireConfig: false, onAdded: _reloadAddons),
-                RecommendAddonTile(manfiestUrl: 'https://comet.elfhosted.com/manifest.json', requireConfig: true, onAdded: _reloadAddons),
+                RecommendAddonTile(
+                  manfiestUrl: 'https://v3-cinemeta.strem.io/manifest.json',
+                  requireConfig: false,
+                  onAdded: _reloadAddons,
+                ),
+                RecommendAddonTile(
+                  manfiestUrl: 'https://comet.elfhosted.com/manifest.json',
+                  requireConfig: true,
+                  onAdded: _reloadAddons,
+                ),
               ],
             ),
           ],
@@ -169,11 +193,19 @@ class _AddonLogo extends StatelessWidget {
       height: 40,
       child: CachedNetworkImage(
         imageUrl: logo ?? '',
-        imageBuilder: (context, imageProvider) => Avatar(initials: 'A', provider: imageProvider, backgroundColor: Colors.transparent),
-        progressIndicatorBuilder: (context, url, downloadProgress) => CircularProgressIndicator(value: downloadProgress.progress),
+        imageBuilder: (context, imageProvider) => Avatar(
+          initials: 'A',
+          provider: imageProvider,
+          backgroundColor: Colors.transparent,
+        ),
+        progressIndicatorBuilder: (context, url, downloadProgress) =>
+            CircularProgressIndicator(value: downloadProgress.progress),
         errorWidget: (context, url, error) => Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.gray),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: Colors.gray,
+          ),
           child: const Icon(LucideIcons.puzzle),
         ),
       ),
@@ -187,7 +219,12 @@ class _AddonHeader extends StatelessWidget {
   final String? logo;
   final List<Widget> actions;
 
-  const _AddonHeader({required this.name, required this.desc, this.logo, required this.actions});
+  const _AddonHeader({
+    required this.name,
+    required this.desc,
+    this.logo,
+    required this.actions,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -200,13 +237,21 @@ class _AddonHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name.isEmpty ? 'Loading...' : name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                name.isEmpty ? 'Loading...' : name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               if (desc.isNotEmpty)
                 Text(
                   desc,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: Misc.smallSize, color: Colors.white.withValues(alpha: 0.65)),
+                  style: TextStyle(
+                    fontSize: Misc.smallSize,
+                    color: Colors.white.withValues(alpha: 0.65),
+                  ),
                 ),
             ],
           ),
@@ -223,7 +268,12 @@ class RecommendAddonTile extends StatefulWidget {
   final bool requireConfig;
   final VoidCallback onAdded;
 
-  const RecommendAddonTile({super.key, required this.manfiestUrl, required this.requireConfig, required this.onAdded});
+  const RecommendAddonTile({
+    super.key,
+    required this.manfiestUrl,
+    required this.requireConfig,
+    required this.onAdded,
+  });
 
   @override
   State<StatefulWidget> createState() => _RecommendedAddonTileState();
@@ -242,7 +292,9 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
 
   Future<void> initManifest() async {
     try {
-      final manifestRes = await BackendApi.dio.get(QueryProxy.wrap(widget.manfiestUrl));
+      final manifestRes = await BackendApi.dio.get(
+        QueryProxy.wrap(widget.manfiestUrl),
+      );
       final raw = manifestRes.data;
       final manifest = raw is Map<String, dynamic>
           ? raw
@@ -270,9 +322,19 @@ class _RecommendedAddonTileState extends State<RecommendAddonTile> {
           desc: desc,
           logo: logo,
           actions: [
-            IconButton(variance: ButtonVariance.text, density: ButtonDensity.iconDense, onPressed: () {}, icon: const Icon(LucideIcons.share)),
+            IconButton(
+              variance: ButtonVariance.text,
+              density: ButtonDensity.iconDense,
+              onPressed: () {},
+              icon: const Icon(LucideIcons.share),
+            ),
             if (widget.requireConfig)
-              IconButton(variance: ButtonVariance.text, density: ButtonDensity.iconDense, onPressed: () {}, icon: const Icon(LucideIcons.settings2))
+              IconButton(
+                variance: ButtonVariance.text,
+                density: ButtonDensity.iconDense,
+                onPressed: () {},
+                icon: const Icon(LucideIcons.settings2),
+              )
             else
               IconButton(
                 variance: ButtonVariance.text,
@@ -340,11 +402,23 @@ class _AddonTileState extends State<AddonTile> {
                     variance: ButtonVariance.text,
                     density: ButtonDensity.iconDense,
                     onPressed: () => setState(() => _open = !_open),
-                    icon: Icon(_open ? LucideIcons.chevronUp : LucideIcons.chevronDown),
+                    icon: Icon(
+                      _open ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+                    ),
                   ),
                   widget.addon.forced == 1
-                      ? IconButton(variance: ButtonVariance.text, density: ButtonDensity.iconDense, onPressed: null, icon: const Icon(LucideIcons.lock))
-                      : IconButton(variance: ButtonVariance.text, density: ButtonDensity.iconDense, onPressed: widget.onRemove, icon: const Icon(LucideIcons.circleX)),
+                      ? IconButton(
+                          variance: ButtonVariance.text,
+                          density: ButtonDensity.iconDense,
+                          onPressed: null,
+                          icon: const Icon(LucideIcons.lock),
+                        )
+                      : IconButton(
+                          variance: ButtonVariance.text,
+                          density: ButtonDensity.iconDense,
+                          onPressed: widget.onRemove,
+                          icon: const Icon(LucideIcons.circleX),
+                        ),
                 ],
               ),
             ),
@@ -352,19 +426,28 @@ class _AddonTileState extends State<AddonTile> {
               spacing: 8,
               runSpacing: 8,
               children: widget.addon.resources.map((resource) {
-                final enabled = widget.addon.enabledResources.contains(resource.name);
                 return Toggle(
-                  value: !enabled,
-                  child: Text(resource.name[0].toUpperCase() + resource.name.substring(1)),
+                  value: !widget.addon.enabledResources.contains(resource.name),
+                  child: Text(
+                    resource.name[0].toUpperCase() + resource.name.substring(1),
+                  ),
                   style: ButtonStyle.primary(density: ButtonDensity.dense),
                   onChanged: (selected) {
                     setState(() {
                       if (selected) {
+                        print("Adding,,,");
                         widget.addon.enabledResources.add(resource.name);
-                        BackendApi.addAddonResource(widget.addon.id, resource.name);
+                        BackendApi.addAddonResource(
+                          widget.addon.id,
+                          resource.name,
+                        );
                       } else {
+                        print("Removing...");
                         widget.addon.enabledResources.remove(resource.name);
-                        BackendApi.delAddonResource(widget.addon.id, resource.name);
+                        BackendApi.delAddonResource(
+                          widget.addon.id,
+                          resource.name,
+                        );
                       }
                     });
                   },
@@ -380,12 +463,19 @@ class _AddonTileState extends State<AddonTile> {
                     widget.addon.manifestUrl,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(decoration: TextDecoration.underline, decorationStyle: TextDecorationStyle.dotted),
+                    style: const TextStyle(
+                      decoration: TextDecoration.underline,
+                      decorationStyle: TextDecorationStyle.dotted,
+                    ),
                   ),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 240),
                     child: SingleChildScrollView(
-                      child: SelectableText(const JsonEncoder.withIndent(' ').convert(widget.addon.manifest), textScaler: const TextScaler.linear(1)),
+                      child: SelectableText(
+                        const JsonEncoder.withIndent(' ')
+                            .convert(widget.addon.manifest),
+                        textScaler: const TextScaler.linear(1),
+                      ),
                     ),
                   ),
                 ],

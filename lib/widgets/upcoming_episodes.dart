@@ -168,9 +168,7 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
                   final item = items[index];
                   return Padding(
                     padding: EdgeInsets.fromLTRB(2.w, 8, 2.w, 8),
-                    child: SizedBox(
-                      width: 55.w,
-                      child: Column(
+                    child: Column(
                         spacing: 8,
                         children: [
                           Expanded(
@@ -201,7 +199,7 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
                             ),
                           ),
                         ],
-                      ),
+                  
                     ),
                   );
                 },

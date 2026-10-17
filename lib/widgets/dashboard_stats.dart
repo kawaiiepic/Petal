@@ -45,14 +45,11 @@ class _DashboardStatsState extends State<DashboardStats> {
         ];
         return HomeSection(
           title: 'Stats',
-          trailing: Button.ghost(
-            onPressed: () => context.push('/stats'),
-            child: const Text('See all'),
-          ),
           child: SizedBox(
             height: 14.h,
             child: ScrollableWidget(
               controller: _controller,
+              offset: 0,
               child: ListView.builder(
                 controller: _controller,
                 scrollDirection: Axis.horizontal,

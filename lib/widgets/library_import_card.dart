@@ -15,26 +15,41 @@ class _LibraryImportCardState extends State<LibraryImportCard> {
   String? _status;
 
   Future<void> _pick() async {
-    final file = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: const ['zip', 'json', 'csv'],
-    );
-    if (file == null) return;
+  final file = await FilePicker.pickFile(
+    type: FileType.custom,
+    allowedExtensions: const ['zip', 'json', 'csv'],
+  );
+  if (file == null) return;
 
-    setState(() {
-      _busy = true;
-      _status = 'Importing ${file.name}…';
-    });
-    try {
-      final bytes = await file.readAsBytes();
-      final report = await LibraryImport.importFile(name: file.name, bytes: bytes, source: _source);
-      setState(() => _status = report.summary);
-    } catch (e) {
-      setState(() => _status = 'Import failed: $e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+  setState(() {
+    _busy = true;
+    _status = 'Importing ${file.name}…';
+  });
+
+  try {
+    final bytes = await file.readAsBytes();
+    final report = await LibraryImport.importFile(
+      name: file.name,
+      bytes: bytes,
+      source: _source,
+      onProgress: (processed, total) {
+        if (!mounted) return;
+        setState(() {
+          if (total != null) {
+            _status = 'Importing… ($processed/$total)';
+          } else {
+            _status = 'Importing… ($processed)';
+          }
+        });
+      },
+    );
+    setState(() => _status = report.summary);
+  } catch (e) {
+    setState(() => _status = 'Import failed: $e');
+  } finally {
+    if (mounted) setState(() => _busy = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {

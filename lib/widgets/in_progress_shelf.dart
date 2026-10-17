@@ -55,10 +55,7 @@ class _InProgressShelfState extends State<InProgressShelf> {
                 itemCount: list.length,
                 itemBuilder: (context, index) {
                   final state = list[index];
-                  return SizedBox(
-                    width: 55.w,
-                    child: TraktNextUpItem(key: ValueKey('${state.mediaType}-${state.tmdbId}'), state: state),
-                  );
+                  return TraktNextUpItem(key: ValueKey('${state.mediaType}-${state.tmdbId}'), state: state);
                 },
               ),
             ),

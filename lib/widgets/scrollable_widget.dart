@@ -4,7 +4,7 @@ class ScrollableWidget extends StatefulWidget {
   final Widget child;
   final ScrollController controller;
   final double offset;
-  const ScrollableWidget({super.key, required this.child, required this.controller, this.offset = 0.0});
+  const ScrollableWidget({super.key, required this.child, required this.controller, this.offset = -50.0});
 
   @override
   State<StatefulWidget> createState() => _ScrollableWidget();

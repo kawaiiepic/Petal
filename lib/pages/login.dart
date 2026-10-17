@@ -30,7 +30,17 @@ class _LoginState extends State<Login> {
       final email = emailController.text;
       final password = passwordController.text;
       print("Trying login with email: $email and password: $password");
-      final response = await BackendApi.dio.post("${Api.ServerUrl}/users/login", data: {"email": email, "password": password});
+      final response = await BackendApi.dio.post(
+        "${Api.ServerUrl}/users/login",
+        data: {"email": email, "password": password},
+      );
+
+      print("Status: ${response.statusCode}");
+      print("Headers: ${response.headers}");
+      print(
+        "Cookies: ${await BackendApi.cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/users/verify"))}",
+      );
+
       print(response.data);
       if (response.data["success"] != true) {
         setState(() {
@@ -50,7 +60,10 @@ class _LoginState extends State<Login> {
 
       setState(() {
         final d = e.response?.data;
-        error = d is Map ? (d['errors']?[0]?['message'] ?? d['error'] ?? d['message'])?.toString() : e.message;
+        error = d is Map
+            ? (d['errors']?[0]?['message'] ?? d['error'] ?? d['message'])
+                  ?.toString()
+            : e.message;
       });
     } finally {
       setState(() {
@@ -71,12 +84,19 @@ class _LoginState extends State<Login> {
       final token = registrationTokenController.text;
       final response = await BackendApi.dio.post(
         "${Api.ServerUrl}/users/register",
-        data: {"username": username, "email": email, "full_name": username, "password": password, "token": token},
+        data: {
+          "username": username,
+          "email": email,
+          "full_name": username,
+          "password": password,
+          "token": token,
+        },
       );
 
       print(response.data);
 
-      if (response.data["status"] == "already-exist") throw Exception("Account already exist");
+      if (response.data["status"] == "already-exist")
+        throw Exception("Account already exist");
       if (response.data["success"] != true) {
         throw Exception("Registration failed");
       }
@@ -106,13 +126,21 @@ class _LoginState extends State<Login> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(register ? "Register" : "Login", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                Text(
+                  register ? "Register" : "Login",
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 24),
                 if (register) ...[
                   TextField(
                     controller: usernameController,
                     placeholder: Text('Username'),
-                    onSubmitted: (value) => loading ? null : (register ? handleRegister() : handleLogin()),
+                    onSubmitted: (value) => loading
+                        ? null
+                        : (register ? handleRegister() : handleLogin()),
                     // decoration: const InputDecoration(labelText: "Username", border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 16),
@@ -120,7 +148,9 @@ class _LoginState extends State<Login> {
                 TextField(
                   controller: emailController,
                   placeholder: Text('Email'),
-                  onSubmitted: (value) => loading ? null : (register ? handleRegister() : handleLogin()),
+                  onSubmitted: (value) => loading
+                      ? null
+                      : (register ? handleRegister() : handleLogin()),
                   // decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
@@ -128,9 +158,13 @@ class _LoginState extends State<Login> {
                   controller: passwordController,
                   obscureText: true,
                   placeholder: Text('Password'),
-                  onSubmitted: (value) => loading ? null : (register ? handleRegister() : handleLogin()),
+                  onSubmitted: (value) => loading
+                      ? null
+                      : (register ? handleRegister() : handleLogin()),
                   features: [
-                    InputFeature.clear(visibility: InputFeatureVisibility.textNotEmpty),
+                    InputFeature.clear(
+                      visibility: InputFeatureVisibility.textNotEmpty,
+                    ),
                     InputFeature.passwordToggle(mode: PasswordPeekMode.hold),
                   ],
                   // decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
@@ -140,20 +174,32 @@ class _LoginState extends State<Login> {
                   TextField(
                     controller: registrationTokenController,
                     placeholder: Text('Registration Token'),
-                    onSubmitted: (value) => loading ? null : (register ? handleRegister() : handleLogin()),
-                    features: [InputFeature.passwordToggle(mode: PasswordPeekMode.hold)],
+                    onSubmitted: (value) => loading
+                        ? null
+                        : (register ? handleRegister() : handleLogin()),
+                    features: [
+                      InputFeature.passwordToggle(mode: PasswordPeekMode.hold),
+                    ],
                     // decoration: const InputDecoration(labelText: "Registration Token", border: OutlineInputBorder()),
                   ),
                 ],
                 const SizedBox(height: 16),
-                if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
+                if (error != null)
+                  Text(error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: Button.primary(
-                    onPressed: loading ? null : (register ? handleRegister : handleLogin),
+                    onPressed: loading
+                        ? null
+                        : (register ? handleRegister : handleLogin),
                     child: loading
-                        ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : Text(register ? "Register" : "Login"),
                   ),
                 ),
@@ -170,7 +216,11 @@ class _LoginState extends State<Login> {
                               registrationTokenController.clear();
                             });
                           },
-                    child: Text(register ? "Already have an account? Login" : "No account? Register"),
+                    child: Text(
+                      register
+                          ? "Already have an account? Login"
+                          : "No account? Register",
+                    ),
                   ),
                 ),
               ],

@@ -86,9 +86,10 @@ class _OnDeckShelfState extends State<OnDeckShelf> {
                 itemCount: onDeck.length,
                 itemBuilder: (context, index) {
                   final state = onDeck[index];
-                  return SizedBox(
-                    width: 55.w,
-                    child: TraktNextUpItem(key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'), state: state),
+                  return TraktNextUpItem(
+                      key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'),
+                      state: state,
+                  
                   );
                 },
               ),
@@ -119,18 +120,26 @@ class _WatchlistLandscapeCard extends StatelessWidget {
             final backdrop = show.backdropPath as String?;
             final poster = show.posterPath as String?;
             name = (show.name as String?) ?? '';
-            final path = (backdrop != null && backdrop.isNotEmpty) ? backdrop : poster;
+            final path = (backdrop != null && backdrop.isNotEmpty)
+                ? backdrop
+                : poster;
             if (path != null && path.isNotEmpty) {
-              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+              image = path.startsWith('http')
+                  ? Api.proxyImage(path)
+                  : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
             }
           } else {
             final movie = snapshot.data as dynamic;
             final backdrop = movie.backdropPath as String?;
             final poster = movie.posterPath as String?;
             name = (movie.title as String?) ?? '';
-            final path = (backdrop != null && backdrop.isNotEmpty) ? backdrop : poster;
+            final path = (backdrop != null && backdrop.isNotEmpty)
+                ? backdrop
+                : poster;
             if (path != null && path.isNotEmpty) {
-              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+              image = path.startsWith('http')
+                  ? Api.proxyImage(path)
+                  : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
             }
           }
         }
@@ -142,16 +151,28 @@ class _WatchlistLandscapeCard extends StatelessWidget {
               Expanded(
                 child: HoverableItem(
                   orientation: Orientation.landscape,
-                  onTap: () => context.push(isShow ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
+                  onTap: () => context.push(
+                    isShow
+                        ? '/series?tmdb=${item.tmdbId}'
+                        : '/movie?tmdb=${item.tmdbId}',
+                  ),
                   contextItems: [
                     MenuButton(
                       leading: const Icon(LucideIcons.play),
-                      onPressed: (_) => context.push(isShow ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
+                      onPressed: (_) => context.push(
+                        isShow
+                            ? '/series?tmdb=${item.tmdbId}'
+                            : '/movie?tmdb=${item.tmdbId}',
+                      ),
                       child: const Text('Play'),
                     ),
                     MenuButton(
                       leading: const Icon(LucideIcons.info),
-                      onPressed: (_) => context.push(isShow ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
+                      onPressed: (_) => context.push(
+                        isShow
+                            ? '/series?tmdb=${item.tmdbId}'
+                            : '/movie?tmdb=${item.tmdbId}',
+                      ),
                       child: const Text('More Info'),
                     ),
                   ],
@@ -164,8 +185,18 @@ class _WatchlistLandscapeCard extends StatelessWidget {
                 height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
                 child: Column(
                   children: [
-                    Text(name.isEmpty ? 'Loading...' : name, style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text('Start now', style: TextStyle(fontSize: 15.px), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      name.isEmpty ? 'Loading...' : name,
+                      style: TextStyle(fontSize: 15.px),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Start now',
+                      style: TextStyle(fontSize: 15.px),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -213,7 +244,14 @@ class _StartNowShelfState extends State<StartNowShelf> {
             final seen = {
               for (final item in list) '${item.mediaType.name}:${item.tmdbId}',
             };
-            final items = UserLibrary.watchlistTitles().where((title) => title.type == MediaType.show && !seen.contains('${title.type.name}:${title.tmdbId}')).take(12).toList();
+            final items = UserLibrary.watchlistTitles()
+                .where(
+                  (title) =>
+                      title.type == MediaType.show &&
+                      !seen.contains('${title.type.name}:${title.tmdbId}'),
+                )
+                .take(12)
+                .toList();
             if (items.isEmpty) return const SizedBox.shrink();
             return HomeSection(
               title: 'Start now',
@@ -248,7 +286,10 @@ class WatchlistShelf extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: UserLibrary.watchlist,
       builder: (context, _, __) {
-        final items = UserLibrary.watchlistTitles().take(12).map((t) => ShelfItem(tmdbId: t.tmdbId, type: t.type)).toList();
+        final items = UserLibrary.watchlistTitles()
+            .take(12)
+            .map((t) => ShelfItem(tmdbId: t.tmdbId, type: t.type))
+            .toList();
         return PosterShelf(title: 'From your watchlist', items: items);
       },
     );
@@ -263,7 +304,16 @@ class LikedShelf extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: UserLibrary.ratings,
       builder: (context, _, __) {
-        final items = UserLibrary.ratedTitles().take(12).map((t) => ShelfItem(tmdbId: t.tmdbId, type: t.type, subtitle: t.rating == TitleRating.love ? 'Loved' : 'Liked')).toList();
+        final items = UserLibrary.ratedTitles()
+            .take(12)
+            .map(
+              (t) => ShelfItem(
+                tmdbId: t.tmdbId,
+                type: t.type,
+                subtitle: t.rating == TitleRating.love ? 'Loved' : 'Liked',
+              ),
+            )
+            .toList();
         return PosterShelf(title: 'Liked', items: items);
       },
     );
@@ -277,24 +327,55 @@ class _RecentWatch {
   final int? episode;
   final DateTime at;
 
-  const _RecentWatch({required this.tmdbId, required this.type, required this.at, this.season, this.episode});
+  const _RecentWatch({
+    required this.tmdbId,
+    required this.type,
+    required this.at,
+    this.season,
+    this.episode,
+  });
 }
 
 List<_RecentWatch> _recentWatches(List<WatchHistoryItem> history) {
   final events = <_RecentWatch>[];
   for (final item in history) {
     if (item.mediaType == MediaType.movie) {
-      events.add(_RecentWatch(tmdbId: item.tmdbId, type: MediaType.movie, at: item.watchedAt ?? item.updatedAt));
+      events.add(
+        _RecentWatch(
+          tmdbId: item.tmdbId,
+          type: MediaType.movie,
+          at: item.watchedAt ?? item.updatedAt,
+        ),
+      );
       continue;
     }
     if (item.episodes.isEmpty) {
-      events.add(_RecentWatch(tmdbId: item.tmdbId, type: MediaType.show, at: item.updatedAt));
+      events.add(
+        _RecentWatch(
+          tmdbId: item.tmdbId,
+          type: MediaType.show,
+          at: item.updatedAt,
+        ),
+      );
       continue;
     }
     for (final episode in item.episodes) {
-      if (episode.completion <= 0 && episode.watches.isEmpty && episode.watchedAt == null) continue;
-      final at = episode.watches.isNotEmpty ? episode.watches.last : (episode.watchedAt ?? item.updatedAt);
-      events.add(_RecentWatch(tmdbId: item.tmdbId, type: MediaType.show, season: episode.season, episode: episode.episode, at: at));
+      if (episode.completion <= 0 &&
+          episode.watches.isEmpty &&
+          episode.watchedAt == null)
+        continue;
+      final at = episode.watches.isNotEmpty
+          ? episode.watches.last
+          : (episode.watchedAt ?? item.updatedAt);
+      events.add(
+        _RecentWatch(
+          tmdbId: item.tmdbId,
+          type: MediaType.show,
+          season: episode.season,
+          episode: episode.episode,
+          at: at,
+        ),
+      );
     }
   }
   events.sort((a, b) => b.at.compareTo(a.at));
@@ -347,10 +428,8 @@ class _RecentlyWatchedShelfState extends State<RecentlyWatchedShelf> {
             controller: _controller,
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
-            itemBuilder: (context, index) => SizedBox(
-              width: 55.w,
-              child: _RecentWatchCard(item: items[index]),
-            ),
+            itemBuilder: (context, index) =>
+                _RecentWatchCard(item: items[index]),
           ),
         ),
       ),
@@ -365,13 +444,19 @@ class _RecentWatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isShow = item.type == MediaType.show && item.season != null && item.episode != null;
+    final isShow =
+        item.type == MediaType.show &&
+        item.season != null &&
+        item.episode != null;
     return FutureBuilder(
       future: isShow
-          ? Future.wait<dynamic>([TMDB.tvShow(item.tmdbId), TMDB.tvEpisode(item.tmdbId, item.season!, item.episode!)])
+          ? Future.wait<dynamic>([
+              TMDB.tvShow(item.tmdbId),
+              TMDB.tvEpisode(item.tmdbId, item.season!, item.episode!),
+            ])
           : item.type == MediaType.show
-              ? TMDB.tvShow(item.tmdbId)
-              : TMDB.movie(item.tmdbId),
+          ? TMDB.tvShow(item.tmdbId)
+          : TMDB.movie(item.tmdbId),
       builder: (context, snapshot) {
         String? image;
         String title = '';
@@ -383,26 +468,33 @@ class _RecentWatchCard extends StatelessWidget {
             final show = parts[0] as TmdbShow;
             final episode = parts[1] as TmdbEpisode;
             title = show.name;
-            subtitle = 'S${item.season} \u00b7 E${item.episode} - ${episode.name}';
+            subtitle =
+                'S${item.season} \u00b7 E${item.episode} - ${episode.name}';
             final still = episode.stillPath;
             final backdrop = show.backdropPath;
             final path = (still != null && still.isNotEmpty) ? still : backdrop;
             if (path != null && path.isNotEmpty) {
-              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+              image = path.startsWith('http')
+                  ? Api.proxyImage(path)
+                  : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
             }
           } else if (item.type == MediaType.show) {
             final show = snapshot.data as TmdbShow;
             title = show.name;
             final path = show.backdropPath;
             if (path != null && path.isNotEmpty) {
-              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+              image = path.startsWith('http')
+                  ? Api.proxyImage(path)
+                  : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
             }
           } else {
             final movie = snapshot.data as TmdbMovie;
             title = movie.title;
             final path = movie.backdropPath ?? movie.posterPath;
             if (path != null && path.isNotEmpty) {
-              image = path.startsWith('http') ? Api.proxyImage(path) : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
+              image = path.startsWith('http')
+                  ? Api.proxyImage(path)
+                  : Api.proxyImage('https://image.tmdb.org/t/p/w780$path');
             }
           }
         }
@@ -416,13 +508,19 @@ class _RecentWatchCard extends StatelessWidget {
               Expanded(
                 child: HoverableItem(
                   orientation: Orientation.landscape,
-                  onTap: () => context.push(item.type == MediaType.show ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
+                  onTap: () => context.push(
+                    item.type == MediaType.show
+                        ? '/series?tmdb=${item.tmdbId}'
+                        : '/movie?tmdb=${item.tmdbId}',
+                  ),
                   extraWidget: Positioned(
                     left: 8,
                     right: 8,
                     bottom: 8,
                     child: WatchMetaOverlay(
-                      durationLabel: isShow ? 'S${item.season} \u00b7 E${item.episode}' : null,
+                      durationLabel: isShow
+                          ? 'S${item.season} \u00b7 E${item.episode}'
+                          : null,
                       remainingLabel: WatchMeta.relative(item.at),
                     ),
                   ),
@@ -436,8 +534,24 @@ class _RecentWatchCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title.isEmpty ? 'Loading...' : title, style: TextStyle(fontSize: 15.px, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(subtitle, style: TextStyle(fontSize: 13.px, color: Colors.white.withValues(alpha: 0.7)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      title.isEmpty ? 'Loading...' : title,
+                      style: TextStyle(
+                        fontSize: 15.px,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13.px,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -460,24 +574,45 @@ class RecentAndStalledShelves extends StatelessWidget {
         final latest = <int, WatchHistoryItem>{};
         for (final item in history) {
           final existing = latest[item.tmdbId];
-          if (existing == null || item.updatedAt.isAfter(existing.updatedAt)) latest[item.tmdbId] = item;
+          if (existing == null || item.updatedAt.isAfter(existing.updatedAt))
+            latest[item.tmdbId] = item;
         }
-        final items = latest.values.toList()..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        final cutoff = DateTime.now().subtract(const Duration(days: 14));
-        final stalled = items.where((i) {
-          if (!i.updatedAt.isBefore(cutoff)) return false;
-          if (i.mediaType == MediaType.movie) return i.completion > 0 && i.completion < 1;
-          return i.episodes.any((e) => e.completion > 0 && e.completion < 1);
-        }).take(12).map((i) => ShelfItem(tmdbId: i.tmdbId, type: i.mediaType, subtitle: 'Stalled')).toList();
-        final rewatched = [...items]..sort((a, b) {
-          final ap = a.plays + a.episodes.fold<int>(0, (s, e) => s + e.plays);
-          final bp = b.plays + b.episodes.fold<int>(0, (s, e) => s + e.plays);
-          return bp.compareTo(ap);
-        });
-        final topRewatched = rewatched.where((i) {
-          final plays = i.plays + i.episodes.fold<int>(0, (s, e) => s + e.plays);
-          return plays > 1;
-        }).take(12).map((i) => ShelfItem(tmdbId: i.tmdbId, type: i.mediaType)).toList();
+        final items = latest.values.toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        final cutoff = DateTime.now().subtract(const Duration(days: 30));
+        final stalled = items
+            .where((i) {
+              if (!i.updatedAt.isBefore(cutoff)) return false;
+              if (i.mediaType == MediaType.movie)
+                return i.completion > 0 && i.completion < 1;
+              return i.episodes.any(
+                (e) => e.completion > 0 && e.completion < 1,
+              );
+            })
+            .take(12)
+            .map(
+              (i) => ShelfItem(
+                tmdbId: i.tmdbId,
+                type: i.mediaType,
+                subtitle: 'Stalled',
+              ),
+            )
+            .toList();
+        final rewatched = [...items]
+          ..sort((a, b) {
+            final ap = a.plays + a.episodes.fold<int>(0, (s, e) => s + e.plays);
+            final bp = b.plays + b.episodes.fold<int>(0, (s, e) => s + e.plays);
+            return bp.compareTo(ap);
+          });
+        final topRewatched = rewatched
+            .where((i) {
+              final plays =
+                  i.plays + i.episodes.fold<int>(0, (s, e) => s + e.plays);
+              return plays > 1;
+            })
+            .take(12)
+            .map((i) => ShelfItem(tmdbId: i.tmdbId, type: i.mediaType))
+            .toList();
 
         return Column(
           children: [
@@ -509,7 +644,8 @@ class _BecauseYouWatchedShelfState extends State<BecauseYouWatchedShelf> {
   }
 
   Future<List<ShelfItem>> _load() async {
-    final history = [...BackendCache.watchHistory.value]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final history = [...BackendCache.watchHistory.value]
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     if (history.isEmpty) return const [];
     final seed = history.first;
     try {
@@ -517,12 +653,16 @@ class _BecauseYouWatchedShelfState extends State<BecauseYouWatchedShelf> {
         final show = await TMDB.tvShow(seed.tmdbId);
         _title = 'Because you watched ${show.name}';
         final recs = show.recommendations?.results.take(12) ?? const [];
-        return recs.map((r) => ShelfItem(tmdbId: r.id, type: MediaType.show)).toList();
+        return recs
+            .map((r) => ShelfItem(tmdbId: r.id, type: MediaType.show))
+            .toList();
       }
       final movie = await TMDB.movie(seed.tmdbId);
       _title = 'Because you watched ${movie.title}';
       final recs = movie.recommendations?.results.take(12) ?? const [];
-      return recs.map((r) => ShelfItem(tmdbId: r.id, type: MediaType.movie)).toList();
+      return recs
+          .map((r) => ShelfItem(tmdbId: r.id, type: MediaType.movie))
+          .toList();
     } catch (_) {
       return const [];
     }
@@ -532,7 +672,8 @@ class _BecauseYouWatchedShelfState extends State<BecauseYouWatchedShelf> {
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: _future,
-      builder: (context, snapshot) => PosterShelf(title: _title, items: snapshot.data ?? const []),
+      builder: (context, snapshot) =>
+          PosterShelf(title: _title, items: snapshot.data ?? const []),
     );
   }
 }
@@ -552,7 +693,11 @@ class SurpriseWatchlistButton extends StatelessWidget {
           child: Button.secondary(
             onPressed: () {
               final pick = titles[Random().nextInt(titles.length)];
-              context.push(pick.type == MediaType.show ? '/series?tmdb=${pick.tmdbId}' : '/movie?tmdb=${pick.tmdbId}');
+              context.push(
+                pick.type == MediaType.show
+                    ? '/series?tmdb=${pick.tmdbId}'
+                    : '/movie?tmdb=${pick.tmdbId}',
+              );
             },
             child: const Text('Surprise me from my watchlist'),
           ),
