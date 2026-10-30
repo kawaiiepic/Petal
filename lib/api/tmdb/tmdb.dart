@@ -2,6 +2,7 @@ import 'package:dio/src/response.dart';
 import 'package:flutter/foundation.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/cache/async_cache.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/tmdb/images.dart';
 import 'package:petal/models/tmdb/tmdb_episode.dart';
@@ -18,9 +19,29 @@ class TMDB {
   static const imageUrl = TmdbImageUrls.poster;
 
   static final Map<String, Future<String>> _episodeStillCache = {};
+  static final _requests = AsyncCache<String, Response>(
+    ttl: const Duration(hours: 6),
+  );
 
-  static Future<Response> tmdbApi(String boop) async {
-    return await BackendApi.dio.get('${Api.ServerUrl}/tmdb/proxy?url=$boop');
+  static Future<Response> tmdbApi(String path) => _requests.get(
+    path,
+    () => BackendApi.dio.get(
+      '${Api.ServerUrl}/tmdb/proxy',
+      queryParameters: {'url': path},
+    ),
+  );
+
+  static void clearCache() {
+    _requests.clear();
+    _episodeStillCache.clear();
+    imageData.clear();
+  }
+
+  static Future<String?> titleLogo(int tmdbId, MediaType type) async {
+    final images = type == MediaType.movie
+        ? (await movie(tmdbId)).images
+        : (await tvShow(tmdbId)).images;
+    return images?.preferredLogo?.url;
   }
 
   // Cache functions
@@ -74,7 +95,7 @@ class TMDB {
   static Future<TmdbShow> tvShow(int tmdbId) async {
     print("Getting tv show $tmdbId");
     final response = await tmdbApi(
-      '/tv/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations',
+      '/tv/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations&include_image_language=en,null',
     );
 
     if (response.statusCode != 200) throw Exception('Search failed');
@@ -85,7 +106,7 @@ class TMDB {
   static Future<TmdbMovie> movie(int tmdbId) async {
     print("Getting movie $tmdbId");
     final response = await tmdbApi(
-      '/movie/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations',
+      '/movie/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations&include_image_language=en,null',
     );
 
     if (response.statusCode != 200) throw Exception('Search failed');

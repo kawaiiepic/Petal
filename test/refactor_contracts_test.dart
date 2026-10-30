@@ -8,8 +8,8 @@ import 'package:petal/models/downloads/download_entry.dart';
 import 'package:petal/models/downloads/download_status.dart';
 import 'package:petal/models/imports/import_source.dart';
 import 'package:petal/models/media_state.dart';
-import 'package:petal/models/tmdb/tmdb_models.dart';
 import 'package:petal/models/media_type.dart';
+import 'package:petal/models/tmdb/tmdb_models.dart';
 import 'package:petal/utils/collection_progress.dart';
 
 void main() {

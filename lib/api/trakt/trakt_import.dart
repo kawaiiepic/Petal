@@ -31,9 +31,9 @@ class TraktImport {
     } else {
       await _importJson(name, utf8.decode(bytes), report);
     }
-    await BackendCache.fetchWatchHistory();
-    await BackendCache.fetchContinueWatching();
-    await UserLibrary.load();
+    await BackendCache.fetchWatchHistory(force: true);
+    await BackendCache.fetchContinueWatching(force: true);
+    await UserLibrary.load(force: true);
     return report;
   }
 
@@ -117,7 +117,12 @@ class TraktImport {
         return;
       }
       if (treatWatched) {
-        await BackendApi.setProgress(movieTmdb, MediaType.movie, 1.0);
+        await BackendApi.setProgress(
+          movieTmdb,
+          MediaType.movie,
+          1.0,
+          refresh: false,
+        );
         report.moviesWatched++;
       }
       if (treatWatchlist) {
@@ -183,6 +188,7 @@ class TraktImport {
         1.0,
         season: season,
         episode: number,
+        refresh: false,
       );
       report.episodesWatched++;
       return;
@@ -210,6 +216,7 @@ class TraktImport {
           1.0,
           season: seasonNumber,
           episode: episodeNumber,
+          refresh: false,
         );
         report.episodesWatched++;
       }

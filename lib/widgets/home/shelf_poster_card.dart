@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/models/media_card_target.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/shelf_item.dart';
 import 'package:petal/widgets/media/media_card.dart';
@@ -35,6 +36,7 @@ class ShelfPosterCard extends StatelessWidget {
               ? null
               : Api.proxyImage('https://image.tmdb.org/t/p/w342$posterPath'),
           label: name,
+          target: MediaCardTarget(tmdbId: item.tmdbId, type: item.type),
         );
       },
     );

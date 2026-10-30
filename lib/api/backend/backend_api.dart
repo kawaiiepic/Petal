@@ -29,13 +29,16 @@ class BackendApi {
   static final String secretKey = "";
   static final AuthState authState = AuthState();
 
+  static String? get profileCacheKey =>
+      authState.loggedIn && authState.selectedProfile != null
+      ? '${authState.id}:${authState.selectedProfile!.id}'
+      : null;
+
   static WatchPresenceClient presence = WatchPresenceClient();
 
   static Future<void> init() async {
     await prepareCookieManager();
-    BackendApi.authState.addListener(() {
-      BackendCache.fetchWatchHistory();
-    });
+    BackendApi.authState.addListener(BackendCache.onAuthChanged);
 
     presence.connect();
 
@@ -234,8 +237,12 @@ class BackendApi {
     int? episode,
     DateTime? watchedAt,
     bool notify = false,
+    bool refresh = true,
   }) async {
     final profileId = authState.selectedProfile?.id;
+    final profileKey = profileCacheKey;
+    if (profileId == null || profileKey == null) return;
+    BackendCache.invalidateProgress(profileKey: profileKey);
     final type = mediaType.toBackendSafe;
     final url = '${Api.ServerUrl}/track/state/$profileId/$type/$tmdbId';
 
@@ -250,14 +257,19 @@ class BackendApi {
     final list = [...BackendCache.continueWatching.value];
 
     if (progress >= 1.0) {
-      await dio.put(url, data: data);
+      await _writeProgress(url, data, profileKey);
       if (notify) {
         AppNotifications.sendNotification(
           const Text('Updated'),
           const Text('Episode has been marked as watched.'),
         );
       }
-      await BackendCache.fetchContinueWatching();
+      if (refresh && profileCacheKey == profileKey) {
+        await Future.wait([
+          BackendCache.fetchContinueWatching(),
+          BackendCache.fetchWatchHistory(),
+        ]);
+      }
       return;
     }
 
@@ -333,7 +345,17 @@ class BackendApi {
       }
     }
 
-    BackendCache.continueWatching.value = list;
+    if (profileCacheKey == profileKey)
+      BackendCache.continueWatching.value = list;
+    await _writeProgress(url, data, profileKey);
+  }
+
+  static Future<void> _writeProgress(
+    String url,
+    Map<String, dynamic> data,
+    String profileKey,
+  ) async {
     await dio.put(url, data: data);
+    BackendCache.invalidateProgress(profileKey: profileKey);
   }
 }

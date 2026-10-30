@@ -2,6 +2,8 @@ import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/upcoming_releases.dart';
 import 'package:petal/api/user_library.dart';
+import 'package:petal/models/media_card_target.dart';
+import 'package:petal/models/media_type.dart';
 import 'package:petal/models/upcoming_item.dart';
 import 'package:petal/widgets/home_section.dart';
 import 'package:petal/widgets/media/media_card.dart';
@@ -95,6 +97,12 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
                 ),
                 label:
                     '${item.season}x${item.episode} ${item.showName}: ${item.episodeName}',
+                target: MediaCardTarget(
+                  tmdbId: item.tmdbId,
+                  type: MediaType.show,
+                  season: item.season,
+                  episode: item.episode,
+                ),
               );
             },
           ),

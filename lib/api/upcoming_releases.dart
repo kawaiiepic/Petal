@@ -1,4 +1,5 @@
 import 'package:petal/api/api.dart';
+import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/user_library.dart';
@@ -11,13 +12,27 @@ class UpcomingReleases {
     const [],
   );
   static Future<void>? _inFlight;
+  static String? _profileKey;
 
   static Future<void> fetch() {
-    return _inFlight ??= _load().whenComplete(() => _inFlight = null);
+    final key = BackendApi.profileCacheKey;
+    if (_profileKey != key) {
+      _profileKey = key;
+      _inFlight = null;
+      items.value = const [];
+    }
+    if (key == null) return Future.value();
+    if (_inFlight != null) return _inFlight!;
+    late final Future<void> request;
+    request = _load(key).whenComplete(() {
+      if (identical(_inFlight, request)) _inFlight = null;
+    });
+    return _inFlight = request;
   }
 
-  static Future<void> _load() async {
+  static Future<void> _load(String profileKey) async {
     await BackendCache.fetchWatchHistory();
+    if (profileKey != BackendApi.profileCacheKey) return;
     final ids = <int>{};
     for (final item in BackendCache.watchHistory.value) {
       if (item.mediaType == MediaType.show) ids.add(item.tmdbId);
@@ -84,6 +99,6 @@ class UpcomingReleases {
     );
 
     found.sort((a, b) => a.airDate.compareTo(b.airDate));
-    items.value = found;
+    if (profileKey == BackendApi.profileCacheKey) items.value = found;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/api/user_library.dart';
 import 'package:petal/app/petal_app.dart';
 import 'package:petal/navigation/user_profile.dart';
 import 'package:petal/theme/app_typography.dart';
@@ -21,7 +22,11 @@ class AppNavigation extends StatelessWidget {
     return RefreshTrigger(
       key: PetalApp.refreshTriggerKey,
       onRefresh: () async {
-        await BackendCache.fetchContinueWatching();
+        await Future.wait([
+          BackendCache.fetchContinueWatching(force: true),
+          BackendCache.fetchWatchHistory(force: true),
+          UserLibrary.load(force: true),
+        ]);
       },
       child: Scaffold(
         headers: [

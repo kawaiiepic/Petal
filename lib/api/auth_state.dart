@@ -21,6 +21,11 @@ class AuthState extends ChangeNotifier {
       iat = jwt['iat'];
     } else {
       loggedIn = false;
+      selectedProfile = null;
+      id = null;
+      email = null;
+      username = null;
+      iat = null;
     }
     notifyListeners();
   }

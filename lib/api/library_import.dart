@@ -152,9 +152,9 @@ class LibraryImport {
       await _importNamed(name, bytes, detected, report, onProgress: onProgress);
     }
 
-    await BackendCache.fetchWatchHistory();
-    await BackendCache.fetchContinueWatching();
-    await UserLibrary.load();
+    await BackendCache.fetchWatchHistory(force: true);
+    await BackendCache.fetchContinueWatching(force: true);
+    await UserLibrary.load(force: true);
 
     // Refresh indexes for any later import in this process.
     _buildWatchedIndexes();
@@ -578,7 +578,13 @@ class LibraryImport {
     }
 
     try {
-      await BackendApi.setProgress(tmdbId, type, 1.0, watchedAt: watchedAt);
+      await BackendApi.setProgress(
+        tmdbId,
+        type,
+        1.0,
+        watchedAt: watchedAt,
+        refresh: false,
+      );
 
       _watchedMovies.add(tmdbId);
       report.moviesWatched++;
@@ -611,6 +617,7 @@ class LibraryImport {
         season: season,
         episode: episode,
         watchedAt: watchedAt,
+        refresh: false,
       );
 
       _watchedEpisodes.add(key);

@@ -43,6 +43,12 @@ Each data adapter returns a `MediaCard` with an image URL, optional overlay,
 accessibility label, and actions. Loading images, error images, hover behavior,
 and clipping are shared. Captions are not rendered below artwork.
 
+Give `MediaCard` a `MediaCardTarget` to enable the shared Play/Resume, Select Source,
+More Info, Watchlist, Watched, and Rate menu. Shelf-specific commands belong in
+`extraContextItems`; `showDefaultContextMenu: false` allows an extra-only menu.
+Landscape cards automatically display TMDB title artwork at the top. English
+artwork is preferred, then language-neutral artwork; missing logos are hidden.
+
 ```dart
 MediaShelf(
   orientation: Orientation.landscape,
@@ -51,19 +57,39 @@ MediaShelf(
   itemBuilder: (context, index) => MediaCard(
     imageUrl: items[index].image,
     label: items[index].showName,
+    target: MediaCardTarget(tmdbId: items[index].tmdbId, type: MediaType.show),
     onTap: () => openEpisode(items[index]),
   ),
 )
 ```
+
+## Request caching
+
+| Data | Freshness and behavior |
+| --- | --- |
+| TMDB requests, including title logos and episode details | Six hours; at most 256 request entries; simultaneous callers share work |
+| Library rows | One minute, scoped to account/profile; invalidated after library writes |
+| Watch history and next-up | One minute, scoped to account/profile; invalidated after progress writes |
+| Artwork and logo files | Image/cache manager storage; PNG and SVG logo files share the disk cache |
+
+Request caches are in memory and reset when the app restarts. Failed requests
+are evicted for retry. Profile switches/logout clear displayed user data, and
+late responses cannot replace another profile's results. Transient library load
+failures retain already displayed values for the same profile.
+
+User refreshes use `force: true`. Bulk watched/import writes suppress per-episode
+next-up refreshes and reconcile once at the end. Completing a single title updates
+both history and next-up. Cached reads do not repeatedly notify shelves when the
+underlying result has not changed.
 
 ## Verification
 
 ```bash
 flutter pub get
 dart run git_stamp --build-type lite --limit 20 --adding-packages disabled
-dart format --output=none --set-exit-if-changed lib test/refactor_contracts_test.dart test/media_shelf_test.dart
+dart format --output=none --set-exit-if-changed lib test
 flutter analyze
-flutter test test/refactor_contracts_test.dart test/media_shelf_test.dart
+flutter test test/refactor_contracts_test.dart test/media_shelf_test.dart test/media_card_test.dart test/tmdb_logo_test.dart test/async_cache_test.dart test/request_caching_test.dart
 flutter test
 ```
 
@@ -71,3 +97,5 @@ The contract tests cover nested model decoding, download persistence, collection
 status boundaries, and import format parsing. The media layout tests cover card
 proportions and spacing, vertical scrolling, arrows, taps, overlays, accessibility
 labels, and disposal. These tests do not make network requests.
+The cache tests count mocked HTTP requests and cover concurrent reads, expiry,
+forced refreshes, write invalidation, failure retries, and profile-switch races.

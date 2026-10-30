@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show setEquals, mapEquals;
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/backend/library_api.dart';
@@ -15,6 +16,8 @@ class UserLibrary {
     <String, TitleRating>{},
   );
   static bool _listening = false;
+  static String? _profileKey;
+  static int _revision = 0;
 
   static String _id(int tmdbId, MediaType type) => '${type.name}:$tmdbId';
 
@@ -51,7 +54,7 @@ class UserLibrary {
         .toList();
   }
 
-  static Future<void> load() async {
+  static Future<void> load({bool force = false}) async {
     if (!_listening) {
       _listening = true;
       BackendApi.authState.addListener(() {
@@ -59,8 +62,22 @@ class UserLibrary {
       });
     }
 
+    final key = BackendApi.profileCacheKey;
+    if (key != _profileKey) {
+      _profileKey = key;
+      _revision++;
+      watchlist.value = {};
+      ratings.value = {};
+    }
+    final pending = LibraryApi.fetch(force: force);
+    final revision = _revision;
+    final apiRevision = LibraryApi.revision;
     try {
-      final rows = await LibraryApi.fetch();
+      final rows = await pending;
+      if (key != BackendApi.profileCacheKey ||
+          revision != _revision ||
+          apiRevision != LibraryApi.revision)
+        return;
       final nextWatchlist = <String>{};
       final nextRatings = <String, TitleRating>{};
       for (final row in rows) {
@@ -77,11 +94,11 @@ class UserLibrary {
         );
         if (rating != TitleRating.none) nextRatings[key] = rating;
       }
-      watchlist.value = nextWatchlist;
-      ratings.value = nextRatings;
+      if (!setEquals(watchlist.value, nextWatchlist))
+        watchlist.value = nextWatchlist;
+      if (!mapEquals(ratings.value, nextRatings)) ratings.value = nextRatings;
     } catch (_) {
-      watchlist.value = {};
-      ratings.value = {};
+      // Retain already displayed values on a transient failure; the next call retries.
     }
   }
 
@@ -110,6 +127,7 @@ class UserLibrary {
     MediaType type, {
     String? name,
   }) async {
+    _revision++;
     final key = _id(tmdbId, type);
     final next = {...watchlist.value};
     final adding = !next.contains(key);
@@ -126,7 +144,7 @@ class UserLibrary {
         watchlisted: adding,
       );
     } catch (_) {
-      await load();
+      await load(force: true);
     }
     AppNotifications.sendNotification(
       Text(adding ? 'Watchlist' : 'Removed'),
@@ -139,6 +157,7 @@ class UserLibrary {
   }
 
   static Future<void> cycleRating(int tmdbId, MediaType type) async {
+    _revision++;
     final key = _id(tmdbId, type);
     final current = ratings.value[key] ?? TitleRating.none;
     final nextRating = switch (current) {
@@ -154,7 +173,7 @@ class UserLibrary {
         rating: nextRating.name,
       );
     } catch (_) {
-      await load();
+      await load(force: true);
     }
     final label = switch (nextRating) {
       TitleRating.like => 'Liked',
@@ -169,13 +188,21 @@ class UserLibrary {
     MediaType type, {
     TmdbShow? show,
   }) async {
+    final profile = BackendApi.profileCacheKey;
+    if (profile == null) return;
     final watched = isWatched(tmdbId, type);
     final target = watched ? 0.0 : 1.0;
 
     if (type == MediaType.movie) {
-      await BackendApi.setProgress(tmdbId, MediaType.movie, target);
+      await BackendApi.setProgress(
+        tmdbId,
+        MediaType.movie,
+        target,
+        refresh: false,
+      );
     } else {
       final resolved = show ?? await TMDB.tvShow(tmdbId);
+      if (profile != BackendApi.profileCacheKey) return;
       final seasons = resolved.mainSeasons.isNotEmpty
           ? resolved.mainSeasons
           : resolved.seasons.where((s) => s.seasonNumber > 0).toList();
@@ -190,6 +217,7 @@ class UserLibrary {
               target,
               season: season.seasonNumber,
               episode: episode,
+              refresh: false,
             ),
           );
         }
@@ -201,6 +229,7 @@ class UserLibrary {
           target,
           season: 1,
           episode: 1,
+          refresh: false,
         );
       } else {
         for (var i = 0; i < jobs.length; i += 8) {
@@ -211,8 +240,9 @@ class UserLibrary {
       }
     }
 
-    await BackendCache.fetchWatchHistory();
-    await BackendCache.fetchContinueWatching();
+    if (profile != BackendApi.profileCacheKey) return;
+    await BackendCache.fetchWatchHistory(force: true);
+    await BackendCache.fetchContinueWatching(force: true);
     AppNotifications.sendNotification(
       const Text('Library'),
       Text(target >= 1 ? 'Marked as watched.' : 'Marked as unwatched.'),

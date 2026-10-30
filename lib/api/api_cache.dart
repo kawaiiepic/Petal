@@ -1,5 +1,6 @@
 import 'package:petal/api/api.dart';
 import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/cache/async_cache.dart';
 import 'package:petal/api/catalog_api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/addon.dart';
@@ -10,7 +11,9 @@ import 'package:petal/models/tmdb/tmdb_search_result.dart';
 class ApiCache {
   static Future<List<Addon>>? _addonsFuture;
   static final Map<String, Future<List<CatalogItem>>> _catalogItemsFuture = {};
-  static final Map<String, Future<TmdbSearchResult>> _tmdbSearchResult = {};
+  static final _tmdbSearchResult = AsyncCache<String, TmdbSearchResult>(
+    ttl: const Duration(hours: 6),
+  );
 
   static final Map<String, List<Catalog>> _catalogs = {};
 
@@ -35,6 +38,6 @@ class ApiCache {
   }
 
   static Future<TmdbSearchResult> getTmdbSearch(String imdbId) {
-    return _tmdbSearchResult.putIfAbsent(imdbId, () => TMDB.search(imdbId));
+    return _tmdbSearchResult.get(imdbId, () => TMDB.search(imdbId));
   }
 }

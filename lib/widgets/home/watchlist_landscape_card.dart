@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/library/library_title.dart';
+import 'package:petal/models/media_card_target.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/widgets/media/media_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -55,28 +56,9 @@ class WatchlistLandscapeCard extends StatelessWidget {
                 ? '/series?tmdb=${item.tmdbId}'
                 : '/movie?tmdb=${item.tmdbId}',
           ),
-          contextItems: [
-            MenuButton(
-              leading: const Icon(LucideIcons.play),
-              onPressed: (_) => context.push(
-                isShow
-                    ? '/series?tmdb=${item.tmdbId}'
-                    : '/movie?tmdb=${item.tmdbId}',
-              ),
-              child: const Text('Play'),
-            ),
-            MenuButton(
-              leading: const Icon(LucideIcons.info),
-              onPressed: (_) => context.push(
-                isShow
-                    ? '/series?tmdb=${item.tmdbId}'
-                    : '/movie?tmdb=${item.tmdbId}',
-              ),
-              child: const Text('More Info'),
-            ),
-          ],
           imageUrl: image,
           label: name,
+          target: MediaCardTarget(tmdbId: item.tmdbId, type: item.type),
         );
       },
     );

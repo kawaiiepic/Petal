@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/models/media_card_target.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/tmdb/tmdb_episode.dart';
 import 'package:petal/models/tmdb/tmdb_movie.dart';
@@ -84,6 +85,12 @@ class RecentWatchCard extends StatelessWidget {
                   : null,
               remainingLabel: WatchMeta.relative(item.at),
             ),
+          ),
+          target: MediaCardTarget(
+            tmdbId: item.tmdbId,
+            type: item.type,
+            season: item.season,
+            episode: item.episode,
           ),
         );
       },

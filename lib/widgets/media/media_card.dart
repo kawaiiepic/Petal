@@ -1,16 +1,31 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
+import 'package:petal/api/api_cache.dart';
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/user_library.dart';
+import 'package:petal/models/media_card_target.dart';
+import 'package:petal/models/media_type.dart';
+import 'package:petal/utils/app_notifications.dart';
 import 'package:petal/widgets/catalog/hoverable_item.dart';
+import 'package:petal/widgets/media/media_title_logo.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-/// Shared artwork, loading, hover, and context-menu treatment without captions.
-class MediaCard extends StatelessWidget {
+/// Shared artwork, title logos, and library menus. Shelves only add extra actions.
+class MediaCard extends StatefulWidget {
   final String? imageUrl;
   final Widget? image;
   final String? label;
   final Widget? overlay;
   final VoidCallback? onTap;
-  final List<MenuItem>? contextItems;
+  final MediaCardTarget? target;
+  final List<MenuItem> extraContextItems;
+  final bool showDefaultContextMenu;
+  final String primaryActionLabel;
   final Orientation orientation;
+  final bool showLogo;
+  final String? logoUrl;
 
   const MediaCard({
     super.key,
@@ -19,38 +34,307 @@ class MediaCard extends StatelessWidget {
     this.label,
     this.overlay,
     this.onTap,
-    this.contextItems,
+    this.target,
+    this.extraContextItems = const [],
+    this.showDefaultContextMenu = true,
+    this.primaryActionLabel = 'Play',
     this.orientation = Orientation.portrait,
+    this.showLogo = true,
+    this.logoUrl,
   });
+
+  @override
+  State<MediaCard> createState() => _MediaCardState();
+}
+
+class _MediaCardState extends State<MediaCard> {
+  Future<int?>? _idFuture;
+  Future<String?>? _logo;
+  int? _resolvedId;
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(MediaCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.target?.tmdbId != widget.target?.tmdbId ||
+        oldWidget.target?.imdbId != widget.target?.imdbId ||
+        oldWidget.target?.type != widget.target?.type ||
+        oldWidget.orientation != widget.orientation ||
+        oldWidget.showLogo != widget.showLogo ||
+        oldWidget.logoUrl != widget.logoUrl)
+      _load();
+  }
+
+  void _load() {
+    _generation++;
+    _idFuture = null;
+    _resolvedId = widget.target?.tmdbId;
+    _logo = null;
+    if (!widget.showLogo || widget.orientation != Orientation.landscape) return;
+    if (widget.logoUrl != null) {
+      _logo = Future.value(widget.logoUrl);
+    } else if (widget.target != null) {
+      final type = widget.target!.type;
+      _logo = _resolveId().then(
+        (id) => id == null ? null : TMDB.titleLogo(id, type),
+      );
+    }
+  }
+
+  Future<int?> _resolveId() {
+    final target = widget.target;
+    if (target == null) return Future.value(null);
+    if (target.tmdbId != null) return Future.value(target.tmdbId);
+    final generation = _generation;
+    return _idFuture ??= () async {
+      try {
+        final result = await ApiCache.getTmdbSearch(target.imdbId!);
+        final matches = target.type == MediaType.movie
+            ? result.movies
+            : result.tv;
+        final id = matches.firstOrNull?.id;
+        if (mounted && generation == _generation)
+          setState(() => _resolvedId = id);
+        return id;
+      } catch (_) {
+        if (generation == _generation) _idFuture = null;
+        rethrow;
+      }
+    }();
+  }
+
+  Future<void> _run(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {
+      if (mounted)
+        AppNotifications.sendNotification(
+          const Text('Could not update title'),
+          const Text('Please try again.'),
+        );
+    }
+  }
+
+  String get _infoRoute {
+    final target = widget.target!;
+    final id = _resolvedId;
+    return '/${target.type == MediaType.movie ? 'movie' : 'series'}?${id == null ? 'imdb=${Uri.encodeQueryComponent(target.imdbId!)}' : 'tmdb=$id'}';
+  }
+
+  void _open() {
+    if (widget.onTap != null) {
+      widget.onTap!();
+      return;
+    }
+    final target = widget.target;
+    if (target == null) return;
+    if (_resolvedId != null &&
+        (target.type == MediaType.movie || target.isEpisode)) {
+      final route = target.type == MediaType.movie
+          ? '/streams?movie=$_resolvedId'
+          : '/streams?show=$_resolvedId&s=${target.season}&e=${target.episode}';
+      context.push(route);
+    } else {
+      context.push(_infoRoute);
+    }
+  }
+
+  Future<void> _sources() async {
+    final id = await _resolveId();
+    if (!mounted || id == null) return;
+    final target = widget.target!;
+    context.push(
+      target.type == MediaType.movie
+          ? '/streams?movie=$id'
+          : target.isEpisode
+          ? '/streams?show=$id&s=${target.season}&e=${target.episode}'
+          : _infoRoute,
+    );
+  }
+
+  bool get _watched {
+    final target = widget.target!;
+    final id = _resolvedId;
+    if (id == null) return false;
+    if (!target.isEpisode) return UserLibrary.isWatched(id, target.type);
+    return BackendCache.watchHistory.value
+        .where((item) => item.tmdbId == id && item.mediaType == target.type)
+        .any(
+          (item) => item.episodes.any(
+            (episode) =>
+                episode.season == target.season &&
+                episode.episode == target.episode &&
+                episode.completion >= 1,
+          ),
+        );
+  }
+
+  Future<void> _libraryAction(Future<void> Function(int id) action) async {
+    final profile = BackendApi.profileCacheKey;
+    final id = await _resolveId();
+    if (id == null || profile == null || profile != BackendApi.profileCacheKey)
+      return;
+    await action(id);
+  }
+
+  Future<void> _toggleWatched(int id) async {
+    final profile = BackendApi.profileCacheKey;
+    await BackendCache.fetchWatchHistory();
+    if (profile != BackendApi.profileCacheKey) return;
+    final target = widget.target!;
+    if (target.isEpisode) {
+      await BackendApi.setProgress(
+        id,
+        target.type,
+        _watched ? 0 : 1,
+        season: target.season,
+        episode: target.episode,
+      );
+      await Future.wait([
+        BackendCache.fetchWatchHistory(force: true),
+        BackendCache.fetchContinueWatching(),
+      ]);
+    } else {
+      await UserLibrary.toggleWatched(id, target.type);
+    }
+  }
+
+  List<MenuItem> _contextItems() {
+    final target = widget.target;
+    final defaults = <MenuItem>[];
+    if (widget.showDefaultContextMenu) {
+      if (widget.onTap != null || target != null)
+        defaults.add(
+          MenuButton(
+            leading: const Icon(LucideIcons.play),
+            child: Text(widget.primaryActionLabel),
+            onPressed: (_) => _open(),
+          ),
+        );
+      if (target != null) {
+        final inWatchlist =
+            _resolvedId != null &&
+            UserLibrary.isInWatchlist(_resolvedId!, target.type);
+        defaults.addAll([
+          MenuButton(
+            leading: const Icon(LucideIcons.server),
+            child: const Text('Select Source'),
+            onPressed: (_) => _run(_sources),
+          ),
+          MenuButton(
+            leading: const Icon(LucideIcons.info),
+            child: const Text('More Info'),
+            onPressed: (_) => context.push(_infoRoute),
+          ),
+          const MenuDivider(),
+          MenuButton(
+            leading: const Icon(LucideIcons.bookmark),
+            child: Text(
+              inWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist',
+            ),
+            onPressed: (_) => _run(
+              () => _libraryAction(
+                (id) => UserLibrary.toggleWatchlist(
+                  id,
+                  target.type,
+                  name: widget.label,
+                ),
+              ),
+            ),
+          ),
+          MenuButton(
+            leading: const Icon(LucideIcons.check),
+            child: Text(_watched ? 'Mark as Unwatched' : 'Mark as Watched'),
+            onPressed: (_) => _run(() => _libraryAction(_toggleWatched)),
+          ),
+          MenuButton(
+            leading: const Icon(LucideIcons.thumbsUp),
+            child: const Text('Rate'),
+            onPressed: (_) => _run(
+              () => _libraryAction(
+                (id) => UserLibrary.cycleRating(id, target.type),
+              ),
+            ),
+          ),
+        ]);
+      }
+    }
+    return [
+      ...defaults,
+      if (defaults.isNotEmpty && widget.extraContextItems.isNotEmpty)
+        const MenuDivider(),
+      ...widget.extraContextItems,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final placeholder = Container(color: Colors.white.withAlpha(20))
         .asSkeleton(leaf: true);
-    final url = imageUrl;
-    return Semantics(
-      label: label,
-      button: onTap != null,
-      child: HoverableItem(
-        orientation: orientation,
-        onTap: onTap,
-        contextItems: contextItems,
-        extraWidget: overlay,
-        image:
-            image ??
-            (url == null || url.isEmpty
-                ? placeholder
-                : CachedNetworkImage(
-                    imageUrl: url,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 780,
-                    fadeInDuration: Duration.zero,
-                    placeholder: (_, _) => placeholder,
-                    errorWidget: (_, _, _) => Container(
-                      color: Colors.white.withAlpha(30),
-                      child: const Icon(LucideIcons.imageOff),
+    final url = widget.imageUrl;
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        UserLibrary.watchlist,
+        UserLibrary.ratings,
+        BackendCache.watchHistory,
+      ]),
+      builder: (context, _) => Semantics(
+        label: widget.label,
+        button: widget.onTap != null || widget.target != null,
+        child: HoverableItem(
+          orientation: widget.orientation,
+          onTap: widget.onTap != null || widget.target != null ? _open : null,
+          contextItems: _contextItems(),
+          extraWidget: Stack(
+            children: [
+              if (_logo != null)
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  right: 12,
+                  child: IgnorePointer(
+                    child: SizedBox(
+                      height: 54,
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 220),
+                          child: FutureBuilder<String?>(
+                            future: _logo,
+                            builder: (context, snapshot) => snapshot.hasData
+                                ? MediaTitleLogo(url: snapshot.data!)
+                                : const SizedBox.shrink(),
+                          ),
+                        ),
+                      ),
                     ),
-                  )),
+                  ),
+                ),
+              if (widget.overlay != null) widget.overlay!,
+            ],
+          ),
+          image:
+              widget.image ??
+              (url == null || url.isEmpty
+                  ? placeholder
+                  : CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 780,
+                      fadeInDuration: Duration.zero,
+                      placeholder: (_, _) => placeholder,
+                      errorWidget: (_, _, _) => Container(
+                        color: Colors.white.withAlpha(30),
+                        child: const Icon(LucideIcons.imageOff),
+                      ),
+                    )),
+        ),
       ),
     );
   }

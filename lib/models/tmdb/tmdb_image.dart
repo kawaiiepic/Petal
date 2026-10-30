@@ -3,7 +3,7 @@ class TmdbImage {
   final int width;
   final int height;
   final double voteAverage;
-  final String? iso6391; // language, null = no language (best for logos)
+  final String? iso6391; // null indicates language-neutral artwork.
 
   static const _base = 'https://image.tmdb.org/t/p/original';
 
