@@ -1,9 +1,8 @@
-import 'package:go_router/go_router.dart';
-import 'package:petal/api/tmdb/tmdb.dart';
-import 'package:petal/api/trakt/backend_cache.dart';
-import 'package:petal/api/watch_stats.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
+import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/models/watch_history/day_watch.dart';
+import 'package:petal/models/watch_history/watch_stats_snapshot.dart';
 import 'package:petal/widgets/back_button.dart';
+import 'package:petal/widgets/stats/day_watch_tile.dart';
 import 'package:petal/widgets/watch_calendar.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -37,8 +36,15 @@ class _StatsPageState extends State<StatsPage> {
         valueListenable: BackendCache.watchHistory,
         builder: (context, history, _) {
           final stats = WatchStatsSnapshot.fromHistory(history, month: _month);
-          final selected = _selectedDay ?? DateTime(_month.year, _month.month, 1);
-          final dayItems = stats.titlesByDay[DateTime(selected.year, selected.month, selected.day)] ?? const <DayWatch>[];
+          final selected =
+              _selectedDay ?? DateTime(_month.year, _month.month, 1);
+          final dayItems =
+              stats.titlesByDay[DateTime(
+                selected.year,
+                selected.month,
+                selected.day,
+              )] ??
+              const <DayWatch>[];
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
@@ -53,10 +59,30 @@ class _StatsPageState extends State<StatsPage> {
                       _stat(width, 'Movies', '${stats.movies}', 'all time'),
                       _stat(width, 'Episodes', '${stats.episodes}', 'logged'),
                       _stat(width, 'Plays', '${stats.plays}', 'all time'),
-                      _stat(width, 'Shows', '${stats.showsThisMonth}', 'this month'),
-                      _stat(width, 'Movies', '${stats.moviesThisMonth}', 'this month'),
-                      _stat(width, 'Episodes', '${stats.episodesThisMonth}', 'this month'),
-                      _stat(width, 'Streak', '${stats.streak}', stats.streak == 1 ? 'day' : 'days'),
+                      _stat(
+                        width,
+                        'Shows',
+                        '${stats.showsThisMonth}',
+                        'this month',
+                      ),
+                      _stat(
+                        width,
+                        'Movies',
+                        '${stats.moviesThisMonth}',
+                        'this month',
+                      ),
+                      _stat(
+                        width,
+                        'Episodes',
+                        '${stats.episodesThisMonth}',
+                        'this month',
+                      ),
+                      _stat(
+                        width,
+                        'Streak',
+                        '${stats.streak}',
+                        stats.streak == 1 ? 'day' : 'days',
+                      ),
                     ],
                   );
                 },
@@ -74,13 +100,19 @@ class _StatsPageState extends State<StatsPage> {
               const SizedBox(height: 16),
               Text(
                 '${selected.month}/${selected.day}/${selected.year}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 8),
               if (dayItems.isEmpty)
-                Text('Nothing logged this day', style: TextStyle(color: Colors.white.withValues(alpha: 0.55)))
+                Text(
+                  'Nothing logged this day',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+                )
               else
-                for (final item in dayItems) _DayWatchTile(item: item),
+                for (final item in dayItems) DayWatchTile(item: item),
             ],
           );
         },
@@ -97,48 +129,32 @@ class _StatsPageState extends State<StatsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6))),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-              Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.55))),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.55),
+                ),
+              ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _DayWatchTile extends StatelessWidget {
-  final DayWatch item;
-
-  const _DayWatchTile({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final isShow = item.type == MediaType.show;
-    return FutureBuilder(
-      future: isShow ? TMDB.tvShow(item.tmdbId) : TMDB.movie(item.tmdbId),
-      builder: (context, snapshot) {
-        final name = snapshot.hasData
-            ? (isShow ? (snapshot.data as dynamic).name as String? : (snapshot.data as dynamic).title as String?)
-            : null;
-        final detail = isShow && item.season != null && item.episode != null ? 'S${item.season}E${item.episode}' : 'Movie';
-        return Button.ghost(
-          alignment: Alignment.centerLeft,
-          onPressed: () => context.push(isShow ? '/series?tmdb=${item.tmdbId}' : '/movie?tmdb=${item.tmdbId}'),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name ?? detail, maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(detail, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.55))),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

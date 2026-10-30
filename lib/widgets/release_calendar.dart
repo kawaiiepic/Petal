@@ -1,6 +1,7 @@
-import 'package:go_router/go_router.dart';
+import 'package:petal/api/upcoming_releases.dart';
+import 'package:petal/models/upcoming_item.dart';
+import 'package:petal/widgets/home/release_tile.dart';
 import 'package:petal/widgets/home_section.dart';
-import 'package:petal/widgets/upcoming_episodes.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class ReleaseCalendar extends StatefulWidget {
@@ -54,22 +55,38 @@ class _ReleaseCalendarState extends State<ReleaseCalendar> {
                             IconButton.ghost(
                               icon: const Icon(LucideIcons.chevronLeft),
                               onPressed: () => setState(() {
-                                _month = DateTime(_month.year, _month.month - 1);
-                                _selected = DateTime(_month.year, _month.month, 1);
+                                _month = DateTime(
+                                  _month.year,
+                                  _month.month - 1,
+                                );
+                                _selected = DateTime(
+                                  _month.year,
+                                  _month.month,
+                                  1,
+                                );
                               }),
                             ),
                             Expanded(
                               child: Text(
                                 '${_monthName(_month.month)} ${_month.year}',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                             IconButton.ghost(
                               icon: const Icon(LucideIcons.chevronRight),
                               onPressed: () => setState(() {
-                                _month = DateTime(_month.year, _month.month + 1);
-                                _selected = DateTime(_month.year, _month.month, 1);
+                                _month = DateTime(
+                                  _month.year,
+                                  _month.month + 1,
+                                );
+                                _selected = DateTime(
+                                  _month.year,
+                                  _month.month,
+                                  1,
+                                );
                               }),
                             ),
                           ],
@@ -77,9 +94,24 @@ class _ReleaseCalendarState extends State<ReleaseCalendar> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            for (final label in const ['S', 'M', 'T', 'W', 'T', 'F', 'S'])
+                            for (final label in const [
+                              'S',
+                              'M',
+                              'T',
+                              'W',
+                              'T',
+                              'F',
+                              'S',
+                            ])
                               Expanded(
-                                child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5))),
+                                child: Text(
+                                  label,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -92,13 +124,21 @@ class _ReleaseCalendarState extends State<ReleaseCalendar> {
                 const SizedBox(height: 10),
                 Text(
                   _dayTitle(selected),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 if (dayItems.isEmpty)
-                  Text('No new episodes this day', style: TextStyle(color: Colors.white.withValues(alpha: 0.55)))
+                  Text(
+                    'No new episodes this day',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.55),
+                    ),
+                  )
                 else
-                  for (final item in dayItems) _ReleaseTile(item: item),
+                  for (final item in dayItems) ReleaseTile(item: item),
               ],
             ),
           ),
@@ -126,14 +166,26 @@ class _ReleaseCalendarState extends State<ReleaseCalendar> {
     ];
   }
 
-  Widget _cell(int index, int lead, int daysInMonth, Map<DateTime, List<UpcomingItem>> byDay) {
+  Widget _cell(
+    int index,
+    int lead,
+    int daysInMonth,
+    Map<DateTime, List<UpcomingItem>> byDay,
+  ) {
     final dayNum = index - lead + 1;
     if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(height: 36);
     final day = DateTime(_month.year, _month.month, dayNum);
     final count = byDay[day]?.length ?? 0;
-    final selected = _selected != null && _selected!.year == day.year && _selected!.month == day.month && _selected!.day == day.day;
+    final selected =
+        _selected != null &&
+        _selected!.year == day.year &&
+        _selected!.month == day.month &&
+        _selected!.day == day.day;
     final today = DateTime.now();
-    final isToday = today.year == day.year && today.month == day.month && today.day == day.day;
+    final isToday =
+        today.year == day.year &&
+        today.month == day.month &&
+        today.day == day.day;
     return Padding(
       padding: const EdgeInsets.all(2),
       child: GestureDetector(
@@ -142,7 +194,10 @@ class _ReleaseCalendarState extends State<ReleaseCalendar> {
           height: 36,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: count == 0 ? Colors.white.withValues(alpha: 0.04) : const Color(0xFF7C4DFF).withValues(alpha: 0.28 + (count.clamp(1, 4) * 0.12)),
+            color: count == 0
+                ? Colors.white.withValues(alpha: 0.04)
+                : const Color(0xFF7C4DFF)
+                      .withValues(alpha: 0.28 + (count.clamp(1, 4) * 0.12)),
             borderRadius: BorderRadius.circular(8),
             border: selected
                 ? Border.all(color: Colors.white, width: 1.5)
@@ -153,9 +208,23 @@ class _ReleaseCalendarState extends State<ReleaseCalendar> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('$dayNum', style: TextStyle(fontSize: 11, color: count == 0 ? Colors.white.withValues(alpha: 0.45) : Colors.white)),
+              Text(
+                '$dayNum',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: count == 0
+                      ? Colors.white.withValues(alpha: 0.45)
+                      : Colors.white,
+                ),
+              ),
               if (count > 0)
-                Text('$count', style: TextStyle(fontSize: 9, color: Colors.white.withValues(alpha: 0.75))),
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                ),
             ],
           ),
         ),
@@ -175,38 +244,20 @@ class _ReleaseCalendarState extends State<ReleaseCalendar> {
   }
 
   static String _monthName(int month) {
-    const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const names = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
     return names[month - 1];
-  }
-}
-
-class _ReleaseTile extends StatelessWidget {
-  final UpcomingItem item;
-
-  const _ReleaseTile({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: GestureDetector(
-        onTap: () => context.push('/series?tmdb=${item.tmdbId}'),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.showName, maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(
-                'S${item.season} \u00b7 E${item.episode} - ${item.episodeName}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

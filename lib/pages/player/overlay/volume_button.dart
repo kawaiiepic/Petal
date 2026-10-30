@@ -1,6 +1,6 @@
 import 'package:media_kit/media_kit.dart';
-import 'package:petal/api/misc.dart';
 import 'package:petal/pages/player/overlay/control_button.dart';
+import 'package:petal/theme/app_typography.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class VolumeButton extends StatefulWidget {
@@ -34,12 +34,12 @@ class _VolumeButtonState extends State<VolumeButton> {
         children: [
           ControlButton(
             icon: Icon(
-              size: Misc.normalIconSize,
+              size: AppTypography.normalIconSize,
               _volume == 0
                   ? LucideIcons.volumeX
                   : _volume < 50
-                      ? LucideIcons.volume1
-                      : LucideIcons.volume2,
+                  ? LucideIcons.volume1
+                  : LucideIcons.volume2,
             ),
             onTap: () => widget.player.setVolume(_volume == 0 ? 100 : 0),
           ),

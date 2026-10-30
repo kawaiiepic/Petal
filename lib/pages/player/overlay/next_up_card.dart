@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/models/tmdb/tmdb_episode.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
@@ -61,11 +61,15 @@ class _NextUpCardState extends State<NextUpCard> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Duration>(
-      stream: widget.player.stream.position.throttleTime(const Duration(seconds: 1)),
+      stream: widget.player.stream.position.throttleTime(
+        const Duration(seconds: 1),
+      ),
       builder: (context, posSnapshot) {
         final pos = posSnapshot.data ?? Duration.zero;
         final dur = widget.player.state.duration;
-        final progress = dur.inMilliseconds > 0 ? pos.inMilliseconds / dur.inMilliseconds : 0.0;
+        final progress = dur.inMilliseconds > 0
+            ? pos.inMilliseconds / dur.inMilliseconds
+            : 0.0;
         final nearEnd = progress > 0.93;
         bool dismissed = false;
         final showCard = nearEnd && !dismissed;
@@ -103,7 +107,9 @@ class _NextUpCardState extends State<NextUpCard> {
                   duration: const Duration(milliseconds: 500),
                   child: AnimatedSlide(
                     duration: const Duration(milliseconds: 200),
-                    offset: widget.uiIsActive ? const Offset(0, -0.20) : Offset.zero,
+                    offset: widget.uiIsActive
+                        ? const Offset(0, -0.20)
+                        : Offset.zero,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: SizedBox(
@@ -113,9 +119,11 @@ class _NextUpCardState extends State<NextUpCard> {
                           children: [
                             Positioned.fill(
                               child: CachedNetworkImage(
-                                imageUrl: 'https://image.tmdb.org/t/p/w300${episode.stillPath}',
+                                imageUrl:
+                                    'https://image.tmdb.org/t/p/w300${episode.stillPath}',
                                 fit: BoxFit.cover,
-                                errorWidget: (_, _, _) => const Center(child: Text('Image missing')),
+                                errorWidget: (_, _, _) =>
+                                    const Center(child: Text('Image missing')),
                               ),
                             ),
                             Container(color: Colors.black.withAlpha(120)),
@@ -128,9 +136,16 @@ class _NextUpCardState extends State<NextUpCard> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Colors.white.withAlpha(40),
-                                    border: Border.all(color: Colors.white, width: 1.5),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
                                   ),
-                                  child: const Icon(LucideIcons.play, color: Colors.white, size: 26),
+                                  child: const Icon(
+                                    LucideIcons.play,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
                                 ),
                               ),
                             ),
@@ -139,12 +154,20 @@ class _NextUpCardState extends State<NextUpCard> {
                               right: 0,
                               bottom: 0,
                               child: Container(
-                                padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
+                                padding: const EdgeInsets.fromLTRB(
+                                  10,
+                                  24,
+                                  10,
+                                  10,
+                                ),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.bottomCenter,
                                     end: Alignment.topCenter,
-                                    colors: [Colors.black.withAlpha(230), Colors.transparent],
+                                    colors: [
+                                      Colors.black.withAlpha(230),
+                                      Colors.transparent,
+                                    ],
                                   ),
                                 ),
                                 child: Column(
@@ -154,24 +177,37 @@ class _NextUpCardState extends State<NextUpCard> {
                                   children: [
                                     const Text(
                                       "Up Next",
-                                      style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.w600),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                     Text(
                                       episode.name,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
                                       "S${episode.seasonNumber}:E${episode.episodeNumber} · ${episode.name}",
-                                      style: const TextStyle(fontSize: 11, color: Colors.white),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.white,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     SizedBox(
                                       width: double.infinity,
                                       child: LinearProgressIndicator(
-                                        value: (_maxtime - _secondsLeft) / _maxtime,
+                                        value:
+                                            (_maxtime - _secondsLeft) /
+                                            _maxtime,
                                         minHeight: 3,
                                         borderRadius: BorderRadius.circular(8),
                                         color: Colors.pink,
@@ -194,7 +230,11 @@ class _NextUpCardState extends State<NextUpCard> {
                                     _secondsLeft = _maxtime;
                                   });
                                 },
-                                child: const Icon(LucideIcons.x, color: Colors.white, size: 18),
+                                child: const Icon(
+                                  LucideIcons.x,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                               ),
                             ),
                           ],

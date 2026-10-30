@@ -7,7 +7,8 @@ class CatalogExtra {
   factory CatalogExtra.fromJson(Map<String, dynamic> json) {
     return CatalogExtra(
       name: json['name'] ?? '',
-      options: (json['options'] as List<dynamic>?)
+      options:
+          (json['options'] as List<dynamic>?)
               ?.map((option) => option.toString())
               .toList() ??
           [],

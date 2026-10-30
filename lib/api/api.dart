@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:petal/api/catalog_helper.dart';
-import 'package:petal/api/trakt/backend_api.dart';
-import 'package:petal/main.dart';
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/catalog_api.dart';
+import 'package:petal/app/petal_app.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
-import 'package:petal/models/settings.dart';
+import 'package:petal/models/user_settings.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class Api {
@@ -15,7 +15,9 @@ class Api {
     return "$ServerUrl/img?url=${Uri.encodeComponent(url)}";
   }
 
-  static final ServerUrl = devMode ? 'http://localhost:8787' : 'https://petal-backend.blossomvale.dev';
+  static final ServerUrl = devMode
+      ? 'http://localhost:8787'
+      : 'https://petal-backend.blossomvale.dev';
   static final ProfileUrl = 'https://profiles.blossomvale.dev';
 
   static ValueNotifier<bool> healthy = ValueNotifier(false);
@@ -35,16 +37,16 @@ class Api {
 
   static Future<void> _onBackendRecovered() async {
     healthy.value = true;
-    if (await BackendApi.verifySession()) {
-
-    }
+    if (await BackendApi.verifySession()) {}
     CatalogApi.clearCache();
   }
 
   static Future<bool> healthCheck() async {
     print("Health check./..");
     try {
-      final res = await BackendApi.dio.get("$ServerUrl/health").timeout(const Duration(seconds: 3));
+      final res = await BackendApi.dio
+          .get("$ServerUrl/health")
+          .timeout(const Duration(seconds: 3));
 
       _onBackendRecovered();
 
@@ -55,15 +57,17 @@ class Api {
   }
 
   static bool isMobile() {
-    var shortestSide = MediaQuery.sizeOf(PetalApp.rootNavigatorKey.currentContext!).shortestSide;
+    var shortestSide = MediaQuery.sizeOf(
+      PetalApp.rootNavigatorKey.currentContext!,
+    ).shortestSide;
     return shortestSide < 550;
   }
 
-  static Future<Settings?> userSettings() async {
+  static Future<UserSettings?> userSettings() async {
     final response = await BackendApi.dio.get('${Api.ServerUrl}/user/settings');
 
     if (response.statusCode == 200) {
-      return Settings.fromJson(response.data);
+      return UserSettings.fromJson(response.data);
     } else {
       return null;
     }
@@ -74,7 +78,9 @@ class Api {
     final manifest = addon.manifest;
     if (manifest == null || manifest['catalogs'] == null) return catalogs;
 
-    final baseUrl = addon.id == 'com.linvo.cinemeta' ? 'https://cinemeta-catalogs.strem.io' : addon.baseUrl;
+    final baseUrl = addon.id == 'com.linvo.cinemeta'
+        ? 'https://cinemeta-catalogs.strem.io'
+        : addon.baseUrl;
 
     const allowed = {'top', 'year', 'imdbRating'};
 
@@ -87,21 +93,45 @@ class Api {
 
       if (cat['extra'] is List) {
         for (final extra in cat['extra']) {
-          extras.add(CatalogExtra(name: extra['name'], options: (extra['options'] as List?)?.map((e) => e.toString()).toList() ?? []));
+          extras.add(
+            CatalogExtra(
+              name: extra['name'],
+              options:
+                  (extra['options'] as List?)
+                      ?.map((e) => e.toString())
+                      .toList() ??
+                  [],
+            ),
+          );
         }
       }
 
-      catalogs.add(Catalog(name: cat['name'], type: type, id: id, extra: extras, url: '$baseUrl/catalog/$type/$id.json'));
+      catalogs.add(
+        Catalog(
+          name: cat['name'],
+          type: type,
+          id: id,
+          extra: extras,
+          url: '$baseUrl/catalog/$type/$id.json',
+        ),
+      );
     }
 
     return catalogs;
   }
 
-  static String buildCatalogUrl({required String baseUrl, required String slug, required Catalog catalog, Map<String, String>? selectedExtras}) {
+  static String buildCatalogUrl({
+    required String baseUrl,
+    required String slug,
+    required Catalog catalog,
+    Map<String, String>? selectedExtras,
+  }) {
     var url = '$baseUrl/$slug/catalog/${catalog.type}/${catalog.id}.json';
 
     if (selectedExtras != null && selectedExtras.isNotEmpty) {
-      final query = selectedExtras.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+      final query = selectedExtras.entries
+          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+          .join('&');
 
       url += '?$query';
     }

@@ -27,17 +27,31 @@ class SeekIndicator extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOut,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), shape: BoxShape.circle),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(isLeft ? LucideIcons.rewind : LucideIcons.fastForward, color: Colors.white, size: 28),
+                    Icon(
+                      isLeft ? LucideIcons.rewind : LucideIcons.fastForward,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                     if (seconds > 10) ...[
                       const SizedBox(height: 2),
                       Text(
                         '${seconds}s',
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ],

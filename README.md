@@ -83,6 +83,8 @@ flutter build windows
 
 ---
 
+See [Code structure](docs/code_structure.md) for the source layout and verification commands.
+
 ## 🤝 Contributing
 
 PRs and issues are welcome! If something is broken or you want a feature, open an issue.

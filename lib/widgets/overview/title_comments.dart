@@ -1,12 +1,17 @@
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/social_api.dart';
+import 'package:petal/models/social/title_comment.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class TitleComments extends StatefulWidget {
   final String mediaType;
   final int tmdbId;
 
-  const TitleComments({super.key, required this.mediaType, required this.tmdbId});
+  const TitleComments({
+    super.key,
+    required this.mediaType,
+    required this.tmdbId,
+  });
 
   @override
   State<TitleComments> createState() => _TitleCommentsState();
@@ -27,7 +32,8 @@ class _TitleCommentsState extends State<TitleComments> {
   @override
   void didUpdateWidget(covariant TitleComments oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.mediaType != widget.mediaType || oldWidget.tmdbId != widget.tmdbId) {
+    if (oldWidget.mediaType != widget.mediaType ||
+        oldWidget.tmdbId != widget.tmdbId) {
       _load();
     }
   }
@@ -41,7 +47,10 @@ class _TitleCommentsState extends State<TitleComments> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final comments = await SocialApi.comments(widget.mediaType, widget.tmdbId);
+      final comments = await SocialApi.comments(
+        widget.mediaType,
+        widget.tmdbId,
+      );
       if (mounted) {
         setState(() {
           _comments = comments;
@@ -91,7 +100,10 @@ class _TitleCommentsState extends State<TitleComments> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(comment.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(
+                      comment.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     Text(comment.body),
                   ],
                 ),
@@ -100,10 +112,16 @@ class _TitleCommentsState extends State<TitleComments> {
         Row(
           children: [
             Expanded(
-              child: TextField(controller: _controller, placeholder: const Text('Write a comment')),
+              child: TextField(
+                controller: _controller,
+                placeholder: const Text('Write a comment'),
+              ),
             ),
             const SizedBox(width: 8),
-            Button.primary(onPressed: _posting ? null : _post, child: const Text('Post')),
+            Button.primary(
+              onPressed: _posting ? null : _post,
+              child: const Text('Post'),
+            ),
           ],
         ),
       ],

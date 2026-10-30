@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:petal/api/misc.dart';
+import 'package:petal/utils/media_formatting.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -15,7 +15,8 @@ class SeekSlider extends StatefulWidget {
   State<SeekSlider> createState() => _SeekSliderState();
 }
 
-class _SeekSliderState extends State<SeekSlider> with SingleTickerProviderStateMixin {
+class _SeekSliderState extends State<SeekSlider>
+    with SingleTickerProviderStateMixin {
   double? _dragValue;
   bool _isDragging = false;
 
@@ -43,8 +44,12 @@ class _SeekSliderState extends State<SeekSlider> with SingleTickerProviderStateM
 
     _stopwatch.start();
 
-    _sub = widget.player.stream.position.throttleTime(const Duration(seconds: 3)).listen(_onPosition);
-    _bufferSub = widget.player.stream.buffer.throttleTime(const Duration(seconds: 5)).listen(_onBufferPosition);
+    _sub = widget.player.stream.position
+        .throttleTime(const Duration(seconds: 3))
+        .listen(_onPosition);
+    _bufferSub = widget.player.stream.buffer
+        .throttleTime(const Duration(seconds: 5))
+        .listen(_onBufferPosition);
     _playingSub = widget.player.stream.playing.listen((playing) {
       _playing = playing;
       _resync(_interpolatedPosition);
@@ -116,7 +121,10 @@ class _SeekSliderState extends State<SeekSlider> with SingleTickerProviderStateM
     double liveValue = 0;
     double liveValueBuffer = 0;
     if (duration.inSeconds > 0) {
-      liveValue = (_interpolatedPosition.inSeconds / duration.inSeconds).clamp(0, 1);
+      liveValue = (_interpolatedPosition.inSeconds / duration.inSeconds).clamp(
+        0,
+        1,
+      );
     }
     if (buffer.inSeconds > 0) {
       liveValueBuffer = (_buffer.inSeconds / duration.inSeconds).clamp(0, 1);
@@ -127,7 +135,10 @@ class _SeekSliderState extends State<SeekSlider> with SingleTickerProviderStateM
       value: SliderValue.single(displayValue),
       hintValue: SliderValue.single(liveValueBuffer),
       valueIndicatorBuilder: (context, value) {
-        return SliderValueIndicator(value: value, formatter: (value) => Misc.fmt(duration * value));
+        return SliderValueIndicator(
+          value: value,
+          formatter: (value) => MediaFormatting.fmt(duration * value),
+        );
       },
       onChangeStart: (v) {
         _isDragging = true;
@@ -139,7 +150,9 @@ class _SeekSliderState extends State<SeekSlider> with SingleTickerProviderStateM
         });
       },
       onChangeEnd: (v) {
-        final target = Duration(milliseconds: (v.value * duration.inMilliseconds).toInt());
+        final target = Duration(
+          milliseconds: (v.value * duration.inMilliseconds).toInt(),
+        );
         widget.player.seek(target);
         _resync(target);
         _interpolatedPosition = target;

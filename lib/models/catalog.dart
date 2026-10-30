@@ -1,6 +1,6 @@
-import 'catalog_extra.dart';
+import 'package:petal/models/catalog_extra.dart';
 
-export 'catalog_extra.dart';
+export 'package:petal/models/catalog_extra.dart';
 
 class Catalog {
   final String name;
@@ -23,8 +23,11 @@ class Catalog {
       type: json['type'] ?? '',
       id: json['id'] ?? '',
       url: json['url'] ?? '',
-      extra: (json['extra'] as List<dynamic>?)
-              ?.map((item) => CatalogExtra.fromJson(item as Map<String, dynamic>))
+      extra:
+          (json['extra'] as List<dynamic>?)
+              ?.map(
+                (item) => CatalogExtra.fromJson(item as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );

@@ -1,4 +1,4 @@
-import 'package:petal/main.dart';
+import 'package:petal/app/petal_app.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class BackButton extends StatelessWidget {

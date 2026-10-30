@@ -4,72 +4,18 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:petal/api/stream_helper.dart';
+import 'package:petal/api/stream_api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
-import 'package:petal/models/custom_model.dart';
-import 'package:petal/models/stream.dart';
+import 'package:petal/models/downloads/download_entry.dart';
+import 'package:petal/models/downloads/download_status.dart';
+import 'package:petal/models/episode.dart';
+import 'package:petal/models/stream_item.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-enum DownloadStatus { queued, running, done, failed, unavailable }
-
-class DownloadEntry {
-  final String id;
-  final String title;
-  final int tmdbId;
-  final int? season;
-  final int? episode;
-  String? url;
-  String? path;
-  double progress;
-  DownloadStatus status;
-  String? error;
-
-  DownloadEntry({
-    required this.id,
-    required this.title,
-    required this.tmdbId,
-    this.season,
-    this.episode,
-    this.url,
-    this.path,
-    this.progress = 0,
-    this.status = DownloadStatus.queued,
-    this.error,
-  });
-
-  bool get isShow => season != null && episode != null;
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'tmdbId': tmdbId,
-        'season': season,
-        'episode': episode,
-        'url': url,
-        'path': path,
-        'progress': progress,
-        'status': status.name,
-        'error': error,
-      };
-
-  factory DownloadEntry.fromJson(Map<String, dynamic> json) {
-    return DownloadEntry(
-      id: json['id'] as String,
-      title: json['title'] as String? ?? 'Download',
-      tmdbId: (json['tmdbId'] as num?)?.toInt() ?? 0,
-      season: (json['season'] as num?)?.toInt(),
-      episode: (json['episode'] as num?)?.toInt(),
-      url: json['url'] as String?,
-      path: json['path'] as String?,
-      progress: (json['progress'] as num?)?.toDouble() ?? 0,
-      status: DownloadStatus.values.firstWhere((value) => value.name == json['status'], orElse: () => DownloadStatus.queued),
-      error: json['error'] as String?,
-    );
-  }
-}
-
 class DownloadManager {
-  static final ValueNotifier<List<DownloadEntry>> items = ValueNotifier(const []);
+  static final ValueNotifier<List<DownloadEntry>> items = ValueNotifier(
+    const [],
+  );
   static bool _busy = false;
   static bool _loaded = false;
 
@@ -92,13 +38,20 @@ class DownloadManager {
       final file = await _indexFile();
       if (!await file.exists()) return;
       final raw = jsonDecode(await file.readAsString()) as List<dynamic>;
-      items.value = raw.map((row) => DownloadEntry.fromJson(Map<String, dynamic>.from(row as Map))).toList();
+      items.value = raw
+          .map(
+            (row) =>
+                DownloadEntry.fromJson(Map<String, dynamic>.from(row as Map)),
+          )
+          .toList();
     } catch (_) {}
   }
 
   static Future<void> _persist() async {
     final file = await _indexFile();
-    await file.writeAsString(jsonEncode(items.value.map((e) => e.toJson()).toList()));
+    await file.writeAsString(
+      jsonEncode(items.value.map((e) => e.toJson()).toList()),
+    );
   }
 
   static bool canSave(String url) {
@@ -106,7 +59,9 @@ class DownloadManager {
     if (url.isEmpty) return false;
     if (lower.startsWith('magnet:')) return false;
     if (lower.contains('infohash')) return false;
-    return lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('file://');
+    return lower.startsWith('http://') ||
+        lower.startsWith('https://') ||
+        lower.startsWith('file://');
   }
 
   static String _id({required int tmdbId, int? season, int? episode}) {
@@ -162,9 +117,18 @@ class DownloadManager {
   }) async {
     await load();
     final id = _id(tmdbId: tmdbId, season: season, episode: episode);
-    if (items.value.any((item) => item.id == id && item.status != DownloadStatus.failed)) return;
+    if (items.value.any(
+      (item) => item.id == id && item.status != DownloadStatus.failed,
+    ))
+      return;
     items.value = [
-      DownloadEntry(id: id, title: title, tmdbId: tmdbId, season: season, episode: episode),
+      DownloadEntry(
+        id: id,
+        title: title,
+        tmdbId: tmdbId,
+        season: season,
+        episode: episode,
+      ),
       ...items.value.where((item) => item.id != id),
     ];
     await _persist();
@@ -178,7 +142,12 @@ class DownloadManager {
     required List<int> episodes,
   }) async {
     for (final episode in episodes) {
-      await enqueueEpisode(tmdbId: tmdbId, title: '$showName S$season:E$episode', season: season, episode: episode);
+      await enqueueEpisode(
+        tmdbId: tmdbId,
+        title: '$showName S$season:E$episode',
+        season: season,
+        episode: episode,
+      );
     }
   }
 
@@ -199,7 +168,9 @@ class DownloadManager {
     _busy = true;
     try {
       while (true) {
-        final queued = items.value.where((item) => item.status == DownloadStatus.queued).firstOrNull;
+        final queued = items.value
+            .where((item) => item.status == DownloadStatus.queued)
+            .firstOrNull;
         if (queued == null) break;
         await _run(queued);
       }
@@ -209,7 +180,9 @@ class DownloadManager {
   }
 
   static void _update(DownloadEntry entry) {
-    items.value = [for (final item in items.value) item.id == entry.id ? entry : item];
+    items.value = [
+      for (final item in items.value) item.id == entry.id ? entry : item,
+    ];
     _persist();
   }
 
@@ -220,7 +193,9 @@ class DownloadManager {
       var url = entry.url;
       if (url == null || url.isEmpty) {
         final show = entry.season != null;
-        final details = show ? await TMDB.tvShow(entry.tmdbId) : await TMDB.movie(entry.tmdbId);
+        final details = show
+            ? await TMDB.tvShow(entry.tmdbId)
+            : await TMDB.movie(entry.tmdbId);
         final imdb = (details as dynamic).imdbId as String?;
         if (imdb == null || imdb.isEmpty) {
           entry.status = DownloadStatus.unavailable;
@@ -230,9 +205,16 @@ class DownloadManager {
         }
         final streams = await StreamApi.fetchStreams(
           imdb,
-          show ? Episode(seasonNumber: entry.season!, episodeNumber: entry.episode!) : null,
+          show
+              ? Episode(
+                  seasonNumber: entry.season!,
+                  episodeNumber: entry.episode!,
+                )
+              : null,
         );
-        final match = streams.where((stream) => !stream.external && canSave(stream.url)).firstOrNull;
+        final match = streams
+            .where((stream) => !stream.external && canSave(stream.url))
+            .firstOrNull;
         if (match == null) {
           entry.status = DownloadStatus.unavailable;
           entry.error = 'No downloadable source';
@@ -245,7 +227,9 @@ class DownloadManager {
 
       final dir = await _dir();
       final ext = url.split('?').first.split('.').last;
-      final safeExt = ext.length <= 4 && ext.contains(RegExp(r'^[a-zA-Z0-9]+$')) ? ext : 'mp4';
+      final safeExt = ext.length <= 4 && ext.contains(RegExp(r'^[a-zA-Z0-9]+$'))
+          ? ext
+          : 'mp4';
       final file = File('${dir.path}/${entry.id}.$safeExt');
       await Dio().download(
         url,

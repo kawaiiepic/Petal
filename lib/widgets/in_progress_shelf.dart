@@ -1,8 +1,8 @@
-import 'package:petal/api/trakt/backend_api.dart';
-import 'package:petal/api/trakt/backend_cache.dart';
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/widgets/home/continue_watching_card.dart';
 import 'package:petal/widgets/home_section.dart';
 import 'package:petal/widgets/scrollable_widget.dart';
-import 'package:petal/widgets/trakt/trakt_next_up.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
@@ -55,7 +55,10 @@ class _InProgressShelfState extends State<InProgressShelf> {
                 itemCount: list.length,
                 itemBuilder: (context, index) {
                   final state = list[index];
-                  return TraktNextUpItem(key: ValueKey('${state.mediaType}-${state.tmdbId}'), state: state);
+                  return ContinueWatchingCard(
+                    key: ValueKey('${state.mediaType}-${state.tmdbId}'),
+                    state: state,
+                  );
                 },
               ),
             ),

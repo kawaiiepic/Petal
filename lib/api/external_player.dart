@@ -7,7 +7,8 @@ class ExternalPlayer {
 
   static bool get isMobile {
     if (kIsWeb) return false;
-    return defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android;
+    return defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.android;
   }
 
   static Future<String> selected() async {
@@ -28,7 +29,9 @@ class ExternalPlayer {
         return Uri.parse('outplayer://x-callback-url/play?url=$encoded');
       case 'MX Player':
         final withoutScheme = streamUrl.replaceFirst(RegExp(r'^https?:'), '');
-        return Uri.parse('intent:$withoutScheme#Intent;scheme=https;type=video/*;package=com.mxtech.videoplayer.ad;end');
+        return Uri.parse(
+          'intent:$withoutScheme#Intent;scheme=https;type=video/*;package=com.mxtech.videoplayer.ad;end',
+        );
       default:
         return null;
     }
@@ -42,7 +45,10 @@ class ExternalPlayer {
     try {
       return await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
-      return launchUrl(Uri.parse(streamUrl), mode: LaunchMode.externalApplication);
+      return launchUrl(
+        Uri.parse(streamUrl),
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
 }

@@ -1,8 +1,8 @@
-import 'package:go_router/go_router.dart';
-import 'package:petal/api/trakt/backend_cache.dart';
-import 'package:petal/api/watch_stats.dart';
+import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/models/watch_history/watch_stats_snapshot.dart';
 import 'package:petal/widgets/home_section.dart';
 import 'package:petal/widgets/scrollable_widget.dart';
+import 'package:petal/widgets/stats/stat_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
@@ -37,11 +37,31 @@ class _DashboardStatsState extends State<DashboardStats> {
         if (history.isEmpty) return const SizedBox.shrink();
         final stats = WatchStatsSnapshot.fromHistory(history);
         final cards = [
-          _StatCard(icon: LucideIcons.flame, value: '${stats.streak}', label: stats.streak == 1 ? 'day streak' : 'day streak'),
-          _StatCard(icon: LucideIcons.tv, value: '${stats.showsThisMonth}', label: 'shows this month'),
-          _StatCard(icon: LucideIcons.clapperboard, value: '${stats.moviesThisMonth}', label: 'movies this month'),
-          _StatCard(icon: LucideIcons.listVideo, value: stats.episodesPerDay.toStringAsFixed(1), label: 'eps / day'),
-          _StatCard(icon: LucideIcons.play, value: '${stats.plays}', label: 'all-time plays'),
+          StatCard(
+            icon: LucideIcons.flame,
+            value: '${stats.streak}',
+            label: stats.streak == 1 ? 'day streak' : 'day streak',
+          ),
+          StatCard(
+            icon: LucideIcons.tv,
+            value: '${stats.showsThisMonth}',
+            label: 'shows this month',
+          ),
+          StatCard(
+            icon: LucideIcons.clapperboard,
+            value: '${stats.moviesThisMonth}',
+            label: 'movies this month',
+          ),
+          StatCard(
+            icon: LucideIcons.listVideo,
+            value: stats.episodesPerDay.toStringAsFixed(1),
+            label: 'eps / day',
+          ),
+          StatCard(
+            icon: LucideIcons.play,
+            value: '${stats.plays}',
+            label: 'all-time plays',
+          ),
         ];
         return HomeSection(
           title: 'Stats',
@@ -64,35 +84,6 @@ class _DashboardStatsState extends State<DashboardStats> {
           ),
         );
       },
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-
-  const _StatCard({required this.icon, required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push('/stats'),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 16),
-              const Spacer(),
-              Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6))),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

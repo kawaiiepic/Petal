@@ -1,0 +1,494 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/query_proxy.dart';
+import 'package:petal/git_stamp/git_stamp.dart';
+import 'package:petal/theme/app_theme.dart';
+import 'package:petal/widgets/back_button.dart';
+import 'package:petal/widgets/library_import_card.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  static const _playerPrefsKey = 'external_player';
+
+  String selectedPlayer = "Disabled";
+  late final Future<PackageInfo> _packageInfo;
+  late final Future<Response<dynamic>> _contributors;
+  late final Future<Response<dynamic>> _latestRemoteCommit;
+  late final TextEditingController _proxyUrlController;
+
+  @override
+  void initState() {
+    super.initState();
+    _packageInfo = PackageInfo.fromPlatform();
+    _contributors = BackendApi.dio.get(
+      'https://api.github.com/repos/kawaiiepic/Petal/contributors',
+    );
+    _latestRemoteCommit = BackendApi.dio.get(
+      'https://api.github.com/repos/kawaiiepic/Petal/commits/${GitStamp.buildBranch}',
+    );
+    _proxyUrlController = TextEditingController(text: QueryProxy.url.value);
+    QueryProxy.url.addListener(_syncProxyField);
+    _loadSelectedPlayer();
+  }
+
+  void _syncProxyField() {
+    if (_proxyUrlController.text != QueryProxy.url.value) {
+      _proxyUrlController.text = QueryProxy.url.value;
+    }
+  }
+
+  List<dynamic> _asList(dynamic data) {
+    if (data is List) return data;
+    if (data is String) return jsonDecode(data) as List<dynamic>;
+    return const [];
+  }
+
+  Map<String, dynamic> _asMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    if (data is String) return jsonDecode(data) as Map<String, dynamic>;
+    return <String, dynamic>{};
+  }
+
+  Future<void> _loadSelectedPlayer() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_playerPrefsKey);
+    if (stored != null && mounted) {
+      setState(() => selectedPlayer = stored);
+    }
+  }
+
+  Future<void> _setSelectedPlayer(String value) async {
+    setState(() => selectedPlayer = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_playerPrefsKey, value);
+  }
+
+  void _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw 'Could not launch $url';
+    }
+  }
+
+  Future<void> _clearImageCache() async {
+    await DefaultCacheManager().emptyCache();
+    if (!mounted) return;
+  }
+
+  @override
+  void dispose() {
+    QueryProxy.url.removeListener(_syncProxyField);
+    _proxyUrlController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    headers: [
+      AppBar(title: const Text("Settings & About"), leading: [BackButton()]),
+    ],
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: SingleChildScrollView(
+        child: Column(
+          spacing: 12,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Button.card(
+              leading: const Icon(LucideIcons.info),
+              child: FutureBuilder<PackageInfo>(
+                future: _packageInfo,
+                builder: (context, infoSnapshot) {
+                  if (infoSnapshot.hasError) {
+                    return const Text("Couldn't load app info");
+                  }
+
+                  switch (infoSnapshot.connectionState) {
+                    case ConnectionState.active:
+                    case ConnectionState.done:
+                      {
+                        final data = infoSnapshot.data;
+                        if (data == null)
+                          return const Text("Couldn't load app info");
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: 2,
+                          children: [
+                            Text("App: ${data.appName}"),
+                            Text(
+                              "Version: ${data.version}+${data.buildNumber}",
+                            ),
+                            FutureBuilder<Response<dynamic>>(
+                              future: _contributors,
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  return const Text(
+                                    "Couldn't load contributors",
+                                  );
+                                }
+                                if (!snapshot.hasData) {
+                                  return const SizedBox.shrink();
+                                }
+
+                                final response = snapshot.data!;
+                                if (response.statusCode != 200) {
+                                  return const Text(
+                                    "Couldn't load contributors",
+                                  );
+                                }
+
+                                final List<dynamic> contributorsJson = _asList(
+                                  response.data,
+                                );
+
+                                final List<Widget>
+                                contributorChips = contributorsJson
+                                    .map(
+                                      (entry) => Button.link(
+                                        onPressed: () => _launchUrl(
+                                          "https://github.com/kawaiiepic/Petal/commits?author=${entry["login"]}",
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          spacing: 8,
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadiusGeometry.circular(
+                                                    20,
+                                                  ),
+                                              child: Image.network(
+                                                entry['avatar_url'],
+                                                width: 20,
+                                                height: 20,
+                                              ),
+                                            ),
+                                            Text(entry["login"]),
+                                            Text("(${entry["contributions"]})"),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                    .toList();
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  spacing: 8,
+                                  children: [
+                                    const Text("Contributors: "),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: contributorChips,
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                            FutureBuilder<Response<dynamic>>(
+                              future: _latestRemoteCommit,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState !=
+                                    ConnectionState.done) {
+                                  return const Text("Checking latest commit…");
+                                }
+                                if (snapshot.hasError ||
+                                    snapshot.data?.statusCode != 200) {
+                                  return const Text(
+                                    "Couldn't check latest commit",
+                                  );
+                                }
+
+                                final Map<String, dynamic> commit = _asMap(
+                                  snapshot.data!.data,
+                                );
+                                final String latestSha =
+                                    commit['sha'] as String;
+                                final bool isUpToDate =
+                                    latestSha == GitStamp.latestCommit?.hash;
+
+                                return Button.link(
+                                  leading: Icon(LucideIcons.link2),
+                                  onPressed: () => _launchUrl(
+                                    "https://github.com/kawaiiepic/Petal/commit/$latestSha",
+                                  ),
+                                  child: Text(
+                                    isUpToDate
+                                        ? "Up to date (${latestSha.substring(0, 7)})"
+                                        : "Latest on ${GitStamp.buildBranch}: ${latestSha.substring(0, 7)} — build is behind",
+                                  ),
+                                );
+                              },
+                            ),
+                            Text("Build-Time: ${GitStamp.buildDateTime}"),
+                          ],
+                        );
+                      }
+                    case _:
+                      return const SizedBox();
+                  }
+                },
+              ),
+            ),
+
+            Card(
+              child: Basic(
+                leading: const Icon(LucideIcons.play),
+                leadingAlignment: Alignment.center,
+                title: const Text("External Player"),
+                subtitle: const Text("Choose your preferred player"),
+                trailing: Select<String>(
+                  itemBuilder: (context, item) {
+                    return Text(item);
+                  },
+                  popupConstraints: const BoxConstraints(
+                    maxHeight: 300,
+                    maxWidth: 200,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == null) return;
+                      _setSelectedPlayer(value);
+                    });
+                  },
+                  value: selectedPlayer,
+                  placeholder: const Text('Select a player'),
+                  popup: const SelectPopup(
+                    items: SelectItemList(
+                      children: [
+                        SelectItemButton(
+                          value: 'Disabled',
+                          child: Text('Disabled'),
+                        ),
+                        SelectItemButton(
+                          value: 'Outplayer',
+                          child: Text('Outplayer'),
+                        ),
+                        SelectItemButton(
+                          value: 'MX Player',
+                          child: Text('MX Player'),
+                        ),
+                      ],
+                    ),
+                  ).call,
+                ),
+              ),
+            ),
+
+            Card(
+              child: ValueListenableBuilder<ThemeMode>(
+                valueListenable: AppTheme.mode,
+                builder: (context, mode, _) => Basic(
+                  leading: const Icon(LucideIcons.lightbulb),
+                  leadingAlignment: Alignment.center,
+                  title: const Text("Theme"),
+                  subtitle: const Text("Choose light, dark, or system"),
+                  trailing: Select<ThemeMode>(
+                    itemBuilder: (context, item) {
+                      return Text(item.name.toUpperCase());
+                    },
+                    popupConstraints: const BoxConstraints(
+                      maxHeight: 300,
+                      maxWidth: 200,
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        if (value == null) return;
+                        AppTheme.set(value);
+                      });
+                    },
+                    value: mode,
+                    placeholder: const Text('Change theme'),
+                    popup: const SelectPopup(
+                      items: SelectItemList(
+                        children: [
+                          SelectItemButton(
+                            value: ThemeMode.system,
+                            child: Text('System'),
+                          ),
+                          SelectItemButton(
+                            value: ThemeMode.light,
+                            child: Text('Light'),
+                          ),
+                          SelectItemButton(
+                            value: ThemeMode.dark,
+                            child: Text('Dark'),
+                          ),
+                        ],
+                      ),
+                    ).call,
+                  ),
+                ),
+              ),
+            ),
+
+            Card(
+              child: ValueListenableBuilder<bool>(
+                valueListenable: QueryProxy.enabled,
+                builder: (context, proxyOn, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Basic(
+                      leading: const Icon(LucideIcons.globe),
+                      leadingAlignment: Alignment.center,
+                      title: const Text("Proxy all queries"),
+                      subtitle: const Text(
+                        "Send catalog, search, and addon requests through your backend",
+                      ),
+                      trailing: Switch(
+                        value: proxyOn,
+                        onChanged: (value) => QueryProxy.setEnabled(value),
+                      ),
+                    ),
+                    if (proxyOn) ...[
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: TextField(
+                          controller: _proxyUrlController,
+                          placeholder: Text(QueryProxy.defaultUrl),
+                          onSubmitted: QueryProxy.setUrl,
+                          onEditingComplete: () =>
+                              QueryProxy.setUrl(_proxyUrlController.text),
+                          features: const [
+                            InputFeature.clear(
+                              visibility: InputFeatureVisibility.textNotEmpty,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            const LibraryImportCard(),
+
+            Divider(),
+
+            Button.card(
+              leading: const Icon(LucideIcons.newspaper),
+              trailing: Icon(LucideIcons.link2),
+              onPressed: () =>
+                  _launchUrl("https://github.com/kawaiiepic/Petal/releases"),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("What's New"),
+                  const Text("View the changelog on GitHub"),
+                ],
+              ),
+            ),
+
+            Button.card(
+              leading: const Icon(LucideIcons.bug),
+              trailing: Icon(LucideIcons.link2),
+              onPressed: () =>
+                  _launchUrl("https://github.com/kawaiiepic/Petal/issues/new"),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Report a Problem"),
+                  const Text("File an issue or send feedback"),
+                ],
+              ),
+            ),
+
+            Button.card(
+              leading: const Icon(LucideIcons.refreshCcwDot),
+              trailing: Icon(LucideIcons.bug),
+              onPressed: _clearImageCache,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Clear Image Cache"),
+                  const Text("Free up space used by cached thumbnails"),
+                ],
+              ),
+            ),
+
+            Button.card(
+              leading: const Icon(LucideIcons.badgeInfo),
+              trailing: Icon(LucideIcons.link2),
+              onPressed: () async {
+                final info = await _packageInfo;
+                if (!context.mounted) return;
+                final name = Uri.encodeQueryComponent(info.appName);
+                final version = Uri.encodeQueryComponent(
+                  '${info.version}+${info.buildNumber}',
+                );
+                context.push('/licenses?name=$name&version=$version');
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Licenses"),
+                  const Text("Open source licenses"),
+                ],
+              ),
+            ),
+
+            Divider(),
+
+            Card(
+              child: Basic(
+                leading: const Icon(LucideIcons.messageSquareWarning),
+                leadingAlignment: Alignment.center,
+                title: const Text("Community"),
+                subtitle: const Text("Join our Discord or GitHub"),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      variance: ButtonVariance.ghost,
+                      icon: const Icon(BootstrapIcons.discord),
+                      onPressed: () => _launchUrl("https://discord.com/"),
+                    ),
+                    IconButton(
+                      variance: ButtonVariance.ghost,
+                      icon: const Icon(LucideIcons.github),
+                      onPressed: () =>
+                          _launchUrl("https://github.com/kawaiiepic/Petal"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            Card(
+              child: Basic(
+                leading: const Icon(LucideIcons.wallet),
+                leadingAlignment: Alignment.center,
+                title: const Text("Donate"),
+                subtitle: const Text("Support development of the app"),
+                trailing: Button.ghost(
+                  onPressed: () =>
+                      _launchUrl("https://github.com/sponsors/kawaiiepic"),
+                  child: const Text("Donate"),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

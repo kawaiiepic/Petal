@@ -10,13 +10,18 @@ class CatalogRow extends StatefulWidget {
   final Catalog? catalog;
   final List<CatalogItem>? catalogItems;
 
-  const CatalogRow({super.key, required this.catalog, required this.catalogItems});
+  const CatalogRow({
+    super.key,
+    required this.catalog,
+    required this.catalogItems,
+  });
 
   @override
   State<StatefulWidget> createState() => _CatalogRowState();
 }
 
-class _CatalogRowState extends State<CatalogRow> with AutomaticKeepAliveClientMixin {
+class _CatalogRowState extends State<CatalogRow>
+    with AutomaticKeepAliveClientMixin {
   late final ScrollController _controller;
   bool _open = true;
 
@@ -40,9 +45,15 @@ class _CatalogRowState extends State<CatalogRow> with AutomaticKeepAliveClientMi
     super.build(context);
     final Catalog? catalog = widget.catalog;
     final List<CatalogItem>? catalogItems = widget.catalogItems?.toList();
-    final style = TextStyle(fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp);
-    final count = widget.catalogItems != null ? widget.catalogItems!.length : 10;
-    final title = catalog == null ? 'Popular ― Movie' : '${catalog.name} ― ${catalog.type[0].toUpperCase()}${catalog.type.substring(1)}';
+    final style = TextStyle(
+      fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp,
+    );
+    final count = widget.catalogItems != null
+        ? widget.catalogItems!.length
+        : 10;
+    final title = catalog == null
+        ? 'Popular ― Movie'
+        : '${catalog.name} ― ${catalog.type[0].toUpperCase()}${catalog.type.substring(1)}';
 
     return Column(
       children: [
@@ -55,8 +66,13 @@ class _CatalogRowState extends State<CatalogRow> with AutomaticKeepAliveClientMi
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
                 children: [
-                  Expanded(child: Text(title, style: style, textAlign: TextAlign.left)),
-                  Icon(_open ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 16),
+                  Expanded(
+                    child: Text(title, style: style, textAlign: TextAlign.left),
+                  ),
+                  Icon(
+                    _open ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+                    size: 16,
+                  ),
                 ],
               ),
             ),
@@ -75,7 +91,10 @@ class _CatalogRowState extends State<CatalogRow> with AutomaticKeepAliveClientMi
                 itemCount: count,
                 itemBuilder: (context, index) {
                   final item = catalogItems?[index];
-                  return CatalogItemWidget(key: ValueKey(item?.id ?? 'skeleton-$index'), catalogItem: item);
+                  return CatalogItemWidget(
+                    key: ValueKey(item?.id ?? 'skeleton-$index'),
+                    catalogItem: item,
+                  );
                 },
               ),
             ),

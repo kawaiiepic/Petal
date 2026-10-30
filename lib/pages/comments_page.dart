@@ -7,7 +7,12 @@ class CommentsPage extends StatelessWidget {
   final int tmdbId;
   final String title;
 
-  const CommentsPage({super.key, required this.mediaType, required this.tmdbId, required this.title});
+  const CommentsPage({
+    super.key,
+    required this.mediaType,
+    required this.tmdbId,
+    required this.title,
+  });
 
   @override
   Widget build(BuildContext context) {

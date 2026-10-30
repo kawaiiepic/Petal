@@ -1,14 +1,21 @@
 import 'package:dio/src/response.dart';
-import 'package:petal/api/api.dart';
-import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:petal/api/trakt/backend_api.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:flutter/foundation.dart';
+import 'package:petal/api/api.dart';
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/models/media_type.dart';
+import 'package:petal/models/tmdb/images.dart';
+import 'package:petal/models/tmdb/tmdb_episode.dart';
+import 'package:petal/models/tmdb/tmdb_image_urls.dart';
+import 'package:petal/models/tmdb/tmdb_movie.dart';
+import 'package:petal/models/tmdb/tmdb_person.dart';
+import 'package:petal/models/tmdb/tmdb_search_result.dart';
+import 'package:petal/models/tmdb/tmdb_season.dart';
+import 'package:petal/models/tmdb/tmdb_show.dart';
 
 class TMDB {
   static Map<String, Future<Uint8List>> imageData = {};
   static const apiUrl = 'api.themoviedb.org';
-  static const imageUrl = 'https://image.tmdb.org/t/p/w500';
+  static const imageUrl = TmdbImageUrls.poster;
 
   static final Map<String, Future<String>> _episodeStillCache = {};
 
@@ -42,8 +49,14 @@ class TMDB {
     return TmdbSearchResult.fromJson(response.data);
   }
 
-  static Future<TmdbEpisode> tvEpisode(int tmdbId, int seasonNumber, int episodeNumber) async {
-    final response = await tmdbApi('/tv/$tmdbId/season/$seasonNumber/episode/$episodeNumber?append_to_response=images');
+  static Future<TmdbEpisode> tvEpisode(
+    int tmdbId,
+    int seasonNumber,
+    int episodeNumber,
+  ) async {
+    final response = await tmdbApi(
+      '/tv/$tmdbId/season/$seasonNumber/episode/$episodeNumber?append_to_response=images',
+    );
 
     if (response.statusCode != 200) throw Exception('Search failed');
 
@@ -60,7 +73,9 @@ class TMDB {
 
   static Future<TmdbShow> tvShow(int tmdbId) async {
     print("Getting tv show $tmdbId");
-    final response = await tmdbApi('/tv/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations');
+    final response = await tmdbApi(
+      '/tv/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations',
+    );
 
     if (response.statusCode != 200) throw Exception('Search failed');
 
@@ -69,7 +84,9 @@ class TMDB {
 
   static Future<TmdbMovie> movie(int tmdbId) async {
     print("Getting movie $tmdbId");
-    final response = await tmdbApi('/movie/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations');
+    final response = await tmdbApi(
+      '/movie/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations',
+    );
 
     if (response.statusCode != 200) throw Exception('Search failed');
 
@@ -77,17 +94,27 @@ class TMDB {
   }
 
   static Future<TmdbPerson> person(int id) =>
-      tmdbApi('/person/$id?append_to_response=movie_credits,external_ids').then((json) => TmdbPerson.fromJson(json.data));
+      tmdbApi('/person/$id?append_to_response=movie_credits,external_ids')
+          .then((json) => TmdbPerson.fromJson(json.data));
 
-  static Future<String> _fetchEpisodeStill(String tmdb, int season, int episode) async {
-    final response = await tmdbApi('/tv/$tmdb/season/$season/episode/$episode/images');
+  static Future<String> _fetchEpisodeStill(
+    String tmdb,
+    int season,
+    int episode,
+  ) async {
+    final response = await tmdbApi(
+      '/tv/$tmdb/season/$season/episode/$episode/images',
+    );
 
     if (response.statusCode != 200) throw Exception('Episode Still failed');
 
     final images = Images.fromJson(response.data);
-    if (images.stills == null || images.stills!.isEmpty) return Future.error(Exception('No stills'));
+    if (images.stills == null || images.stills!.isEmpty)
+      return Future.error(Exception('No stills'));
 
-    print("Getting this image: ${'https://image.tmdb.org/t/p/original${images.stills![0].filePath!}'}");
+    print(
+      "Getting this image: ${'https://image.tmdb.org/t/p/original${images.stills![0].filePath!}'}",
+    );
 
     // w780 is ideal for episode stills — good quality without being huge
 
@@ -95,15 +122,20 @@ class TMDB {
   }
 
   static Future<String> poster(MediaType mediaType, String tmdb) async {
-    final path = mediaType == MediaType.show ? '/tv/$tmdb/images' : '/movie/$tmdb/images';
+    final path = mediaType == MediaType.show
+        ? '/tv/$tmdb/images'
+        : '/movie/$tmdb/images';
     final response = await tmdbApi(path);
 
     if (response.statusCode != 200) throw Exception('Episode Still failed');
 
     final images = Images.fromJson(response.data);
-    if (images.posters == null || images.posters!.isEmpty) return Future.error(Exception('No posters'));
+    if (images.posters == null || images.posters!.isEmpty)
+      return Future.error(Exception('No posters'));
 
-    print("Getting this image: ${'https://image.tmdb.org/t/p/original${images.posters![0].filePath!}'}");
+    print(
+      "Getting this image: ${'https://image.tmdb.org/t/p/original${images.posters![0].filePath!}'}",
+    );
 
     // w780 is ideal for episode stills — good quality without being huge
 

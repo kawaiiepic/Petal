@@ -15,12 +15,15 @@ Petal is a cross-platform anime streaming client built with Flutter, supporting 
 ## Key Components
 
 - **lib/**: Main application code
-  - `main.dart`: Entry point, initializes the app and sets up navigation
+  - `main.dart`: Entry point and service initialization
+  - `app/`: App widget and navigator keys
   - `router/`: Navigation configuration using GoRouter
   - `pages/`: UI pages (e.g., dashboard, settings)
   - `widgets/`: Reusable UI components
   - `api/`: API clients and utilities for data fetching
-  - `models/`: Data models for the application
+  - `models/`: Data models grouped by service or feature, one class per file
+  - `theme/`: Theme preference and responsive typography
+  - `utils/`: Formatting, collection progress, and notifications
   - `navigation/`: Navigation-related components
 
 - **assets/**: Static assets like images
@@ -67,6 +70,9 @@ For new features, consider:
 - Use `flutter run` to test changes locally
 - For Linux builds: run from the bundle directory or set LD_LIBRARY_PATH
 - Follow the existing code style and patterns
+- Keep a stateful widget and its private State class together; put unrelated widgets in separate files
+- Name route-level screens with the `_page.dart` suffix and import defining files directly
+- See `docs/code_structure.md` for the complete source layout and verification commands
 - Add documentation and comments for complex features
 
 ## Common Tasks

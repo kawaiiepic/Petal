@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:petal/api/library_import.dart';
+import 'package:petal/models/imports/import_source.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class LibraryImportCard extends StatefulWidget {
@@ -15,41 +16,41 @@ class _LibraryImportCardState extends State<LibraryImportCard> {
   String? _status;
 
   Future<void> _pick() async {
-  final file = await FilePicker.pickFile(
-    type: FileType.custom,
-    allowedExtensions: const ['zip', 'json', 'csv'],
-  );
-  if (file == null) return;
-
-  setState(() {
-    _busy = true;
-    _status = 'Importing ${file.name}…';
-  });
-
-  try {
-    final bytes = await file.readAsBytes();
-    final report = await LibraryImport.importFile(
-      name: file.name,
-      bytes: bytes,
-      source: _source,
-      onProgress: (processed, total) {
-        if (!mounted) return;
-        setState(() {
-          if (total != null) {
-            _status = 'Importing… ($processed/$total)';
-          } else {
-            _status = 'Importing… ($processed)';
-          }
-        });
-      },
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const ['zip', 'json', 'csv'],
     );
-    setState(() => _status = report.summary);
-  } catch (e) {
-    setState(() => _status = 'Import failed: $e');
-  } finally {
-    if (mounted) setState(() => _busy = false);
+    if (file == null) return;
+
+    setState(() {
+      _busy = true;
+      _status = 'Importing ${file.name}…';
+    });
+
+    try {
+      final bytes = await file.readAsBytes();
+      final report = await LibraryImport.importFile(
+        name: file.name,
+        bytes: bytes,
+        source: _source,
+        onProgress: (processed, total) {
+          if (!mounted) return;
+          setState(() {
+            if (total != null) {
+              _status = 'Importing… ($processed/$total)';
+            } else {
+              _status = 'Importing… ($processed)';
+            }
+          });
+        },
+      );
+      setState(() => _status = report.summary);
+    } catch (e) {
+      setState(() => _status = 'Import failed: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +65,9 @@ class _LibraryImportCardState extends State<LibraryImportCard> {
               leading: Icon(LucideIcons.import),
               leadingAlignment: Alignment.center,
               title: Text('Import library'),
-              subtitle: Text('Trakt, Letterboxd, Simkl, or a generic JSON/CSV. Existing titles are left alone.'),
+              subtitle: Text(
+                'Trakt, Letterboxd, Simkl, or a generic JSON/CSV. Existing titles are left alone.',
+              ),
             ),
             Select<ImportSource>(
               value: _source,

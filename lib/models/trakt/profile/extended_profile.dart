@@ -1,3 +1,6 @@
+import 'package:petal/models/trakt/profile/ids.dart';
+import 'package:petal/models/trakt/profile/images.dart';
+
 class ExtendedProfile {
   String username;
   bool private;
@@ -27,20 +30,21 @@ class ExtendedProfile {
     required this.images,
   });
 
-  factory ExtendedProfile.fromJson(Map<String, dynamic> json) => ExtendedProfile(
-    username: json["username"],
-    private: json["private"],
-    name: json["name"],
-    vip: json["vip"],
-    vipEp: json["vip_ep"],
-    ids: Ids.fromJson(json["ids"]),
-    joinedAt: DateTime.parse(json["joined_at"]),
-    location: json["location"],
-    about: json["about"],
-    gender: json["gender"],
-    age: json["age"],
-    images: Images.fromJson(json["images"]),
-  );
+  factory ExtendedProfile.fromJson(Map<String, dynamic> json) =>
+      ExtendedProfile(
+        username: json["username"],
+        private: json["private"],
+        name: json["name"],
+        vip: json["vip"],
+        vipEp: json["vip_ep"],
+        ids: Ids.fromJson(json["ids"]),
+        joinedAt: DateTime.parse(json["joined_at"]),
+        location: json["location"],
+        about: json["about"],
+        gender: json["gender"],
+        age: json["age"],
+        images: Images.fromJson(json["images"]),
+      );
 
   Map<String, dynamic> toJson() => {
     "username": username,
@@ -56,34 +60,4 @@ class ExtendedProfile {
     "age": age,
     "images": images.toJson(),
   };
-}
-
-class Ids {
-  String slug;
-
-  Ids({required this.slug});
-
-  factory Ids.fromJson(Map<String, dynamic> json) => Ids(slug: json["slug"]);
-
-  Map<String, dynamic> toJson() => {"slug": slug};
-}
-
-class Images {
-  Avatar avatar;
-
-  Images({required this.avatar});
-
-  factory Images.fromJson(Map<String, dynamic> json) => Images(avatar: Avatar.fromJson(json["avatar"]));
-
-  Map<String, dynamic> toJson() => {"avatar": avatar.toJson()};
-}
-
-class Avatar {
-  String full;
-
-  Avatar({required this.full});
-
-  factory Avatar.fromJson(Map<String, dynamic> json) => Avatar(full: json["full"]);
-
-  Map<String, dynamic> toJson() => {"full": full};
 }

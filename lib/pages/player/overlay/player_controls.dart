@@ -1,23 +1,26 @@
 import 'dart:async';
 
-import 'package:media_kit_video/media_kit_video.dart';
-import 'package:petal/api/api.dart';
-import 'package:petal/api/misc.dart';
-import 'package:petal/api/tmdb/tmdb.dart';
-import 'package:petal/api/tmdb/tmdb_models.dart';
-import 'package:petal/models/custom_model.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import 'package:petal/api/api.dart';
+import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/models/episode.dart';
+import 'package:petal/models/tmdb/tmdb_episode.dart';
+import 'package:petal/models/tmdb/tmdb_movie.dart';
+import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/pages/player/overlay/control_button.dart';
 import 'package:petal/pages/player/overlay/episode_drawer.dart';
 import 'package:petal/pages/player/overlay/next_up_card.dart';
 import 'package:petal/pages/player/overlay/play_pause_button.dart';
+import 'package:petal/pages/player/overlay/player_settings_menu_button.dart';
 import 'package:petal/pages/player/overlay/position_display.dart';
 import 'package:petal/pages/player/overlay/seek_indicator.dart';
 import 'package:petal/pages/player/overlay/seek_slider.dart';
-import 'package:petal/pages/player/overlay/track_menus.dart';
+import 'package:petal/pages/player/overlay/subtitle_audio_menu_button.dart';
 import 'package:petal/pages/player/overlay/volume_button.dart';
-import 'package:petal/pages/splash.dart';
+import 'package:petal/pages/splash_screen.dart';
+import 'package:petal/theme/app_typography.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 Widget videoControls(VideoState state) {
@@ -30,10 +33,10 @@ class PlayerControls extends StatefulWidget {
   const PlayerControls({super.key, required this.state});
 
   @override
-  State<StatefulWidget> createState() => _PlayerControls();
+  State<StatefulWidget> createState() => _PlayerControlsState();
 }
 
-class _PlayerControls extends State<PlayerControls> {
+class _PlayerControlsState extends State<PlayerControls> {
   bool _showControls = true;
   late bool _isShow;
   late Future<(TmdbShow, TmdbEpisode)> _showData;
@@ -57,7 +60,9 @@ class _PlayerControls extends State<PlayerControls> {
   StreamSubscription? _playlistSub;
 
   void _seekBackward() {
-    final newPosition = widget.state.widget.controller.player.state.position - const Duration(seconds: 10);
+    final newPosition =
+        widget.state.widget.controller.player.state.position -
+        const Duration(seconds: 10);
     player.seek(newPosition < Duration.zero ? Duration.zero : newPosition);
 
     setState(() {
@@ -98,11 +103,14 @@ class _PlayerControls extends State<PlayerControls> {
   }
 
   void _playNextEpisode() async {
-    final extras = widget.state.widget.controller.player.state.playlist.medias[0].extras;
+    final extras =
+        widget.state.widget.controller.player.state.playlist.medias[0].extras;
     final mediaId = extras?["mediaId"];
     TmdbEpisode? nextEpisode = await _nextUpEpisode;
     if (nextEpisode != null) {
-      context.pushReplacement('/player?media=${mediaId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}');
+      context.pushReplacement(
+        '/player?media=${mediaId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
+      );
     }
   }
 
@@ -133,7 +141,10 @@ class _PlayerControls extends State<PlayerControls> {
 
     if (_isShow) {
       episode = extras!["episode"];
-      _showData = (TMDB.tvShow(mediaId), TMDB.tvEpisode(mediaId, episode.seasonNumber, episode.episodeNumber)).wait;
+      _showData = (
+        TMDB.tvShow(mediaId),
+        TMDB.tvEpisode(mediaId, episode.seasonNumber, episode.episodeNumber),
+      ).wait;
       _nextUpEpisode = nextUpEpisode();
     } else {
       _movie = TMDB.movie(mediaId);
@@ -162,14 +173,20 @@ class _PlayerControls extends State<PlayerControls> {
   Future<TmdbEpisode?> nextUpEpisode() async {
     TmdbShow show = (await _showData).$1;
     TmdbEpisode? nextEp;
-    var realSeason = show.seasons.firstWhere((s) => s.seasonNumber == episode.seasonNumber);
+    var realSeason = show.seasons.firstWhere(
+      (s) => s.seasonNumber == episode.seasonNumber,
+    );
     if (realSeason.episodeCount <= episode.episodeNumber) {
       if (show.seasons.length <= episode.seasonNumber) {
         return null;
       }
       nextEp = await TMDB.tvEpisode(mediaId, episode.seasonNumber + 1, 1);
     } else {
-      nextEp = await TMDB.tvEpisode(mediaId, episode.seasonNumber, episode.episodeNumber + 1);
+      nextEp = await TMDB.tvEpisode(
+        mediaId,
+        episode.seasonNumber,
+        episode.episodeNumber + 1,
+      );
     }
 
     final airDate = nextEp.airDate;
@@ -222,10 +239,21 @@ class _PlayerControls extends State<PlayerControls> {
             AnimatedOpacity(
               opacity: _showControls ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 300),
-              child: TickerMode(enabled: _showControls, child: _buildControlsBar()),
+              child: TickerMode(
+                enabled: _showControls,
+                child: _buildControlsBar(),
+              ),
             ),
-            SeekIndicator(visible: _showLeftSeek, seconds: _leftSeekSeconds, isLeft: true),
-            SeekIndicator(visible: _showRightSeek, seconds: _rightSeekSeconds, isLeft: false),
+            SeekIndicator(
+              visible: _showLeftSeek,
+              seconds: _leftSeekSeconds,
+              isLeft: true,
+            ),
+            SeekIndicator(
+              visible: _showRightSeek,
+              seconds: _rightSeekSeconds,
+              isLeft: false,
+            ),
             if (_isShow)
               Positioned(
                 right: 20,
@@ -260,8 +288,11 @@ class _PlayerControls extends State<PlayerControls> {
                     icon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(size: Misc.normalIconSize, LucideIcons.chevronLeft),
-                        Text(style: Misc.normalTextStyle, "Return"),
+                        Icon(
+                          size: AppTypography.normalIconSize,
+                          LucideIcons.chevronLeft,
+                        ),
+                        Text(style: AppTypography.normalTextStyle, "Return"),
                       ],
                     ),
                   ),
@@ -277,16 +308,19 @@ class _PlayerControls extends State<PlayerControls> {
                         spacing: 8,
                         children: [
                           Text(
-                            style: Misc.normalTextStyle,
+                            style: AppTypography.normalTextStyle,
                             snapshot.hasData
                                 ? _isShow
-                                      ? (snapshot.data! as (TmdbShow, TmdbEpisode)).$1.name
+                                      ? (snapshot.data!
+                                                as (TmdbShow, TmdbEpisode))
+                                            .$1
+                                            .name
                                       : (snapshot.data! as TmdbMovie).title
                                 : "Example Media Name",
                           ),
                           if (_isShow)
                             Text(
-                              style: Misc.normalTextStyle,
+                              style: AppTypography.normalTextStyle,
                               snapshot.hasData
                                   ? "${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.seasonNumber}x${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.episodeNumber} ${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.name}"
                                   : "Example Episode Name",
@@ -300,7 +334,12 @@ class _PlayerControls extends State<PlayerControls> {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: ControlButton(icon: Icon(size: Misc.normalIconSize, LucideIcons.info)),
+                  child: ControlButton(
+                    icon: Icon(
+                      size: AppTypography.normalIconSize,
+                      LucideIcons.info,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -319,7 +358,12 @@ class _PlayerControls extends State<PlayerControls> {
                     onTap: () => setState(() {
                       player.playOrPause();
                     }),
-                    icon: Icon(size: Misc.normalIconSize, player.state.playing ? LucideIcons.pause : LucideIcons.play),
+                    icon: Icon(
+                      size: AppTypography.normalIconSize,
+                      player.state.playing
+                          ? LucideIcons.pause
+                          : LucideIcons.play,
+                    ),
                   ),
                   if (!Api.isMobile()) VolumeButton(player: player),
                   PositionDisplay(player: player, visible: _showControls),
@@ -328,14 +372,23 @@ class _PlayerControls extends State<PlayerControls> {
                     Container(
                       width: 4,
                       height: 4,
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 2),
                     Row(
                       spacing: 8,
                       children: [
-                        Text(style: Misc.normalTextStyle, 'S${episode.seasonNumber}'),
-                        Text(style: Misc.normalTextStyle, 'E${episode.episodeNumber}'),
+                        Text(
+                          style: AppTypography.normalTextStyle,
+                          'S${episode.seasonNumber}',
+                        ),
+                        Text(
+                          style: AppTypography.normalTextStyle,
+                          'E${episode.episodeNumber}',
+                        ),
                       ],
                     ),
                     const Spacer(),
@@ -344,7 +397,10 @@ class _PlayerControls extends State<PlayerControls> {
                       onTap: () async {
                         _playNextEpisode();
                       },
-                      icon: Icon(size: Misc.normalIconSize, LucideIcons.skipForward),
+                      icon: Icon(
+                        size: AppTypography.normalIconSize,
+                        LucideIcons.skipForward,
+                      ),
                     ),
                   ],
                   if (!_isShow) ...[const Spacer()],
@@ -355,7 +411,12 @@ class _PlayerControls extends State<PlayerControls> {
                   PlayerSettingsMenuButton(player: player),
                   ControlButton(
                     onTap: () {},
-                    icon: Icon(size: Misc.normalIconSize, false ? RadixIcons.exitFullScreen : RadixIcons.enterFullScreen),
+                    icon: Icon(
+                      size: AppTypography.normalIconSize,
+                      false
+                          ? RadixIcons.exitFullScreen
+                          : RadixIcons.enterFullScreen,
+                    ),
                   ),
                 ],
               ),

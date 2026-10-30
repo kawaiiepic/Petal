@@ -2,32 +2,30 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:petal/api/trakt/backend_api.dart';
-import 'package:petal/api/trakt/backend_cache.dart';
-import 'package:petal/api/trakt/library_api.dart';
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/api/backend/library_api.dart';
 import 'package:petal/api/user_library.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
-
-class TraktImportReport {
-  int moviesWatched = 0;
-  int episodesWatched = 0;
-  int watchlisted = 0;
-  int rated = 0;
-  int skipped = 0;
-
-  String get summary =>
-      'Imported $moviesWatched movies watched, $episodesWatched episodes watched, $watchlisted watchlist, $rated ratings. Skipped $skipped.';
-}
+import 'package:petal/models/imports/trakt_import_report.dart';
+import 'package:petal/models/library/title_rating.dart';
+import 'package:petal/models/media_type.dart';
 
 class TraktImport {
-  static Future<TraktImportReport> importFile({required String name, required Uint8List bytes}) async {
+  static Future<TraktImportReport> importFile({
+    required String name,
+    required Uint8List bytes,
+  }) async {
     final report = TraktImportReport();
     final lower = name.toLowerCase();
     if (lower.endsWith('.zip')) {
       final archive = ZipDecoder().decodeBytes(bytes);
       for (final file in archive) {
         if (file.isFile && file.name.toLowerCase().endsWith('.json')) {
-          await _importJson(file.name, utf8.decode(file.content as List<int>), report);
+          await _importJson(
+            file.name,
+            utf8.decode(file.content as List<int>),
+            report,
+          );
         }
       }
     } else {
@@ -39,9 +37,17 @@ class TraktImport {
     return report;
   }
 
-  static Future<void> _importJson(String name, String raw, TraktImportReport report) async {
+  static Future<void> _importJson(
+    String name,
+    String raw,
+    TraktImportReport report,
+  ) async {
     final decoded = jsonDecode(raw);
-    final items = decoded is List ? decoded : decoded is Map && decoded['items'] is List ? decoded['items'] as List : const [];
+    final items = decoded is List
+        ? decoded
+        : decoded is Map && decoded['items'] is List
+        ? decoded['items'] as List
+        : const [];
     final hint = name.toLowerCase();
     final forceWatchlist = hint.contains('watchlist');
     final forceRating = hint.contains('rating');
@@ -54,7 +60,13 @@ class TraktImport {
       }
       final item = Map<String, dynamic>.from(rawItem);
       try {
-        await _importItem(item, report, forceWatchlist: forceWatchlist, forceRating: forceRating, forceWatched: forceWatched);
+        await _importItem(
+          item,
+          report,
+          forceWatchlist: forceWatchlist,
+          forceRating: forceRating,
+          forceWatched: forceWatched,
+        );
       } catch (_) {
         report.skipped++;
       }
@@ -68,16 +80,34 @@ class TraktImport {
     required bool forceRating,
     required bool forceWatched,
   }) async {
-    final type = (item['type'] as String?) ?? (item['movie'] != null ? 'movie' : item['episode'] != null ? 'episode' : item['show'] != null ? 'show' : '');
-    final movie = item['movie'] is Map ? Map<String, dynamic>.from(item['movie'] as Map) : null;
-    final show = item['show'] is Map ? Map<String, dynamic>.from(item['show'] as Map) : null;
-    final episode = item['episode'] is Map ? Map<String, dynamic>.from(item['episode'] as Map) : null;
+    final type =
+        (item['type'] as String?) ??
+        (item['movie'] != null
+            ? 'movie'
+            : item['episode'] != null
+            ? 'episode'
+            : item['show'] != null
+            ? 'show'
+            : '');
+    final movie = item['movie'] is Map
+        ? Map<String, dynamic>.from(item['movie'] as Map)
+        : null;
+    final show = item['show'] is Map
+        ? Map<String, dynamic>.from(item['show'] as Map)
+        : null;
+    final episode = item['episode'] is Map
+        ? Map<String, dynamic>.from(item['episode'] as Map)
+        : null;
     final ratingValue = (item['rating'] as num?)?.toInt();
 
     final movieTmdb = _tmdbId(movie);
     final showTmdb = _tmdbId(show);
 
-    final treatWatched = forceWatched || item.containsKey('watched_at') || item.containsKey('last_watched_at') || item.containsKey('plays');
+    final treatWatched =
+        forceWatched ||
+        item.containsKey('watched_at') ||
+        item.containsKey('last_watched_at') ||
+        item.containsKey('plays');
     final treatWatchlist = forceWatchlist || item.containsKey('listed_at');
     final treatRating = forceRating || ratingValue != null;
 
@@ -91,11 +121,19 @@ class TraktImport {
         report.moviesWatched++;
       }
       if (treatWatchlist) {
-        await LibraryApi.upsert(tmdbId: movieTmdb, mediaType: MediaType.movie, watchlisted: true);
+        await LibraryApi.upsert(
+          tmdbId: movieTmdb,
+          mediaType: MediaType.movie,
+          watchlisted: true,
+        );
         report.watchlisted++;
       }
       if (treatRating && ratingValue != null) {
-        await LibraryApi.upsert(tmdbId: movieTmdb, mediaType: MediaType.movie, rating: _rating(ratingValue).name);
+        await LibraryApi.upsert(
+          tmdbId: movieTmdb,
+          mediaType: MediaType.movie,
+          rating: _rating(ratingValue).name,
+        );
         report.rated++;
       }
       return;
@@ -106,25 +144,46 @@ class TraktImport {
       return;
     }
 
-    if (treatWatchlist && (type == 'show' || type == 'episode' || show != null)) {
-      await LibraryApi.upsert(tmdbId: showTmdb, mediaType: MediaType.show, watchlisted: true);
+    if (treatWatchlist &&
+        (type == 'show' || type == 'episode' || show != null)) {
+      await LibraryApi.upsert(
+        tmdbId: showTmdb,
+        mediaType: MediaType.show,
+        watchlisted: true,
+      );
       report.watchlisted++;
     }
-    if (treatRating && ratingValue != null && (type == 'show' || type == 'movie' || type == 'episode')) {
-      await LibraryApi.upsert(tmdbId: showTmdb, mediaType: MediaType.show, rating: _rating(ratingValue).name);
+    if (treatRating &&
+        ratingValue != null &&
+        (type == 'show' || type == 'movie' || type == 'episode')) {
+      await LibraryApi.upsert(
+        tmdbId: showTmdb,
+        mediaType: MediaType.show,
+        rating: _rating(ratingValue).name,
+      );
       report.rated++;
     }
 
     if (!treatWatched) return;
 
     if (type == 'episode' && episode != null) {
-      final season = (episode['season'] as num?)?.toInt() ?? (item['season'] as num?)?.toInt();
-      final number = (episode['number'] as num?)?.toInt() ?? (item['number'] as num?)?.toInt();
+      final season =
+          (episode['season'] as num?)?.toInt() ??
+          (item['season'] as num?)?.toInt();
+      final number =
+          (episode['number'] as num?)?.toInt() ??
+          (item['number'] as num?)?.toInt();
       if (season == null || number == null) {
         report.skipped++;
         return;
       }
-      await BackendApi.setProgress(showTmdb, MediaType.show, 1.0, season: season, episode: number);
+      await BackendApi.setProgress(
+        showTmdb,
+        MediaType.show,
+        1.0,
+        season: season,
+        episode: number,
+      );
       report.episodesWatched++;
       return;
     }
@@ -145,7 +204,13 @@ class TraktImport {
         final ep = Map<String, dynamic>.from(rawEpisode);
         final episodeNumber = (ep['number'] as num?)?.toInt();
         if (episodeNumber == null) continue;
-        await BackendApi.setProgress(showTmdb, MediaType.show, 1.0, season: seasonNumber, episode: episodeNumber);
+        await BackendApi.setProgress(
+          showTmdb,
+          MediaType.show,
+          1.0,
+          season: seasonNumber,
+          episode: episodeNumber,
+        );
         report.episodesWatched++;
       }
     }

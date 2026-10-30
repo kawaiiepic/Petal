@@ -1,14 +1,21 @@
 import 'package:flutter/rendering.dart';
 import 'package:petal/api/api_cache.dart';
+import 'package:petal/api/exceptions/connection_exception.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
-import 'package:petal/models/catalog_item.dart';
-import 'package:petal/pages/downloads_page.dart';
 import 'package:petal/widgets/catalog/catalog_row.dart';
-import 'package:petal/widgets/connection_error.dart';
+import 'package:petal/widgets/catalog/catalog_section.dart';
+import 'package:petal/widgets/connection_error_view.dart';
 import 'package:petal/widgets/dashboard_stats.dart';
+import 'package:petal/widgets/downloads/downloads_shelf.dart';
 import 'package:petal/widgets/friend_activity.dart';
-import 'package:petal/widgets/home_shelves.dart';
+import 'package:petal/widgets/home/because_you_watched_shelf.dart';
+import 'package:petal/widgets/home/liked_shelf.dart';
+import 'package:petal/widgets/home/on_deck_shelf.dart';
+import 'package:petal/widgets/home/recent_and_stalled_shelves.dart';
+import 'package:petal/widgets/home/start_now_shelf.dart';
+import 'package:petal/widgets/home/surprise_watchlist_button.dart';
+import 'package:petal/widgets/home/watchlist_shelf.dart';
 import 'package:petal/widgets/release_calendar.dart';
 import 'package:petal/widgets/upcoming_episodes.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -17,10 +24,10 @@ class CatalogWidget extends StatefulWidget {
   const CatalogWidget({super.key});
 
   @override
-  State<StatefulWidget> createState() => _CatalogWidget();
+  State<StatefulWidget> createState() => _CatalogWidgetState();
 }
 
-class _CatalogWidget extends State<CatalogWidget> {
+class _CatalogWidgetState extends State<CatalogWidget> {
   late Future<List<Catalog>> _catalogs;
 
   @override
@@ -119,7 +126,7 @@ class _CatalogWidget extends State<CatalogWidget> {
               SliverList(
                 delegate: SliverChildListDelegate([
                   for (final catalog in catalogs)
-                    _CatalogSection(
+                    CatalogSection(
                       key: ValueKey('${catalog.id}-${catalog.type}'),
                       catalog: catalog,
                     ),
@@ -131,40 +138,6 @@ class _CatalogWidget extends State<CatalogWidget> {
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         );
-      },
-    );
-  }
-}
-
-class _CatalogSection extends StatefulWidget {
-  final Catalog catalog;
-  const _CatalogSection({super.key, required this.catalog});
-
-  @override
-  State<_CatalogSection> createState() => _CatalogSectionState();
-}
-
-class _CatalogSectionState extends State<_CatalogSection>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return FutureBuilder<List<CatalogItem>>(
-      future: ApiCache.getCatalogItems(widget.catalog),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: ConnectionErrorView(
-              error: snapshot.error,
-              title: "Couldn't load ${widget.catalog.name}",
-            ),
-          );
-        }
-        return CatalogRow(catalog: widget.catalog, catalogItems: snapshot.data);
       },
     );
   }

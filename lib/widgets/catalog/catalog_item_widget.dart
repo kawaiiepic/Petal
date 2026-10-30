@@ -4,8 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/user_library.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
 import 'package:petal/models/catalog_item.dart';
+import 'package:petal/models/media_type.dart';
+import 'package:petal/widgets/catalog/hoverable_item.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
@@ -13,13 +14,18 @@ class CatalogItemWidget extends StatefulWidget {
   final CatalogItem? catalogItem;
   final bool showTitle;
 
-  const CatalogItemWidget({super.key, required this.catalogItem, this.showTitle = false});
+  const CatalogItemWidget({
+    super.key,
+    required this.catalogItem,
+    this.showTitle = false,
+  });
 
   @override
-  State<StatefulWidget> createState() => _CatalogItemWidget();
+  State<StatefulWidget> createState() => _CatalogItemWidgetState();
 }
 
-class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliveClientMixin {
+class _CatalogItemWidgetState extends State<CatalogItemWidget>
+    with AutomaticKeepAliveClientMixin {
   CatalogItem? catalogItem;
   late final String _posterUrl;
 
@@ -31,7 +37,9 @@ class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliv
     super.initState();
     catalogItem = widget.catalogItem;
     final poster = catalogItem?.poster ?? '';
-    _posterUrl = poster.isEmpty || poster.contains('blossomvale.dev') ? poster : Api.proxyImage(poster);
+    _posterUrl = poster.isEmpty || poster.contains('blossomvale.dev')
+        ? poster
+        : Api.proxyImage(poster);
     if (_posterUrl.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -50,7 +58,9 @@ class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliv
               fit: BoxFit.cover,
               memCacheWidth: 400,
               fadeInDuration: Duration.zero,
-              placeholder: (context, url) => Container(color: Colors.white.withAlpha(20)).asSkeleton(leaf: true),
+              placeholder: (context, url) =>
+                  Container(color: Colors.white.withAlpha(20))
+                      .asSkeleton(leaf: true),
               errorWidget: (context, url, error) => Container(
                 color: Colors.white.withAlpha(30),
                 child: Column(
@@ -65,72 +75,87 @@ class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliv
             )
           : Avatar(initials: '', borderRadius: 12).asSkeleton(),
       onTap: () {
-        if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
+        if (catalogItem != null)
+          context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
       },
       contextItems: [
-          MenuButton(
-            leading: const Icon(LucideIcons.play),
-            trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.enter)),
-            onPressed: (_) {
-              if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
-            },
-            child: const Text('Play'),
+        MenuButton(
+          leading: const Icon(LucideIcons.play),
+          trailing: const MenuShortcut(
+            activator: SingleActivator(LogicalKeyboardKey.enter),
           ),
-          MenuButton(
-            leading: const Icon(LucideIcons.server),
-            trailing: const MenuShortcut(activator: SingleActivator(LogicalKeyboardKey.bracketLeft, control: true)),
-            onPressed: (_) {
-              if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
-            },
-            child: const Text('Select Source'),
+          onPressed: (_) {
+            if (catalogItem != null)
+              context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
+          },
+          child: const Text('Play'),
+        ),
+        MenuButton(
+          leading: const Icon(LucideIcons.server),
+          trailing: const MenuShortcut(
+            activator: SingleActivator(
+              LogicalKeyboardKey.bracketLeft,
+              control: true,
+            ),
           ),
-          const MenuDivider(),
-          MenuButton(
-            leading: const Icon(LucideIcons.info),
-            onPressed: (_) {
-              if (catalogItem != null) context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
-            },
-            child: const Text('More Info'),
-          ),
-          const MenuDivider(),
-          MenuButton(
-            leading: const Icon(LucideIcons.bookmark),
-            onPressed: (_) async {
-              if (catalogItem == null) return;
-              final resolved = await _resolveLibraryTarget(catalogItem!);
-              if (resolved == null) return;
-              await UserLibrary.toggleWatchlist(resolved.$1, resolved.$2, name: catalogItem!.name);
-            },
-            child: const Text('Watchlist'),
-          ),
-          MenuButton(
-            leading: const Icon(LucideIcons.check),
-            onPressed: (_) async {
-              if (catalogItem == null) return;
-              final resolved = await _resolveLibraryTarget(catalogItem!);
-              if (resolved == null) return;
-              await UserLibrary.toggleWatched(resolved.$1, resolved.$2);
-            },
-            child: const Text('Watched'),
-          ),
-          MenuButton(
-            leading: const Icon(LucideIcons.thumbsUp),
-            onPressed: (_) async {
-              if (catalogItem == null) return;
-              final resolved = await _resolveLibraryTarget(catalogItem!);
-              if (resolved == null) return;
-              await UserLibrary.cycleRating(resolved.$1, resolved.$2);
-            },
-            child: const Text('Rate'),
-          ),
-        ],
+          onPressed: (_) {
+            if (catalogItem != null)
+              context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
+          },
+          child: const Text('Select Source'),
+        ),
+        const MenuDivider(),
+        MenuButton(
+          leading: const Icon(LucideIcons.info),
+          onPressed: (_) {
+            if (catalogItem != null)
+              context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
+          },
+          child: const Text('More Info'),
+        ),
+        const MenuDivider(),
+        MenuButton(
+          leading: const Icon(LucideIcons.bookmark),
+          onPressed: (_) async {
+            if (catalogItem == null) return;
+            final resolved = await _resolveLibraryTarget(catalogItem!);
+            if (resolved == null) return;
+            await UserLibrary.toggleWatchlist(
+              resolved.$1,
+              resolved.$2,
+              name: catalogItem!.name,
+            );
+          },
+          child: const Text('Watchlist'),
+        ),
+        MenuButton(
+          leading: const Icon(LucideIcons.check),
+          onPressed: (_) async {
+            if (catalogItem == null) return;
+            final resolved = await _resolveLibraryTarget(catalogItem!);
+            if (resolved == null) return;
+            await UserLibrary.toggleWatched(resolved.$1, resolved.$2);
+          },
+          child: const Text('Watched'),
+        ),
+        MenuButton(
+          leading: const Icon(LucideIcons.thumbsUp),
+          onPressed: (_) async {
+            if (catalogItem == null) return;
+            final resolved = await _resolveLibraryTarget(catalogItem!);
+            if (resolved == null) return;
+            await UserLibrary.cycleRating(resolved.$1, resolved.$2);
+          },
+          child: const Text('Rate'),
+        ),
+      ],
     );
 
     final title = catalogItem == null
         ? ''
         : catalogItem!.year > 0
-            ? '${catalogItem!.name} (${catalogItem!.year})'
-            : catalogItem!.name;
+        ? '${catalogItem!.name} (${catalogItem!.year})'
+        : catalogItem!.name;
 
     return Padding(
       padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
@@ -144,7 +169,10 @@ class _CatalogItemWidget extends State<CatalogItemWidget> with AutomaticKeepAliv
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             )
@@ -159,71 +187,12 @@ Future<(int, MediaType)?> _resolveLibraryTarget(CatalogItem item) async {
   if (parsed != null && !item.id.startsWith('tt')) return (parsed, type);
   try {
     final result = await ApiCache.getTmdbSearch(item.id);
-    final match = type == MediaType.movie ? result.movies.firstOrNull : result.tv.firstOrNull;
+    final match = type == MediaType.movie
+        ? result.movies.firstOrNull
+        : result.tv.firstOrNull;
     if (match == null) return null;
     return (match.id, type);
   } catch (_) {
     return null;
-  }
-}
-
-class HoverableItem extends StatefulWidget {
-  final Widget? image;
-  final Widget? extraWidget;
-  final VoidCallback? onTap;
-  final List<MenuItem>? contextItems;
-  final Orientation orientation;
-
-  const HoverableItem({super.key, required this.image, this.onTap, this.contextItems, this.orientation = Orientation.portrait, this.extraWidget});
-
-  @override
-  State<StatefulWidget> createState() => _HoverableItem();
-}
-
-class _HoverableItem extends State<HoverableItem> {
-  bool _isHovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final card = Container(
-      color: Colors.transparent,
-      child: AspectRatio(
-        aspectRatio: widget.orientation == Orientation.portrait ? 3 / 4 : 16 / 9,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: _isHovering ? Colors.white : Colors.transparent),
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadiusGeometry.circular(12.0),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                AnimatedScale(scale: _isHovering ? 1.1 : 1, duration: const Duration(milliseconds: 300), child: widget.image),
-                if (widget.extraWidget != null) widget.extraWidget!,
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final tappable = MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: card,
-      ),
-    );
-
-    if (widget.contextItems == null || widget.contextItems!.isEmpty) return tappable;
-
-    return ContextMenu(
-      enabled: true,
-      items: widget.contextItems!,
-      child: tappable,
-    );
   }
 }
