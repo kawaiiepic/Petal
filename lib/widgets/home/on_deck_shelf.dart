@@ -5,9 +5,8 @@ import 'package:petal/models/watch_history/movie_item.dart';
 import 'package:petal/models/watch_history/show_item.dart';
 import 'package:petal/widgets/home/continue_watching_card.dart';
 import 'package:petal/widgets/home_section.dart';
-import 'package:petal/widgets/scrollable_widget.dart';
+import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class OnDeckShelf extends StatefulWidget {
   const OnDeckShelf({super.key});
@@ -17,12 +16,9 @@ class OnDeckShelf extends StatefulWidget {
 }
 
 class _OnDeckShelfState extends State<OnDeckShelf> {
-  late final ScrollController _controller;
-
   @override
   void initState() {
     super.initState();
-    _controller = ScrollController();
     _onAuth();
     BackendApi.authState.addListener(_onAuth);
   }
@@ -36,7 +32,6 @@ class _OnDeckShelfState extends State<OnDeckShelf> {
   @override
   void dispose() {
     BackendApi.authState.removeListener(_onAuth);
-    _controller.dispose();
     super.dispose();
   }
 
@@ -95,23 +90,16 @@ class _OnDeckShelfState extends State<OnDeckShelf> {
         if (onDeck.isEmpty) return const SizedBox.shrink();
         return HomeSection(
           title: 'On deck',
-          child: SizedBox(
-            height: 25.h,
-            child: ScrollableWidget(
-              controller: _controller,
-              child: ListView.builder(
-                controller: _controller,
-                scrollDirection: Axis.horizontal,
-                itemCount: onDeck.length,
-                itemBuilder: (context, index) {
-                  final state = onDeck[index];
-                  return ContinueWatchingCard(
-                    key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'),
-                    state: state,
-                  );
-                },
-              ),
-            ),
+          child: MediaShelf(
+            orientation: Orientation.landscape,
+            itemCount: onDeck.length,
+            itemBuilder: (context, index) {
+              final state = onDeck[index];
+              return ContinueWatchingCard(
+                key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'),
+                state: state,
+              );
+            },
           ),
         );
       },

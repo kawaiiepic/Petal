@@ -11,6 +11,7 @@ import 'package:petal/pages/comments_page.dart';
 import 'package:petal/pages/dashboard/search_results_page.dart';
 import 'package:petal/pages/downloads_page.dart';
 import 'package:petal/pages/episode_detail_page.dart';
+import 'package:petal/pages/home_page.dart';
 import 'package:petal/pages/login_page.dart';
 import 'package:petal/pages/movie_overview_page.dart';
 import 'package:petal/pages/offline_page.dart';
@@ -22,7 +23,6 @@ import 'package:petal/pages/show_overview_page.dart';
 import 'package:petal/pages/stats_page.dart';
 import 'package:petal/pages/streams_page.dart';
 import 'package:petal/pages/trakt_import_page.dart';
-import 'package:petal/widgets/catalog/catalog_widget.dart';
 
 class AppRouter {
   static final appRouter = GoRouter(
@@ -49,10 +49,7 @@ class AppRouter {
         builder: (context, state, child) =>
             AppNavigation(state: state, child: child),
         routes: [
-          GoRoute(
-            path: '/',
-            builder: (context, state) => const CatalogWidget(),
-          ),
+          GoRoute(path: '/', builder: (context, state) => const HomePage()),
         ],
       ),
       GoRoute(

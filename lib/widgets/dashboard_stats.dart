@@ -1,10 +1,9 @@
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/models/watch_history/watch_stats_snapshot.dart';
 import 'package:petal/widgets/home_section.dart';
-import 'package:petal/widgets/scrollable_widget.dart';
+import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:petal/widgets/stats/stat_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class DashboardStats extends StatefulWidget {
   const DashboardStats({super.key});
@@ -14,19 +13,10 @@ class DashboardStats extends StatefulWidget {
 }
 
 class _DashboardStatsState extends State<DashboardStats> {
-  late final ScrollController _controller;
-
   @override
   void initState() {
     super.initState();
-    _controller = ScrollController();
     BackendCache.fetchWatchHistory();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   @override
@@ -65,22 +55,11 @@ class _DashboardStatsState extends State<DashboardStats> {
         ];
         return HomeSection(
           title: 'Stats',
-          child: SizedBox(
-            height: 14.h,
-            child: ScrollableWidget(
-              controller: _controller,
-              offset: 0,
-              child: ListView.builder(
-                controller: _controller,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: cards.length,
-                itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-                  child: SizedBox(width: 38.w, child: cards[index]),
-                ),
-              ),
-            ),
+          child: MediaShelf(
+            orientation: Orientation.landscape,
+            itemCount: cards.length,
+            itemBuilder: (context, index) => cards[index],
+            cardHeight: 110,
           ),
         );
       },

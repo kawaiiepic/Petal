@@ -4,9 +4,8 @@ import 'package:petal/models/watch_history/recent_watch.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
 import 'package:petal/widgets/home/recent_watch_card.dart';
 import 'package:petal/widgets/home_section.dart';
-import 'package:petal/widgets/scrollable_widget.dart';
+import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class RecentlyWatchedShelf extends StatefulWidget {
   final List<WatchHistoryItem> history;
@@ -18,19 +17,10 @@ class RecentlyWatchedShelf extends StatefulWidget {
 }
 
 class _RecentlyWatchedShelfState extends State<RecentlyWatchedShelf> {
-  late final ScrollController _controller;
-
   @override
   void initState() {
     super.initState();
-    _controller = ScrollController();
     BackendCache.fetchWatchHistory();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   @override
@@ -39,18 +29,10 @@ class _RecentlyWatchedShelfState extends State<RecentlyWatchedShelf> {
     if (items.isEmpty) return const SizedBox.shrink();
     return HomeSection(
       title: 'Recently watched',
-      child: SizedBox(
-        height: 25.h,
-        child: ScrollableWidget(
-          controller: _controller,
-          child: ListView.builder(
-            controller: _controller,
-            scrollDirection: Axis.horizontal,
-            itemCount: items.length,
-            itemBuilder: (context, index) =>
-                RecentWatchCard(item: items[index]),
-          ),
-        ),
+      child: MediaShelf(
+        orientation: Orientation.landscape,
+        itemCount: items.length,
+        itemBuilder: (context, index) => RecentWatchCard(item: items[index]),
       ),
     );
   }

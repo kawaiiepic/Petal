@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
@@ -8,10 +7,9 @@ import 'package:petal/models/tmdb/tmdb_movie.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/models/watch_history/recent_watch.dart';
 import 'package:petal/utils/watch_meta.dart';
-import 'package:petal/widgets/catalog/hoverable_item.dart';
+import 'package:petal/widgets/media/media_card.dart';
 import 'package:petal/widgets/watch_meta_overlay.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class RecentWatchCard extends StatelessWidget {
   final RecentWatch item;
@@ -68,37 +66,24 @@ class RecentWatchCard extends StatelessWidget {
           }
         }
 
-        return Padding(
-          padding: EdgeInsets.fromLTRB(2.w, 8, 2.w, 8),
-          child: Column(
-            spacing: 8,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: HoverableItem(
-                  orientation: Orientation.landscape,
-                  onTap: () => context.push(
-                    item.type == MediaType.show
-                        ? '/series?tmdb=${item.tmdbId}'
-                        : '/movie?tmdb=${item.tmdbId}',
-                  ),
-                  extraWidget: Positioned(
-                    left: 8,
-                    right: 8,
-                    bottom: 8,
-                    child: WatchMetaOverlay(
-                      durationLabel: isShow
-                          ? 'S${item.season} \u00b7 E${item.episode}'
-                          : null,
-                      remainingLabel: WatchMeta.relative(item.at),
-                    ),
-                  ),
-                  image: image == null
-                      ? Avatar(initials: '', borderRadius: 12).asSkeleton()
-                      : CachedNetworkImage(imageUrl: image, fit: BoxFit.cover),
-                ),
-              ),
-            ],
+        return MediaCard(
+          orientation: Orientation.landscape,
+          onTap: () => context.push(
+            item.type == MediaType.show
+                ? '/series?tmdb=${item.tmdbId}'
+                : '/movie?tmdb=${item.tmdbId}',
+          ),
+          imageUrl: image,
+          overlay: Positioned(
+            left: 8,
+            right: 8,
+            bottom: 8,
+            child: WatchMetaOverlay(
+              durationLabel: isShow
+                  ? 'S${item.season} \u00b7 E${item.episode}'
+                  : null,
+              remainingLabel: WatchMeta.relative(item.at),
+            ),
           ),
         );
       },

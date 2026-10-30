@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
@@ -6,74 +5,22 @@ import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/models/media_type.dart';
-import 'package:petal/widgets/catalog/hoverable_item.dart';
+import 'package:petal/widgets/media/media_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
-class CatalogItemWidget extends StatefulWidget {
+class CatalogItemWidget extends StatelessWidget {
   final CatalogItem? catalogItem;
-  final bool showTitle;
-
-  const CatalogItemWidget({
-    super.key,
-    required this.catalogItem,
-    this.showTitle = false,
-  });
-
-  @override
-  State<StatefulWidget> createState() => _CatalogItemWidgetState();
-}
-
-class _CatalogItemWidgetState extends State<CatalogItemWidget>
-    with AutomaticKeepAliveClientMixin {
-  CatalogItem? catalogItem;
-  late final String _posterUrl;
-
-  @override
-  bool get wantKeepAlive => catalogItem != null;
-
-  @override
-  void initState() {
-    super.initState();
-    catalogItem = widget.catalogItem;
-    final poster = catalogItem?.poster ?? '';
-    _posterUrl = poster.isEmpty || poster.contains('blossomvale.dev')
-        ? poster
-        : Api.proxyImage(poster);
-    if (_posterUrl.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        precacheImage(CachedNetworkImageProvider(_posterUrl), context);
-      });
-    }
-  }
+  const CatalogItemWidget({super.key, required this.catalogItem});
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-    final poster = HoverableItem(
-      image: catalogItem != null
-          ? CachedNetworkImage(
-              imageUrl: _posterUrl,
-              fit: BoxFit.cover,
-              memCacheWidth: 400,
-              fadeInDuration: Duration.zero,
-              placeholder: (context, url) =>
-                  Container(color: Colors.white.withAlpha(20))
-                      .asSkeleton(leaf: true),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.white.withAlpha(30),
-                child: Column(
-                  spacing: 8,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(LucideIcons.tv, size: 50),
-                    Text(catalogItem!.name, textAlign: TextAlign.center),
-                  ],
-                ),
-              ),
-            )
-          : Avatar(initials: '', borderRadius: 12).asSkeleton(),
+    final poster = catalogItem?.poster ?? '';
+    final posterUrl = poster.isEmpty || poster.contains('blossomvale.dev')
+        ? poster
+        : Api.proxyImage(poster);
+    return MediaCard(
+      imageUrl: posterUrl,
+      label: catalogItem?.name,
       onTap: () {
         if (catalogItem != null)
           context.push('/${catalogItem!.type}?imdb=${catalogItem!.id}');
@@ -149,34 +96,6 @@ class _CatalogItemWidgetState extends State<CatalogItemWidget>
           child: const Text('Rate'),
         ),
       ],
-    );
-
-    final title = catalogItem == null
-        ? ''
-        : catalogItem!.year > 0
-        ? '${catalogItem!.name} (${catalogItem!.year})'
-        : catalogItem!.name;
-
-    return Padding(
-      padding: EdgeInsetsGeometry.fromLTRB(2.w, 8, 2.w, 8),
-      child: widget.showTitle
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: poster),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            )
-          : poster,
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:petal/widgets/back_button.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
 import 'package:petal/widgets/connection_error_view.dart';
 import 'package:petal/widgets/home_section.dart';
+import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:petal/widgets/search/profile_result_row.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -62,33 +63,12 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     return items;
   }
 
-  int _columns(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    if (width < 400) return 3;
-    if (width < 700) return 4;
-    if (width < 1100) return 5;
-    return 6;
-  }
-
-  Widget _grid(List<CatalogItem> items) {
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: _columns(context),
-          childAspectRatio: 0.52,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-        ),
-        itemBuilder: (context, index) =>
-            CatalogItemWidget(catalogItem: items[index], showTitle: true),
-      ),
-    );
-  }
+  Widget _grid(List<CatalogItem> items) => MediaShelf(
+    scrollDirection: Axis.vertical,
+    itemCount: items.length,
+    itemBuilder: (context, index) =>
+        CatalogItemWidget(catalogItem: items[index]),
+  );
 
   @override
   Widget build(BuildContext context) {

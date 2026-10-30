@@ -1,6 +1,6 @@
-import 'package:petal/models/addon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/download_manager.dart';
+import 'package:petal/models/addon.dart';
 import 'package:petal/models/downloads/download_entry.dart';
 import 'package:petal/models/downloads/download_status.dart';
 import 'package:petal/models/stream_item.dart';

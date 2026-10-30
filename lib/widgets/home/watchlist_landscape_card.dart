@@ -1,12 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/library/library_title.dart';
 import 'package:petal/models/media_type.dart';
-import 'package:petal/widgets/catalog/hoverable_item.dart';
+import 'package:petal/widgets/media/media_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class WatchlistLandscapeCard extends StatelessWidget {
   final LibraryTitle item;
@@ -50,65 +48,35 @@ class WatchlistLandscapeCard extends StatelessWidget {
             }
           }
         }
-        return Padding(
-          padding: EdgeInsets.fromLTRB(2.w, 8, 2.w, 8),
-          child: Column(
-            spacing: 8,
-            children: [
-              Expanded(
-                child: HoverableItem(
-                  orientation: Orientation.landscape,
-                  onTap: () => context.push(
-                    isShow
-                        ? '/series?tmdb=${item.tmdbId}'
-                        : '/movie?tmdb=${item.tmdbId}',
-                  ),
-                  contextItems: [
-                    MenuButton(
-                      leading: const Icon(LucideIcons.play),
-                      onPressed: (_) => context.push(
-                        isShow
-                            ? '/series?tmdb=${item.tmdbId}'
-                            : '/movie?tmdb=${item.tmdbId}',
-                      ),
-                      child: const Text('Play'),
-                    ),
-                    MenuButton(
-                      leading: const Icon(LucideIcons.info),
-                      onPressed: (_) => context.push(
-                        isShow
-                            ? '/series?tmdb=${item.tmdbId}'
-                            : '/movie?tmdb=${item.tmdbId}',
-                      ),
-                      child: const Text('More Info'),
-                    ),
-                  ],
-                  image: image == null
-                      ? Avatar(initials: '', borderRadius: 12).asSkeleton()
-                      : CachedNetworkImage(imageUrl: image, fit: BoxFit.cover),
-                ),
-              ),
-              SizedBox(
-                height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
-                child: Column(
-                  children: [
-                    Text(
-                      name.isEmpty ? 'Loading...' : name,
-                      style: TextStyle(fontSize: 15.px),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      'Start now',
-                      style: TextStyle(fontSize: 15.px),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        return MediaCard(
+          orientation: Orientation.landscape,
+          onTap: () => context.push(
+            isShow
+                ? '/series?tmdb=${item.tmdbId}'
+                : '/movie?tmdb=${item.tmdbId}',
           ),
+          contextItems: [
+            MenuButton(
+              leading: const Icon(LucideIcons.play),
+              onPressed: (_) => context.push(
+                isShow
+                    ? '/series?tmdb=${item.tmdbId}'
+                    : '/movie?tmdb=${item.tmdbId}',
+              ),
+              child: const Text('Play'),
+            ),
+            MenuButton(
+              leading: const Icon(LucideIcons.info),
+              onPressed: (_) => context.push(
+                isShow
+                    ? '/series?tmdb=${item.tmdbId}'
+                    : '/movie?tmdb=${item.tmdbId}',
+              ),
+              child: const Text('More Info'),
+            ),
+          ],
+          imageUrl: image,
+          label: name,
         );
       },
     );

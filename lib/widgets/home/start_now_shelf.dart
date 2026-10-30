@@ -4,9 +4,8 @@ import 'package:petal/api/user_library.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/widgets/home/watchlist_landscape_card.dart';
 import 'package:petal/widgets/home_section.dart';
-import 'package:petal/widgets/scrollable_widget.dart';
+import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class StartNowShelf extends StatefulWidget {
   const StartNowShelf({super.key});
@@ -16,21 +15,12 @@ class StartNowShelf extends StatefulWidget {
 }
 
 class _StartNowShelfState extends State<StartNowShelf> {
-  late final ScrollController _controller;
-
   @override
   void initState() {
     super.initState();
-    _controller = ScrollController();
     if (BackendApi.authState.selectedProfile != null) {
       BackendCache.fetchContinueWatching();
     }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   @override
@@ -55,20 +45,11 @@ class _StartNowShelfState extends State<StartNowShelf> {
             if (items.isEmpty) return const SizedBox.shrink();
             return HomeSection(
               title: 'Start now',
-              child: SizedBox(
-                height: 25.h,
-                child: ScrollableWidget(
-                  controller: _controller,
-                  child: ListView.builder(
-                    controller: _controller,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: items.length,
-                    itemBuilder: (context, index) => SizedBox(
-                      width: 55.w,
-                      child: WatchlistLandscapeCard(item: items[index]),
-                    ),
-                  ),
-                ),
+              child: MediaShelf(
+                orientation: Orientation.landscape,
+                itemCount: items.length,
+                itemBuilder: (context, index) =>
+                    WatchlistLandscapeCard(item: items[index]),
               ),
             );
           },

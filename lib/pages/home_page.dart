@@ -20,14 +20,14 @@ import 'package:petal/widgets/release_calendar.dart';
 import 'package:petal/widgets/upcoming_episodes.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-class CatalogWidget extends StatefulWidget {
-  const CatalogWidget({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<StatefulWidget> createState() => _CatalogWidgetState();
+  State<StatefulWidget> createState() => _HomePageState();
 }
 
-class _CatalogWidgetState extends State<CatalogWidget> {
+class _HomePageState extends State<HomePage> {
   late Future<List<Catalog>> _catalogs;
 
   @override

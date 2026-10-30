@@ -35,7 +35,7 @@ class _ScrollableWidgetState extends State<ScrollableWidget> {
   }
 
   void _updateArrows() {
-    if (!_controller.hasClients) return;
+    if (!mounted || _controller.positions.length != 1) return;
 
     final position = _controller.position;
 
@@ -51,12 +51,12 @@ class _ScrollableWidgetState extends State<ScrollableWidget> {
   }
 
   void _scrollBy(double offset) {
-    var scrollTo =
-        (_controller.offset + offset) > _controller.position.maxScrollExtent
-        ? _controller.position.maxScrollExtent + 100
-        : (_controller.offset + offset) < 0
-        ? _controller.position.minScrollExtent - 100
-        : _controller.offset + offset;
+    if (_controller.positions.length != 1) return;
+    final position = _controller.position;
+    final scrollTo = (_controller.offset + offset).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
     _controller.animateTo(
       scrollTo,
       duration: const Duration(milliseconds: 300),
@@ -94,7 +94,8 @@ class _ScrollableWidgetState extends State<ScrollableWidget> {
                 child: ArrowButton(
                   visible: _isHovering && _canScrollLeft,
                   icon: LucideIcons.arrowBigLeft,
-                  onPressed: () => _scrollBy(-900),
+                  onPressed: () =>
+                      _scrollBy(-_controller.position.viewportDimension * 0.85),
                 ),
               ),
             ),
@@ -107,7 +108,8 @@ class _ScrollableWidgetState extends State<ScrollableWidget> {
                 child: ArrowButton(
                   visible: _isHovering && _canScrollRight,
                   icon: LucideIcons.arrowBigRight,
-                  onPressed: () => _scrollBy(900),
+                  onPressed: () =>
+                      _scrollBy(_controller.position.viewportDimension * 0.85),
                 ),
               ),
             ),
