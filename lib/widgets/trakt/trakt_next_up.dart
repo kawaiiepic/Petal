@@ -261,33 +261,33 @@ class _TraktNextUpItem extends State<TraktNextUpItem> with AutomaticKeepAliveCli
                 ),
               ),
             ),
-            SizedBox(
-              height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FutureBuilder<TmdbShow>(
-                    future: _futureShow,
-                    builder: (context, snap2) => Text(
-                      !snap2.hasData ? 'Loading...' : snap2.data!.name,
-                      style: TextStyle(fontSize: 15.px, fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ).asSkeleton(snapshot: snap2),
-                  ),
-                  Text(
-                    next == null
-                        ? 'Loading...'
-                        : snapshot.hasData
-                            ? 'S${next.season} \u00b7 E${next.episode} - ${snapshot.data!.name}'
-                            : 'S${next.season} \u00b7 E${next.episode}',
-                    style: TextStyle(fontSize: 13.px, color: Colors.white.withValues(alpha: 0.7)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
+            // SizedBox(
+            //   height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       FutureBuilder<TmdbShow>(
+            //         future: _futureShow,
+            //         builder: (context, snap2) => Text(
+            //           !snap2.hasData ? 'Loading...' : snap2.data!.name,
+            //           style: TextStyle(fontSize: 15.px, fontWeight: FontWeight.w600),
+            //           maxLines: 1,
+            //           overflow: TextOverflow.ellipsis,
+            //         ).asSkeleton(snapshot: snap2),
+            //       ),
+            //       // Text(
+            //       //   next == null
+            //       //       ? 'Loading...'
+            //       //       : snapshot.hasData
+            //       //           ? 'S${next.season} \u00b7 E${next.episode} - ${snapshot.data!.name}'
+            //       //           : 'S${next.season} \u00b7 E${next.episode}',
+            //       //   style: TextStyle(fontSize: 13.px, color: Colors.white.withValues(alpha: 0.7)),
+            //       //   maxLines: 1,
+            //       //   overflow: TextOverflow.ellipsis,
+            //       // ),
+            //     ],
+            //   ),
+            // ),
           ],
         ),
       ).asSkeleton(snapshot: snapshot),

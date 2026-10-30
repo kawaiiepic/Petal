@@ -9,7 +9,6 @@ import 'package:petal/widgets/connection_error.dart';
 import 'package:petal/widgets/dashboard_stats.dart';
 import 'package:petal/widgets/friend_activity.dart';
 import 'package:petal/widgets/home_shelves.dart';
-import 'package:petal/widgets/in_progress_shelf.dart';
 import 'package:petal/widgets/release_calendar.dart';
 import 'package:petal/widgets/upcoming_episodes.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';

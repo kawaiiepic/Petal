@@ -4,7 +4,7 @@
     {
       "name": "blssmpetal",
       "request": "launch",
-      "type": "dart"
+      "type": "dart",
     },
     {
       "name": "blssmpetal (profile mode)",

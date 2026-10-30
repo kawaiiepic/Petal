@@ -19,11 +19,22 @@ import 'package:petal/widgets/watch_meta_overlay.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
-bool _inProgress(ContinueWatchingItem item) {
-  if (item is MovieItem) return item.completion > 0 && item.completion < 1;
+// Check if an item was recently watched by looking at completion progress
+// Items with partial completion (started but not finished) are considered recently watched
+bool _isRecentlyWatched(ContinueWatchingItem item) {
   if (item is ShowItem) {
-    final next = item.nextEpisode;
-    return next != null && next.completion > 0 && next.completion < 1;
+    // Check if any season has episodes with partial completion
+    for (final season in item.seasons) {
+      for (final episode in season.episodes) {
+        if (episode.completion > 0 && episode.completion < 1.0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  if (item is MovieItem) {
+    return item.completion > 0 && item.completion < 1;
   }
   return false;
 }
@@ -31,7 +42,24 @@ bool _inProgress(ContinueWatchingItem item) {
 bool _onDeck(ContinueWatchingItem item) {
   if (item is ShowItem) {
     final next = item.nextEpisode;
+    // Only include shows that have a next episode to watch
     return next != null && next.completion <= 0;
+  }
+  return false;
+}
+
+// Check if an item should be prioritized for nextUp (recently watched with next episode)
+bool _nextUp(ContinueWatchingItem item) {
+  if (item is ShowItem) {
+    final next = item.nextEpisode;
+    // Must have a next episode to watch
+    if (next == null || next.completion >= 1.0) return false;
+    // Must be recently watched (has partial completion somewhere)
+    return _isRecentlyWatched(item);
+  }
+  if (item is MovieItem) {
+    // For movies, check if partially watched
+    return item.completion > 0 && item.completion < 1.0;
   }
   return false;
 }
@@ -72,7 +100,53 @@ class _OnDeckShelfState extends State<OnDeckShelf> {
     return ValueListenableBuilder(
       valueListenable: BackendCache.continueWatching,
       builder: (context, list, _) {
-        final onDeck = list.where(_onDeck).take(12).toList();
+        // Prioritize "nextUp" - recently watched items with next episode available
+        final nextUp = list.where(_nextUp).map((item) => item).toList()
+          ..sort((a, b) {
+            // Sort by most recently watched first (higher completion in recent watches)
+            double? maxAProgress;
+            double? maxBProgress;
+            if (a is ShowItem && a.seasons.isNotEmpty) {
+              for (final season in a.seasons) {
+                for (final episode in season.episodes) {
+                  if (episode.completion > 0) {
+                    maxAProgress = ((maxAProgress ?? 0.0) > episode.completion
+                        ? maxAProgress
+                        : episode.completion);
+                  }
+                }
+              }
+            } else if (a is MovieItem) {
+              maxAProgress = a.completion;
+            } else {
+              maxAProgress = 0.0;
+            }
+
+            if (b is ShowItem && b.seasons.isNotEmpty) {
+              for (final season in b.seasons) {
+                for (final episode in season.episodes) {
+                  if (episode.completion > 0) {
+                    maxBProgress = ((maxBProgress ?? 0.0) > episode.completion
+                        ? maxBProgress
+                        : episode.completion);
+                  }
+                }
+              }
+            } else if (b is MovieItem) {
+              maxBProgress = b.completion;
+            } else {
+              maxBProgress = 0.0;
+            }
+
+            // Use negative value so higher completion comes first
+            return (maxAProgress ?? 0.0).compareTo(maxBProgress ?? 0.0);
+          })
+          ..take(12);
+
+        // Fall back to all on deck if nextUp is empty
+        final onDeck = nextUp.isEmpty
+            ? list.where(_onDeck).take(12).toList()
+            : nextUp;
         if (onDeck.isEmpty) return const SizedBox.shrink();
         return HomeSection(
           title: 'On deck',
@@ -87,9 +161,8 @@ class _OnDeckShelfState extends State<OnDeckShelf> {
                 itemBuilder: (context, index) {
                   final state = onDeck[index];
                   return TraktNextUpItem(
-                      key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'),
-                      state: state,
-                  
+                    key: ValueKey('deck-${state.mediaType}-${state.tmdbId}'),
+                    state: state,
                   );
                 },
               ),
@@ -527,32 +600,6 @@ class _RecentWatchCard extends StatelessWidget {
                   image: image == null
                       ? Avatar(initials: '', borderRadius: 12).asSkeleton()
                       : CachedNetworkImage(imageUrl: image, fit: BoxFit.cover),
-                ),
-              ),
-              SizedBox(
-                height: Device.screenType == ScreenType.desktop ? 5.h : 6.h,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title.isEmpty ? 'Loading...' : title,
-                      style: TextStyle(
-                        fontSize: 15.px,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13.px,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ),
               ),
             ],

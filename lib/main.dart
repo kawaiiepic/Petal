@@ -34,7 +34,8 @@ class PetalApp extends StatefulWidget {
   static final rootNavigatorKey = GlobalKey<NavigatorState>();
   static final shellNavigatorKey = GlobalKey<NavigatorState>();
   static final drawerNavigatorKey = GlobalKey<NavigatorState>();
-  static final GlobalKey<RefreshTriggerState> refreshTriggerKey = GlobalKey<RefreshTriggerState>();
+  static final GlobalKey<RefreshTriggerState> refreshTriggerKey =
+      GlobalKey<RefreshTriggerState>();
 
   @override
   State<PetalApp> createState() => _PetalState();
@@ -55,20 +56,28 @@ class _PetalState extends State<PetalApp> {
       valueListenable: AppTheme.mode,
       builder: (context, mode, _) => Sizer(
         maxTabletWidth: 500,
-        builder: (context, orientation, screenType) => ShadcnApp.router(
-          routerConfig: AppRouter.appRouter,
-          builder: (context, child) => DrawerOverlay(child: child!),
-          debugShowCheckedModeBanner: false,
-          scaling: AdaptiveScaling.mobile,
-          themeMode: mode,
-          theme: _theme(ColorSchemes.lightGray.pink),
-          darkTheme: _theme(ColorSchemes.darkGray.pink),
-        ),
+        builder: (context, orientation, screenType) {
+          double screenWidth = MediaQuery.sizeOf(context).width;
+          return ShadcnApp.router(
+            key: ValueKey(screenWidth),
+            routerConfig: AppRouter.appRouter,
+            builder: (context, child) => DrawerOverlay(child: child!),
+            debugShowCheckedModeBanner: false,
+            themeMode: mode,
+            theme: _theme(ColorSchemes.lightGray.pink),
+            darkTheme: _theme(ColorSchemes.darkGray.pink),
+          );
+        },
       ),
     );
   }
 }
 
 ThemeData _theme(ColorScheme scheme) {
-  return ThemeData(colorScheme: scheme, radius: 0.75, surfaceOpacity: 1, surfaceBlur: 0).copyWith(platform: () => TargetPlatform.linux);
+  return ThemeData(
+    colorScheme: scheme,
+    radius: 0.75,
+    surfaceOpacity: 1,
+    surfaceBlur: 0,
+  ).copyWith(platform: () => TargetPlatform.linux);
 }
