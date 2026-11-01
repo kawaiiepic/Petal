@@ -65,7 +65,7 @@ class _StreamsPageState extends State<StreamsPage> {
     if (isShow) {
       return FutureBuilder(
         future: _showData,
-        builder: (context, snapshot) {
+        builder: (context, showSnapshot) {
           return Scaffold(
             headers: [
               AppBar(
@@ -76,8 +76,8 @@ class _StreamsPageState extends State<StreamsPage> {
                         ? 15.sp
                         : 18.sp,
                   ),
-                  snapshot.hasData
-                      ? "${(snapshot.data![0] as TmdbShow).name} ${(snapshot.data![1] as TmdbEpisode).seasonNumber}x${(snapshot.data![1] as TmdbEpisode).episodeNumber}"
+                  showSnapshot.hasData
+                      ? "${(showSnapshot.data![0] as TmdbShow).name} ${(showSnapshot.data![1] as TmdbEpisode).seasonNumber}x${(showSnapshot.data![1] as TmdbEpisode).episodeNumber}"
                       : '',
                 ),
               ),
@@ -109,6 +109,12 @@ class _StreamsPageState extends State<StreamsPage> {
                       tmdbId: widget.showId!,
                       episode: widget.episode,
                       download: widget.download,
+                      mediaTitle: showSnapshot.hasData
+                          ? (showSnapshot.data![0] as TmdbShow).name
+                          : null,
+                      episodeTitle: showSnapshot.hasData
+                          ? (showSnapshot.data![1] as TmdbEpisode).name
+                          : null,
                       title: widget.episode == null
                           ? 'Episode'
                           : 'S${widget.episode!.seasonNumber}:E${widget.episode!.episodeNumber}',
@@ -123,7 +129,7 @@ class _StreamsPageState extends State<StreamsPage> {
     }
     return FutureBuilder(
       future: movie,
-      builder: (context, snapshot) {
+      builder: (context, movieSnapshot) {
         return Scaffold(
           headers: [
             AppBar(
@@ -133,7 +139,7 @@ class _StreamsPageState extends State<StreamsPage> {
                       ? 15.sp
                       : 18.sp,
                 ),
-                snapshot.hasData ? snapshot.data!.title : '',
+                movieSnapshot.hasData ? movieSnapshot.data!.title : '',
               ),
             ),
           ],
@@ -163,7 +169,8 @@ class _StreamsPageState extends State<StreamsPage> {
                     stream: stream,
                     tmdbId: widget.movieId!,
                     download: widget.download,
-                    title: stream.title,
+                    title: movieSnapshot.data?.title ?? stream.title,
+                    mediaTitle: movieSnapshot.data?.title,
                   );
                 },
               );

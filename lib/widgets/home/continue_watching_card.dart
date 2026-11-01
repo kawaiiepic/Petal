@@ -131,6 +131,9 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
               final watched = WatchMeta.watchedEpisodesFromShow(state);
               final left = aired > 0 ? (aired - watched).clamp(0, aired) : 0;
               return WatchMetaOverlay(
+                episodeLabel: next == null
+                    ? null
+                    : 'S${next.season} · E${next.episode}',
                 durationLabel: WatchMeta.minutes(runtime),
                 remainingLabel: WatchMeta.remainingLabel(
                   left: left,
@@ -170,6 +173,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
         right: 8,
         bottom: 8,
         child: WatchMetaOverlay(
+          episodeLabel: 'Movie',
           durationLabel: WatchMeta.minutes(snapshot.data?.runtime ?? 0),
           remainingLabel: () {
             final runtime = snapshot.data?.runtime ?? 0;

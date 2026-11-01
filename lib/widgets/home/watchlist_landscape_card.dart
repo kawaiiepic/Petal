@@ -58,7 +58,13 @@ class WatchlistLandscapeCard extends StatelessWidget {
           ),
           imageUrl: image,
           label: name,
-          target: MediaCardTarget(tmdbId: item.tmdbId, type: item.type),
+          target: MediaCardTarget(
+            tmdbId: item.tmdbId,
+            type: item.type,
+            totalEpisodes: isShow && snapshot.hasData
+                ? (snapshot.data as dynamic).numberOfEpisodes as int?
+                : null,
+          ),
         );
       },
     );

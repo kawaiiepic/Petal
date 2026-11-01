@@ -53,10 +53,10 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
     return ValueListenableBuilder(
       valueListenable: UpcomingReleases.items,
       builder: (context, all, _) {
-        final seen = <int>{};
+        final seen = <String>{};
         final items = <UpcomingItem>[];
         for (final item in all) {
-          if (!seen.add(item.tmdbId)) continue;
+          if (!seen.add('${item.type.name}:${item.tmdbId}')) continue;
           items.add(item);
         }
         if (items.isEmpty) return const SizedBox.shrink();
@@ -70,7 +70,9 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
               return MediaCard(
                 orientation: Orientation.landscape,
                 onTap: () => context.push(
-                  '/episode?tmdb=${item.tmdbId}&s=${item.season}&e=${item.episode}',
+                  item.type == MediaType.movie
+                      ? '/movie?tmdb=${item.tmdbId}'
+                      : '/episode?tmdb=${item.tmdbId}&s=${item.season}&e=${item.episode}',
                 ),
                 imageUrl: item.image,
                 overlay: Positioned(
@@ -86,7 +88,7 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _when(item.airDate),
+                      '${item.type == MediaType.movie ? 'Movie' : 'S${item.season} · E${item.episode}'} · ${_when(item.airDate)}',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -95,13 +97,14 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
                     ),
                   ),
                 ),
-                label:
-                    '${item.season}x${item.episode} ${item.showName}: ${item.episodeName}',
+                label: item.type == MediaType.movie
+                    ? item.showName
+                    : '${item.season}x${item.episode} ${item.showName}: ${item.episodeName}',
                 target: MediaCardTarget(
                   tmdbId: item.tmdbId,
-                  type: MediaType.show,
-                  season: item.season,
-                  episode: item.episode,
+                  type: item.type,
+                  season: item.type == MediaType.show ? item.season : null,
+                  episode: item.type == MediaType.show ? item.episode : null,
                 ),
               );
             },

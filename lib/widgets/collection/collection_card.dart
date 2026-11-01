@@ -4,6 +4,7 @@ import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
 import 'package:petal/utils/collection_progress.dart';
 import 'package:petal/utils/watch_meta.dart';
+import 'package:petal/utils/watch_progress.dart';
 import 'package:petal/widgets/watch_meta_overlay.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -43,13 +44,15 @@ class CollectionCard extends StatelessWidget {
       return '$pct%';
     }
     final watching = item.episodes.where(
-      (e) => e.completion > 0 && e.completion < 1,
+      (e) => WatchProgress.isPartial(e.completion),
     );
     if (watching.isNotEmpty) {
       final e = watching.last;
       return 'S${e.season}E${e.episode} ${(e.completion * 100).round()}%';
     }
-    final done = item.episodes.where((e) => e.completion >= 1).length;
+    final done = item.episodes
+        .where((e) => WatchProgress.isWatched(e.completion))
+        .length;
     return done == 0 ? 'Not started' : '$done watched';
   }
 
@@ -57,7 +60,7 @@ class CollectionCard extends StatelessWidget {
     if (item.mediaType == MediaType.movie) {
       final runtime = (tmdb as dynamic).runtime as int? ?? 0;
       String? remaining;
-      if (runtime > 0 && item.completion > 0 && item.completion < 1) {
+      if (runtime > 0 && WatchProgress.isPartial(item.completion)) {
         final left = WatchMeta.minutes(
           ((1 - item.completion) * runtime).round(),
         );
@@ -75,7 +78,7 @@ class CollectionCard extends StatelessWidget {
     final watched = WatchMeta.watchedEpisodesFromHistory(item);
     final left = aired > 0 ? (aired - watched).clamp(0, aired) : 0;
     final inProgress = item.episodes.where(
-      (e) => e.completion > 0 && e.completion < 1,
+      (e) => WatchProgress.isPartial(e.completion),
     );
     return WatchMetaOverlay(
       durationLabel: WatchMeta.minutes(runtime),

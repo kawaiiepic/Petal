@@ -7,6 +7,7 @@ class MediaCardTarget {
   final MediaType type;
   final int? season;
   final int? episode;
+  final int? totalEpisodes;
 
   const MediaCardTarget({
     this.tmdbId,
@@ -14,6 +15,7 @@ class MediaCardTarget {
     required this.type,
     this.season,
     this.episode,
+    this.totalEpisodes,
   }) : assert(tmdbId != null || imdbId != null);
 
   bool get isEpisode => season != null && episode != null;

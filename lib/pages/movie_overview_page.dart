@@ -1,3 +1,4 @@
+import 'package:petal/widgets/overview/title_comments.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api_cache.dart';
@@ -365,6 +366,15 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                           ),
                         ),
                       ),
+                      if (_resolvedTmdbId != null) ...[
+                        const SizedBox(height: 28),
+                        const Text('Comments').h4,
+                        const SizedBox(height: 12),
+                        TitleComments(
+                          mediaType: 'movie',
+                          tmdbId: _resolvedTmdbId!,
+                        ),
+                      ],
                     ],
                   ),
                 ),

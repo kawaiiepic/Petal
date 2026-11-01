@@ -1,13 +1,14 @@
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
+import 'package:petal/utils/watch_progress.dart';
 
 bool isWatching(WatchHistoryItem item, {int? tmdbEpisodeCount}) {
   if (item.mediaType == MediaType.movie) {
-    return item.completion > 0 && item.completion < 1;
+    return WatchProgress.isPartial(item.completion);
   }
 
   final anyInProgress = item.episodes.any(
-    (e) => e.completion > 0 && e.completion < 1,
+    (e) => WatchProgress.isPartial(e.completion),
   );
   if (anyInProgress) return true;
 
@@ -15,21 +16,26 @@ bool isWatching(WatchHistoryItem item, {int? tmdbEpisodeCount}) {
   if (!anyStarted) return false;
 
   if (tmdbEpisodeCount != null && tmdbEpisodeCount > 0) {
-    final done = item.episodes.where((e) => e.completion >= 1).length;
+    final done = item.episodes
+        .where((e) => WatchProgress.isWatched(e.completion))
+        .length;
     return done < tmdbEpisodeCount;
   }
   return true;
 }
 
 bool isFinished(WatchHistoryItem item, {int? tmdbEpisodeCount}) {
-  if (item.mediaType == MediaType.movie) return item.completion >= 1;
+  if (item.mediaType == MediaType.movie)
+    return WatchProgress.isWatched(item.completion);
 
   final anyInProgress = item.episodes.any(
-    (e) => e.completion > 0 && e.completion < 1,
+    (e) => WatchProgress.isPartial(e.completion),
   );
   if (anyInProgress) return false;
 
-  final done = item.episodes.where((e) => e.completion >= 1).length;
+  final done = item.episodes
+      .where((e) => WatchProgress.isWatched(e.completion))
+      .length;
   if (tmdbEpisodeCount != null && tmdbEpisodeCount > 0) {
     return done >= tmdbEpisodeCount;
   }

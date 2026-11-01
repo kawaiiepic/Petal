@@ -1,14 +1,23 @@
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class WatchMetaOverlay extends StatelessWidget {
+  final String? episodeLabel;
   final String? durationLabel;
   final String? remainingLabel;
 
-  const WatchMetaOverlay({super.key, this.durationLabel, this.remainingLabel});
+  const WatchMetaOverlay({
+    super.key,
+    this.episodeLabel,
+    this.durationLabel,
+    this.remainingLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final left = durationLabel?.trim() ?? '';
+    final left = [
+      episodeLabel,
+      durationLabel,
+    ].whereType<String>().where((s) => s.trim().isNotEmpty).join(' · ');
     final right = remainingLabel?.trim() ?? '';
     if (left.isEmpty && right.isEmpty) return const SizedBox.shrink();
 

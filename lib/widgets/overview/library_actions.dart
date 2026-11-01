@@ -1,4 +1,3 @@
-import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/models/library/title_rating.dart';
@@ -64,17 +63,6 @@ class LibraryActions extends StatelessWidget {
               active: rating != TitleRating.none,
               onTap: () => UserLibrary.cycleRating(tmdbId, mediaType),
             );
-          },
-        ),
-        LibraryActionButton(
-          icon: LucideIcons.messageCircle,
-          active: false,
-          onTap: () {
-            final type = mediaType == MediaType.movie ? 'movie' : 'show';
-            final label = Uri.encodeComponent(
-              title?.trim().isNotEmpty == true ? title! : 'Comments',
-            );
-            context.push('/comments?type=$type&tmdb=$tmdbId&title=$label');
           },
         ),
       ],

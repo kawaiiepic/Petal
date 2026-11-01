@@ -1,6 +1,7 @@
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/watch_history/day_watch.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
+import 'package:petal/utils/watch_progress.dart';
 
 class WatchStatsSnapshot {
   final int shows;
@@ -91,7 +92,7 @@ class WatchStatsSnapshot {
 
     for (final item in latest.values) {
       if (item.mediaType == MediaType.movie) {
-        if (item.completion <= 0) continue;
+        if (!WatchProgress.isWatched(item.completion)) continue;
         movies++;
         final dates = datesFor(item.watches, item.watchedAt ?? item.updatedAt);
         plays += dates.length;
@@ -106,7 +107,7 @@ class WatchStatsSnapshot {
         if (monthHit) moviesThisMonth++;
       } else {
         final watchedEps = item.episodes
-            .where((e) => e.completion > 0)
+            .where((e) => WatchProgress.isWatched(e.completion))
             .toList();
         if (watchedEps.isEmpty) continue;
         shows++;

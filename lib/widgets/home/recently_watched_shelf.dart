@@ -2,6 +2,7 @@ import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/watch_history/recent_watch.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
+import 'package:petal/utils/watch_progress.dart';
 import 'package:petal/widgets/home/recent_watch_card.dart';
 import 'package:petal/widgets/home_section.dart';
 import 'package:petal/widgets/media/media_shelf.dart';
@@ -42,6 +43,7 @@ List<RecentWatch> _recentWatches(List<WatchHistoryItem> history) {
   final events = <RecentWatch>[];
   for (final item in history) {
     if (item.mediaType == MediaType.movie) {
+      if (!WatchProgress.isWatched(item.completion)) continue;
       events.add(
         RecentWatch(
           tmdbId: item.tmdbId,
@@ -51,21 +53,8 @@ List<RecentWatch> _recentWatches(List<WatchHistoryItem> history) {
       );
       continue;
     }
-    if (item.episodes.isEmpty) {
-      events.add(
-        RecentWatch(
-          tmdbId: item.tmdbId,
-          type: MediaType.show,
-          at: item.updatedAt,
-        ),
-      );
-      continue;
-    }
     for (final episode in item.episodes) {
-      if (episode.completion <= 0 &&
-          episode.watches.isEmpty &&
-          episode.watchedAt == null)
-        continue;
+      if (!WatchProgress.isWatched(episode.completion)) continue;
       final at = episode.watches.isNotEmpty
           ? episode.watches.last
           : (episode.watchedAt ?? item.updatedAt);

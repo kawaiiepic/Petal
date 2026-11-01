@@ -11,6 +11,9 @@ class DownloadEntry {
   double progress;
   DownloadStatus status;
   String? error;
+  String? mediaTitle;
+  String? episodeTitle;
+  double playbackProgress;
 
   DownloadEntry({
     required this.id,
@@ -23,9 +26,19 @@ class DownloadEntry {
     this.progress = 0,
     this.status = DownloadStatus.queued,
     this.error,
+    this.mediaTitle,
+    this.episodeTitle,
+    this.playbackProgress = 0,
   });
 
   bool get isShow => season != null && episode != null;
+  String get displayTitle =>
+      mediaTitle?.trim().isNotEmpty == true ? mediaTitle! : title;
+  String? get episodeLabel => isShow
+      ? 'S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}${episodeTitle?.isNotEmpty == true ? ' · $episodeTitle' : ''}'
+      : null;
+  String get displayName =>
+      episodeLabel == null ? displayTitle : '$displayTitle — $episodeLabel';
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -38,6 +51,9 @@ class DownloadEntry {
     'progress': progress,
     'status': status.name,
     'error': error,
+    'mediaTitle': mediaTitle,
+    'episodeTitle': episodeTitle,
+    'playbackProgress': playbackProgress,
   };
 
   factory DownloadEntry.fromJson(Map<String, dynamic> json) {
@@ -55,6 +71,9 @@ class DownloadEntry {
         orElse: () => DownloadStatus.queued,
       ),
       error: json['error'] as String?,
+      mediaTitle: json['mediaTitle'] as String?,
+      episodeTitle: json['episodeTitle'] as String?,
+      playbackProgress: (json['playbackProgress'] as num?)?.toDouble() ?? 0,
     );
   }
 }

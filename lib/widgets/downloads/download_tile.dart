@@ -1,18 +1,8 @@
-import 'package:go_router/go_router.dart';
 import 'package:petal/api/download_manager.dart';
-import 'package:petal/models/addon.dart';
 import 'package:petal/models/downloads/download_entry.dart';
 import 'package:petal/models/downloads/download_status.dart';
-import 'package:petal/models/stream_item.dart';
+import 'package:petal/widgets/downloads/download_context_menu.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-
-final _localAddon = Addon(
-  id: 'local',
-  userId: '',
-  manifestUrl: '',
-  baseUrl: '',
-  forced: 0,
-);
 
 class DownloadTile extends StatelessWidget {
   final DownloadEntry entry;
@@ -20,57 +10,45 @@ class DownloadTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 8,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    entry.title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+    return DownloadContextMenu(
+      entry: entry,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 8,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.displayTitle,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
-                ),
-                IconButton.ghost(
-                  icon: const Icon(LucideIcons.trash),
-                  onPressed: () => DownloadManager.remove(entry.id),
-                ),
-              ],
-            ),
-            if (entry.status == DownloadStatus.running)
-              LinearProgressIndicator(
-                value: entry.progress == 0 ? null : entry.progress,
+                  IconButton.ghost(
+                    icon: const Icon(LucideIcons.trash),
+                    onPressed: () => DownloadManager.remove(entry.id),
+                  ),
+                ],
               ),
-            Text(
-              _statusText(entry),
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
-            ),
-            if (entry.status == DownloadStatus.done && entry.path != null)
-              Button.primary(
-                onPressed: () {
-                  final extra = StreamItem(
-                    name: entry.title,
-                    title: entry.title,
-                    url: 'file://${entry.path}',
-                    external: false,
-                    addon: _localAddon,
-                  );
-                  if (entry.season != null) {
-                    context.push(
-                      '/player?media=${entry.tmdbId}&s=${entry.season}&e=${entry.episode}',
-                      extra: extra,
-                    );
-                  } else {
-                    context.push('/player?media=${entry.tmdbId}', extra: extra);
-                  }
-                },
-                child: const Text('Play'),
+              if (entry.episodeLabel != null) Text(entry.episodeLabel!),
+              if (entry.status == DownloadStatus.running)
+                LinearProgressIndicator(
+                  value: entry.progress == 0 ? null : entry.progress,
+                ),
+              Text(
+                _statusText(entry),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
               ),
-          ],
+              if (entry.status == DownloadStatus.done && entry.path != null)
+                Button.primary(
+                  onPressed: () => DownloadContextMenu.play(context, entry),
+                  child: const Text('Play'),
+                ),
+            ],
+          ),
         ),
       ),
     );

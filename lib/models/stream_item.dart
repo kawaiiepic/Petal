@@ -1,4 +1,5 @@
 import 'package:petal/models/addon.dart';
+import 'package:petal/models/downloads/download_entry.dart';
 
 class StreamItem {
   final String name;
@@ -6,6 +7,8 @@ class StreamItem {
   final String url;
   final bool external;
   final Addon addon;
+  final DownloadEntry? download;
+  bool get isLocal => Uri.tryParse(url)?.scheme == 'file';
 
   // Optional parsed fields
   final int? season;
@@ -19,7 +22,27 @@ class StreamItem {
     required this.addon,
     this.season,
     this.episode,
+    this.download,
   });
+
+  factory StreamItem.localFile({
+    required String path,
+    required String title,
+    DownloadEntry? download,
+  }) => StreamItem(
+    name: title,
+    title: title,
+    url: Uri.file(path).toString(),
+    external: false,
+    addon: Addon(
+      id: 'local',
+      userId: '',
+      manifestUrl: '',
+      baseUrl: '',
+      forced: 0,
+    ),
+    download: download,
+  );
 
   factory StreamItem.fromJson(Map<String, dynamic> json, Addon addon) {
     final name = json['name'] ?? '';

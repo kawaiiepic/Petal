@@ -2,6 +2,7 @@ import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/shelf_item.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
+import 'package:petal/utils/watch_progress.dart';
 import 'package:petal/widgets/home/recently_watched_shelf.dart';
 import 'package:petal/widgets/poster_shelf.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -29,7 +30,7 @@ class RecentAndStalledShelves extends StatelessWidget {
               if (i.mediaType == MediaType.movie)
                 return i.completion > 0 && i.completion < 1;
               return i.episodes.any(
-                (e) => e.completion > 0 && e.completion < 1,
+                (e) => WatchProgress.isPartial(e.completion),
               );
             })
             .take(12)

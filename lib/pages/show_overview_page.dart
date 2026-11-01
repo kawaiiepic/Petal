@@ -18,7 +18,8 @@ import 'package:petal/utils/media_formatting.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:petal/widgets/overview/cast_card.dart';
 import 'package:petal/widgets/overview/episode_thumbnail_fallback.dart';
-import 'package:petal/widgets/overview/overview_icon_button.dart';
+import 'package:petal/widgets/overview/overview_hero_actions.dart';
+import 'package:petal/widgets/overview/title_comments.dart';
 import 'package:petal/widgets/overview/season_dropdown.dart';
 import 'package:petal/widgets/overview/show_recommendation_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -128,104 +129,61 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                           ),
                         ),
                       ),
-                      Positioned(
-                        bottom: 24,
-                        left: 24,
-                        child: Row(
-                          spacing: 8,
-                          children: [
-                            ContextMenu(
-                              items: [
-                                MenuButton(
-                                  trailing: const MenuShortcut(
-                                    activator: SingleActivator(
-                                      LogicalKeyboardKey.bracketLeft,
-                                      control: true,
-                                    ),
-                                  ),
-                                  onPressed: (_) {
-                                    if (show != null) {
-                                      AppRouter.appRouter.push(
-                                        '/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                      );
-                                    }
-                                  },
-                                  child: const Text('Select Source'),
-                                ),
-                              ],
-                              child: Skeleton.keep(
-                                child: Button(
-                                  onPressed: () => show != null
-                                      ? router.push(
-                                          '/player?media=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                        )
-                                      : null,
-                                  style: const ButtonStyle.primary()
-                                      .withBorderRadius(
-                                        borderRadius: BorderRadius.circular(16),
-                                        hoverBorderRadius:
-                                            BorderRadius.circular(16),
-                                      ),
-                                  child: Row(
-                                    spacing: 8,
-                                    children: [
-                                      Icon(LucideIcons.play),
-                                      Text(
-                                        style: TextStyle(
-                                          fontSize: AppTypography.bodySize,
-                                        ),
-                                        'S${episode.seasonNumber}:E${episode.episodeNumber}',
-                                      ),
-                                    ],
-                                  ),
+                      OverviewHeroActions(
+                        mediaType: MediaType.show,
+                        tmdbId: _resolvedTmdbId,
+                        show: show,
+                        title: show?.name,
+                        onTrailer: trailer == null
+                            ? null
+                            : () => launchUrl(Uri.parse(trailer.youtubeUrl)),
+                        play: ContextMenu(
+                          items: [
+                            MenuButton(
+                              trailing: const MenuShortcut(
+                                activator: SingleActivator(
+                                  LogicalKeyboardKey.bracketLeft,
+                                  control: true,
                                 ),
                               ),
-                            ),
-                            Skeleton.keep(
-                              child: Button(
-                                onPressed: () => trailer != null
-                                    ? launchUrl(Uri.parse(trailer.youtubeUrl))
-                                    : null,
-                                style: const ButtonStyle.outline()
-                                    .withBorderRadius(
-                                      borderRadius: BorderRadius.circular(16),
-                                      hoverBorderRadius: BorderRadius.circular(
-                                        16,
-                                      ),
-                                    ),
-                                child: Row(
-                                  spacing: 8,
-                                  children: [
-                                    const Icon(LucideIcons.video),
-                                    Text(
-                                      style: TextStyle(
-                                        fontSize: AppTypography.bodySize,
-                                      ),
-                                      'Trailer',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Skeleton.keep(
-                              child: OverviewIconButton(
-                                icon: LucideIcons.check,
-                                onTap: () {},
-                              ),
-                            ),
-                            Skeleton.keep(
-                              child: OverviewIconButton(
-                                icon: LucideIcons.bookmark,
-                                onTap: () {},
-                              ),
-                            ),
-                            Skeleton.keep(
-                              child: OverviewIconButton(
-                                icon: LucideIcons.thumbsUp,
-                                onTap: () {},
-                              ),
+                              onPressed: (_) {
+                                if (show != null) {
+                                  AppRouter.appRouter.push(
+                                    '/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
+                                  );
+                                }
+                              },
+                              child: const Text('Select Source'),
                             ),
                           ],
+                          child: Skeleton.keep(
+                            child: Button(
+                              onPressed: () => show != null
+                                  ? router.push(
+                                      '/player?media=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
+                                    )
+                                  : null,
+                              style: const ButtonStyle.primary()
+                                  .withBorderRadius(
+                                    borderRadius: BorderRadius.circular(16),
+                                    hoverBorderRadius: BorderRadius.circular(
+                                      16,
+                                    ),
+                                  ),
+                              child: Row(
+                                spacing: 8,
+                                children: [
+                                  Icon(LucideIcons.play),
+                                  Text(
+                                    style: TextStyle(
+                                      fontSize: AppTypography.bodySize,
+                                    ),
+                                    'S${episode.seasonNumber}:E${episode.episodeNumber}',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -746,6 +704,15 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                               ShowRecommendationCard(show: recommendations?[i]),
                         ),
                       ),
+                      if (_resolvedTmdbId != null) ...[
+                        const SizedBox(height: 28),
+                        const Text('Comments').h4,
+                        const SizedBox(height: 12),
+                        TitleComments(
+                          mediaType: 'show',
+                          tmdbId: _resolvedTmdbId!,
+                        ),
+                      ],
                     ],
                   ),
                 ),

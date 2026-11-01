@@ -6,9 +6,12 @@ import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/models/media_card_target.dart';
+import 'package:petal/widgets/media/rating_indicator.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/utils/app_notifications.dart';
+import 'package:petal/utils/watch_progress.dart';
 import 'package:petal/widgets/catalog/hoverable_item.dart';
+import 'package:petal/widgets/media/in_progress_indicator.dart';
 import 'package:petal/widgets/media/media_title_logo.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -57,6 +60,8 @@ class _MediaCardState extends State<MediaCard> {
   void initState() {
     super.initState();
     _load();
+    BackendCache.watchHistory.addListener(_resolveProgressTarget);
+    BackendCache.continueWatching.addListener(_resolveProgressTarget);
   }
 
   @override
@@ -76,6 +81,7 @@ class _MediaCardState extends State<MediaCard> {
     _idFuture = null;
     _resolvedId = widget.target?.tmdbId;
     _logo = null;
+    _resolveProgressTarget();
     if (!widget.showLogo || widget.orientation != Orientation.landscape) return;
     if (widget.logoUrl != null) {
       _logo = Future.value(widget.logoUrl);
@@ -85,6 +91,22 @@ class _MediaCardState extends State<MediaCard> {
         (id) => id == null ? null : TMDB.titleLogo(id, type),
       );
     }
+  }
+
+  void _resolveProgressTarget() {
+    if (widget.target == null || _resolvedId != null || _idFuture != null)
+      return;
+    if (BackendCache.watchHistory.value.isEmpty &&
+        BackendCache.continueWatching.value.isEmpty)
+      return;
+    _resolveId().catchError((Object _) => null);
+  }
+
+  @override
+  void dispose() {
+    BackendCache.watchHistory.removeListener(_resolveProgressTarget);
+    BackendCache.continueWatching.removeListener(_resolveProgressTarget);
+    super.dispose();
   }
 
   Future<int?> _resolveId() {
@@ -170,7 +192,7 @@ class _MediaCardState extends State<MediaCard> {
             (episode) =>
                 episode.season == target.season &&
                 episode.episode == target.episode &&
-                episode.completion >= 1,
+                WatchProgress.isWatched(episode.completion),
           ),
         );
   }
@@ -300,11 +322,11 @@ class _MediaCardState extends State<MediaCard> {
                   right: 12,
                   child: IgnorePointer(
                     child: SizedBox(
-                      height: 54,
+                      height: 36,
                       child: Align(
                         alignment: Alignment.topLeft,
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 220),
+                          constraints: const BoxConstraints(maxWidth: 140),
                           child: FutureBuilder<String?>(
                             future: _logo,
                             builder: (context, snapshot) => snapshot.hasData
@@ -317,6 +339,27 @@ class _MediaCardState extends State<MediaCard> {
                   ),
                 ),
               if (widget.overlay != null) widget.overlay!,
+              if (_resolvedId != null && widget.target != null)
+                Positioned(
+                  top: 48,
+                  right: 12,
+                  child: RatingIndicator(
+                    tmdbId: _resolvedId!,
+                    type: widget.target!.type,
+                  ),
+                ),
+              if (_resolvedId != null && widget.target != null)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: InProgressIndicator(
+                    target: MediaCardTarget(
+                      tmdbId: _resolvedId,
+                      type: widget.target!.type,
+                      totalEpisodes: widget.target!.totalEpisodes,
+                    ),
+                  ),
+                ),
             ],
           ),
           image:

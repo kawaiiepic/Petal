@@ -2,11 +2,26 @@ import 'package:go_router/go_router.dart';
 import 'package:petal/api/download_manager.dart';
 import 'package:petal/models/downloads/download_entry.dart';
 import 'package:petal/models/downloads/download_status.dart';
+import 'package:petal/models/media_card_target.dart';
+import 'package:petal/models/media_type.dart';
+import 'package:petal/widgets/downloads/download_context_menu.dart';
 import 'package:petal/widgets/home_section.dart';
+import 'package:petal/widgets/media/in_progress_indicator.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-class DownloadsShelf extends StatelessWidget {
+class DownloadsShelf extends StatefulWidget {
   const DownloadsShelf({super.key});
+
+  @override
+  State<DownloadsShelf> createState() => _DownloadsShelfState();
+}
+
+class _DownloadsShelfState extends State<DownloadsShelf> {
+  @override
+  void initState() {
+    super.initState();
+    DownloadManager.refreshMetadata();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,36 +38,50 @@ class DownloadsShelf extends StatelessWidget {
           child: Column(
             children: [
               for (final entry in items.take(4))
-                Button.ghost(
-                  alignment: Alignment.centerLeft,
-                  onPressed: () => context.push('/downloads'),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          entry.status == DownloadStatus.done
-                              ? LucideIcons.check
-                              : LucideIcons.download,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            entry.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                DownloadContextMenu(
+                  entry: entry,
+                  child: Button.ghost(
+                    alignment: Alignment.centerLeft,
+                    onPressed: () => entry.status == DownloadStatus.done
+                        ? DownloadContextMenu.play(context, entry)
+                        : context.push('/downloads'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            entry.status == DownloadStatus.done
+                                ? LucideIcons.check
+                                : LucideIcons.download,
                           ),
-                        ),
-                        Text(
-                          _label(entry),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
+                          InProgressIndicator(
+                            target: MediaCardTarget(
+                              tmdbId: entry.tmdbId,
+                              type: entry.isShow
+                                  ? MediaType.show
+                                  : MediaType.movie,
+                            ),
+                            localProgress: entry.playbackProgress,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              entry.displayName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            _label(entry),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

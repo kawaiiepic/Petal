@@ -82,6 +82,37 @@ next-up refreshes and reconcile once at the end. Completing a single title updat
 both history and next-up. Cached reads do not repeatedly notify shelves when the
 underlying result has not changed.
 
+## Playback and downloads
+
+`WatchProgress` defines the 90% watched threshold. Partial progress is retained for
+resume and Home badges; merely starting an episode does not count it in watched
+stats. `MediaCard` owns the shared in-progress indicator, including poster shelves
+such as Liked, Stalled, and Most Watched. Show episode totals distinguish an
+unfinished show between episodes from a fully watched show.
+
+Downloads persist title/episode names and local playback progress in their device
+index. Missing names from older downloads can be filled while browsing online.
+`DownloadContextMenu` provides Play, View Show/Movie, and Delete actions. Deletion
+cancels an active download and removes the local file as well as its index entry.
+
+`PlaybackSource.resolve` returns an explicitly supplied stream immediately. Local
+file sources bypass metadata and stream discovery. `StreamPlayer` and its controls
+use saved labels, native tracks, and local progress for these sources: no backend
+tracking, TMDB lookups, Discord metadata requests, online episode drawer, or next-up
+discovery. Local progress is not queued for later backend synchronization.
+
+`ExternalPlaybackSession` waits for a successful launch and an actual app
+background/foreground round trip before asking whether the episode was finished.
+Only explicit confirmation marks it watched; declining, launch failure, and profile
+changes leave watched status unchanged.
+
+Home cards use compact title logos and icon-only rating badges (thumbs-up for liked,
+heart for loved). Upcoming and On Deck overlays include season/episode numbers or
+`Movie`; Upcoming also includes watchlisted movie releases within its date window.
+Movie and show heroes share working library actions. Their comments are embedded
+below recommendations. Episode details expose a watched/unwatched context menu
+that updates only the selected season and episode.
+
 ## Verification
 
 ```bash
@@ -90,6 +121,7 @@ dart run git_stamp --build-type lite --limit 20 --adding-packages disabled
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test test/refactor_contracts_test.dart test/media_shelf_test.dart test/media_card_test.dart test/tmdb_logo_test.dart test/async_cache_test.dart test/request_caching_test.dart
+flutter test test/watch_progress_test.dart test/external_playback_session_test.dart test/offline_download_test.dart test/home_progress_download_ui_test.dart test/home_overview_updates_test.dart
 flutter test
 ```
 
@@ -99,3 +131,6 @@ proportions and spacing, vertical scrolling, arrows, taps, overlays, accessibili
 labels, and disposal. These tests do not make network requests.
 The cache tests count mocked HTTP requests and cover concurrent reads, expiry,
 forced refreshes, write invalidation, failure retries, and profile-switch races.
+The playback/download tests additionally exercise the 90% boundary, external-player
+lifecycle, offline source resolution with backend access blocked, local resume
+persistence, file deletion, shared progress badges, and downloaded-file menus.

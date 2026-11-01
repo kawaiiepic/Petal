@@ -5,13 +5,16 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/discord_presence.dart';
-import 'package:petal/api/stream_api.dart';
+import 'package:petal/api/download_manager.dart';
+import 'package:petal/api/external_player.dart';
+import 'package:petal/api/playback_source.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/episode.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/stream_item.dart';
 import 'package:petal/pages/player/overlay/player_controls.dart';
 import 'package:petal/pages/player/player_orientation.dart';
+import 'package:petal/utils/watch_progress.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -36,7 +39,12 @@ class StreamPlayerState extends State<StreamPlayer> {
   MediaType mediaType = MediaType.movie;
   late final player = Player(configuration: PlayerConfiguration());
   late final VideoController controller;
-  late final StreamItem selectedStream;
+  StreamItem? selectedStream;
+  bool get isOffline => widget.stream?.isLocal ?? false;
+  final _subscriptions = <StreamSubscription<dynamic>>[];
+  String? _profileKey;
+  bool _resumeApplied = false;
+  double? _lastWrittenProgress;
   bool zoomVideo = false;
   bool _finishedThisSession = false;
 
@@ -51,6 +59,7 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     PlayerOrientation.lockLandscape();
 
+    if (!isOffline) _profileKey = BackendApi.profileCacheKey;
     saveProgressTask();
 
     controller = VideoController(
@@ -58,24 +67,29 @@ class StreamPlayerState extends State<StreamPlayer> {
       configuration: VideoControllerConfiguration(),
     );
 
-    player.stream.error.listen((event) {
-      showToast(
-        context: context,
-        builder: buildToast,
-        location: ToastLocation.bottomLeft,
-      );
-      _leave();
-    });
+    _subscriptions.add(
+      player.stream.error.listen((event) {
+        showToast(
+          context: context,
+          builder: buildToast,
+          location: ToastLocation.bottomLeft,
+        );
+        _leave();
+      }),
+    );
 
+    _watchPlayback();
     _startStream();
   }
 
   Future<void> _leave() async {
+    await _saveCurrentProgress();
     await PlayerOrientation.restorePortrait();
     if (mounted && Navigator.of(context).canPop()) context.pop();
   }
 
   void _setupDiscord() {
+    if (isOffline) return;
     _discordSub?.cancel();
 
     final stream$ = Rx.combineLatest2<bool, Duration, (bool, Duration)>(
@@ -121,27 +135,106 @@ class StreamPlayerState extends State<StreamPlayer> {
     return (player.state.position.inMilliseconds / duration).clamp(0.0, 1.0);
   }
 
-  void _writeProgress(double value) {
-    BackendApi.setProgress(
-      widget.mediaId,
-      mediaType,
-      value.clamp(0.0, 1.0),
-      season: widget.episode?.seasonNumber,
-      episode: widget.episode?.episodeNumber,
-    );
+  Future<void> _writeProgress(double value) async {
+    final completion = WatchProgress.storedCompletion(value);
+    if (_lastWrittenProgress == completion) return;
+    _lastWrittenProgress = completion;
+    try {
+      if (isOffline) {
+        final download = widget.stream?.download;
+        if (download != null)
+          await DownloadManager.setPlaybackProgress(download.id, completion);
+        return;
+      }
+      if (_profileKey == null || _profileKey != BackendApi.profileCacheKey)
+        return;
+      await BackendApi.setProgress(
+        widget.mediaId,
+        mediaType,
+        completion,
+        season: widget.episode?.seasonNumber,
+        episode: widget.episode?.episodeNumber,
+      );
+    } catch (_) {
+      if (_lastWrittenProgress == completion) _lastWrittenProgress = null;
+      // A failed save must not interrupt playback or trigger online fallback.
+    }
+  }
+
+  Future<void> _saveCurrentProgress() async {
+    if (player.state.duration <= Duration.zero) return;
+    final ratio = _ratio();
+    if (ratio <= 0 && !_finishedThisSession) return;
+    await _writeProgress(_finishedThisSession ? 1 : ratio);
   }
 
   void saveProgressTask() {
-    _saveProgress = Timer.periodic(const Duration(seconds: 30), (_) {
-      _writeProgress(_ratio());
-    });
+    _saveProgress = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _saveCurrentProgress(),
+    );
+  }
+
+  void _applyResume() {
+    final progress = widget.progress ?? 0;
+    if (_resumeApplied ||
+        progress <= 0 ||
+        player.state.duration <= Duration.zero)
+      return;
+    _resumeApplied = true;
+    player.seek(player.state.duration * progress.clamp(0, 1));
+  }
+
+  void _watchPlayback() {
+    _subscriptions.add(
+      player.stream.position.listen((position) {
+        if (_finishedThisSession &&
+            position.inSeconds <= 5 &&
+            player.state.playing &&
+            !player.state.completed) {
+          _finishedThisSession = false;
+          _writeProgress(0.01);
+        }
+        if (!_finishedThisSession && WatchProgress.isWatched(_ratio())) {
+          _finishedThisSession = true;
+          _writeProgress(1);
+        }
+      }),
+    );
+    _subscriptions.add(
+      player.stream.completed.listen((done) {
+        // End-of-file alone is not evidence of 90% progress.
+        if (done &&
+            !_finishedThisSession &&
+            WatchProgress.isWatched(_ratio())) {
+          _finishedThisSession = true;
+          _writeProgress(1);
+        }
+      }),
+    );
+    _subscriptions.add(player.stream.duration.listen((_) => _applyResume()));
+    _subscriptions.add(
+      player.stream.tracks.listen((tracks) {
+        applyPreferredTracks(
+          audios: tracks.audio,
+          subtitles: tracks.subtitle,
+          audioLang: 'en',
+          subtitleLang: 'en',
+          preferAd: true,
+          allowAd: true,
+        );
+        _applyResume();
+      }),
+    );
   }
 
   Widget buildToast(BuildContext context, ToastOverlay overlay) {
     return SurfaceCard(
       child: Basic(
         title: const Text('Stream failed to load'),
-        subtitle: Text(selectedStream.title),
+        subtitle: Text(
+          selectedStream?.title ?? widget.stream?.title ?? 'Video',
+        ),
         trailing: PrimaryButton(
           size: ButtonSize.small,
           onPressed: () {
@@ -155,71 +248,52 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
   Future<void> _startStream() async {
-    final mediaImdb = widget.episode != null
-        ? (await TMDB.tvShow(widget.mediaId)).imdbId
-        : (await TMDB.movie(widget.mediaId)).imdbId;
-
-    final streams = await StreamApi.fetchStreams(mediaImdb!, widget.episode);
-    final stream = widget.stream ?? StreamApi.autoSelectStream(streams);
-
-    if (stream == null) {
-      if (mounted) await _leave();
-      return;
-    }
-
-    selectedStream = stream;
-
-    print(selectedStream.url);
-
-    await player.open(
-      Media(
-        selectedStream.url,
-        extras: {'mediaId': widget.mediaId, 'episode': widget.episode},
-      ),
-    );
-    _setupDiscord();
-
-    if (widget.progress == null || widget.progress! <= 0.05) {
-      _writeProgress(0.01);
-    }
-
-    player.stream.completed.listen((done) {
-      if (!done) return;
-      _finishedThisSession = true;
-      _writeProgress(1);
-    });
-
-    player.stream.position.listen((position) {
-      if (_finishedThisSession && position.inSeconds <= 5) {
-        _finishedThisSession = false;
-        _writeProgress(0.01);
-      }
-    });
-
-    player.stream.tracks.listen((event) {
-      applyPreferredTracks(
-        audios: event.audio,
-        subtitles: event.subtitle,
-        audioLang: 'en',
-        subtitleLang: 'en',
-        preferAd: true,
-        allowAd: true,
-        preferCommentary: false,
-        allowCommentary: false,
+    try {
+      final stream = await PlaybackSource.resolve(
+        mediaId: widget.mediaId,
+        episode: widget.episode,
+        selected: widget.stream,
       );
-
-      if (widget.progress != null && widget.progress! > 0.05) {
-        player.seek(player.state.duration * widget.progress!);
+      if (!mounted) return;
+      if (stream == null) {
+        await _leave();
+        return;
       }
-    });
-
-    player.stream.playing.listen((bool playing) {
-      if (playing) {
-        // Playing.
-      } else {
-        // Paused.
+      selectedStream = stream;
+      if (!isOffline &&
+          widget.stream == null &&
+          await ExternalPlayer.openTracked(
+            stream: stream,
+            mediaId: widget.mediaId,
+            episode: widget.episode,
+            label: stream.title,
+          )) {
+        if (mounted) await _leave();
+        return;
       }
-    });
+      await player.open(
+        Media(
+          stream.url,
+          extras: {
+            'mediaId': widget.mediaId,
+            'episode': widget.episode,
+            'offline': isOffline,
+            'title': stream.download?.displayTitle ?? stream.title,
+            'subtitle': stream.download?.episodeLabel,
+          },
+        ),
+      );
+      if (!mounted) return;
+      if (!isOffline) _setupDiscord();
+    } catch (_) {
+      if (!mounted) return;
+      showToast(
+        context: context,
+        builder: buildToast,
+        location: ToastLocation.bottomLeft,
+      );
+      await _leave();
+    }
   }
 
   bool _matchesLanguage(String? language, String? title, String preferred) {
@@ -334,7 +408,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     if (audio != null) {
       player.setAudioTrack(audio);
     } else {
-      player.setAudioTrack(audios.first);
+      if (audios.isNotEmpty) player.setAudioTrack(audios.first);
       print(
         'No $audioLang audio in ${audios.map((a) => '${a.language}/${a.title}').toList()}',
       );
@@ -361,10 +435,13 @@ class StreamPlayerState extends State<StreamPlayer> {
 
   @override
   void dispose() {
-    print("Disposing...");
+    _saveCurrentProgress();
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
     _saveProgress?.cancel();
     _discordSub?.cancel();
-    Discord.resetStatus();
+    if (!isOffline) Discord.resetStatus();
     controller.pictureInPicture.stop();
     player.dispose();
     PlayerOrientation.restorePortrait();

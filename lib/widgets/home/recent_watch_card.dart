@@ -34,11 +34,13 @@ class RecentWatchCard extends StatelessWidget {
           : TMDB.movie(item.tmdbId),
       builder: (context, snapshot) {
         String? image;
+        int? totalEpisodes;
 
         if (snapshot.hasData) {
           if (isShow) {
             final parts = snapshot.data as List<dynamic>;
             final show = parts[0] as TmdbShow;
+            totalEpisodes = show.numberOfEpisodes;
             final episode = parts[1] as TmdbEpisode;
             final still = episode.stillPath;
             final backdrop = show.backdropPath;
@@ -50,6 +52,7 @@ class RecentWatchCard extends StatelessWidget {
             }
           } else if (item.type == MediaType.show) {
             final show = snapshot.data as TmdbShow;
+            totalEpisodes = show.numberOfEpisodes;
             final path = show.backdropPath;
             if (path != null && path.isNotEmpty) {
               image = path.startsWith('http')
@@ -89,6 +92,7 @@ class RecentWatchCard extends StatelessWidget {
           target: MediaCardTarget(
             tmdbId: item.tmdbId,
             type: item.type,
+            totalEpisodes: totalEpisodes,
             season: item.season,
             episode: item.episode,
           ),

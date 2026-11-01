@@ -3,8 +3,19 @@ import 'package:petal/widgets/back_button.dart';
 import 'package:petal/widgets/downloads/download_tile.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-class DownloadsPage extends StatelessWidget {
+class DownloadsPage extends StatefulWidget {
   const DownloadsPage({super.key});
+
+  @override
+  State<DownloadsPage> createState() => _DownloadsPageState();
+}
+
+class _DownloadsPageState extends State<DownloadsPage> {
+  @override
+  void initState() {
+    super.initState();
+    DownloadManager.refreshMetadata();
+  }
 
   @override
   Widget build(BuildContext context) {

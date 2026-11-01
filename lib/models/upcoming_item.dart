@@ -1,4 +1,7 @@
+import 'package:petal/models/media_type.dart';
+
 class UpcomingItem {
+  final MediaType type;
   final int tmdbId;
   final String showName;
   final String episodeName;
@@ -8,6 +11,7 @@ class UpcomingItem {
   final String? image;
 
   const UpcomingItem({
+    this.type = MediaType.show,
     required this.tmdbId,
     required this.showName,
     required this.episodeName,

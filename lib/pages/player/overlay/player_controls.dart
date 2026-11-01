@@ -57,6 +57,7 @@ class _PlayerControlsState extends State<PlayerControls> {
   late int mediaId;
   late Episode episode;
   bool init = false;
+  bool _offline = false;
   StreamSubscription? _playlistSub;
 
   void _seekBackward() {
@@ -103,6 +104,7 @@ class _PlayerControlsState extends State<PlayerControls> {
   }
 
   void _playNextEpisode() async {
+    if (_offline) return;
     final extras =
         widget.state.widget.controller.player.state.playlist.medias[0].extras;
     final mediaId = extras?["mediaId"];
@@ -129,6 +131,7 @@ class _PlayerControlsState extends State<PlayerControls> {
     _playlistSub = player.stream.playlist.listen((playlist) {
       if (playlist.medias.isNotEmpty) {
         _onPlaylistExtras(playlist.medias[playlist.index].extras);
+        if (mounted) setState(() {});
       }
     });
   }
@@ -138,6 +141,12 @@ class _PlayerControlsState extends State<PlayerControls> {
     _isShow = extras?["episode"] != null;
     mediaId = extras?["mediaId"] ?? 0;
     init = true;
+    _offline = extras?['offline'] == true;
+    if (_offline) {
+      if (_isShow) episode = extras!['episode'];
+      _nextUpEpisode = Future.value(null);
+      return;
+    }
 
     if (_isShow) {
       episode = extras!["episode"];
@@ -171,6 +180,7 @@ class _PlayerControlsState extends State<PlayerControls> {
   }
 
   Future<TmdbEpisode?> nextUpEpisode() async {
+    if (_offline) return null;
     TmdbShow show = (await _showData).$1;
     TmdbEpisode? nextEp;
     var realSeason = show.seasons.firstWhere(
@@ -254,7 +264,7 @@ class _PlayerControlsState extends State<PlayerControls> {
               seconds: _rightSeekSeconds,
               isLeft: false,
             ),
-            if (_isShow)
+            if (_isShow && !_offline)
               Positioned(
                 right: 20,
                 bottom: 40,
@@ -301,34 +311,52 @@ class _PlayerControlsState extends State<PlayerControls> {
               Expanded(
                 flex: 2,
                 child: Center(
-                  child: FutureBuilder(
-                    future: _isShow ? _showData : _movie,
-                    builder: (context, snapshot) {
-                      return Column(
-                        spacing: 8,
-                        children: [
-                          Text(
-                            style: AppTypography.normalTextStyle,
-                            snapshot.hasData
-                                ? _isShow
-                                      ? (snapshot.data!
-                                                as (TmdbShow, TmdbEpisode))
-                                            .$1
-                                            .name
-                                      : (snapshot.data! as TmdbMovie).title
-                                : "Example Media Name",
-                          ),
-                          if (_isShow)
+                  child: _offline
+                      ? Column(
+                          children: [
                             Text(
+                              extras?['title'] as String? ?? 'Downloaded video',
                               style: AppTypography.normalTextStyle,
-                              snapshot.hasData
-                                  ? "${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.seasonNumber}x${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.episodeNumber} ${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.name}"
-                                  : "Example Episode Name",
                             ),
-                        ],
-                      ).asSkeleton(snapshot: snapshot);
-                    },
-                  ),
+                            if (extras?['subtitle'] != null)
+                              Text(
+                                extras!['subtitle'] as String,
+                                style: AppTypography.normalTextStyle,
+                              ),
+                          ],
+                        )
+                      : FutureBuilder(
+                          future: _isShow ? _showData : _movie,
+                          builder: (context, snapshot) {
+                            return Column(
+                              spacing: 8,
+                              children: [
+                                Text(
+                                  style: AppTypography.normalTextStyle,
+                                  snapshot.hasData
+                                      ? _isShow
+                                            ? (snapshot.data!
+                                                      as (
+                                                        TmdbShow,
+                                                        TmdbEpisode,
+                                                      ))
+                                                  .$1
+                                                  .name
+                                            : (snapshot.data! as TmdbMovie)
+                                                  .title
+                                      : "Example Media Name",
+                                ),
+                                if (_isShow)
+                                  Text(
+                                    style: AppTypography.normalTextStyle,
+                                    snapshot.hasData
+                                        ? "${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.seasonNumber}x${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.episodeNumber} ${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.name}"
+                                        : "Example Episode Name",
+                                  ),
+                              ],
+                            ).asSkeleton(snapshot: snapshot);
+                          },
+                        ),
                 ),
               ),
               Expanded(
@@ -392,16 +420,18 @@ class _PlayerControlsState extends State<PlayerControls> {
                       ],
                     ),
                     const Spacer(),
-                    EpisodeDrawer(showData: _showData, tmdbId: mediaId),
-                    ControlButton(
-                      onTap: () async {
-                        _playNextEpisode();
-                      },
-                      icon: Icon(
-                        size: AppTypography.normalIconSize,
-                        LucideIcons.skipForward,
+                    if (!_offline)
+                      EpisodeDrawer(showData: _showData, tmdbId: mediaId),
+                    if (!_offline)
+                      ControlButton(
+                        onTap: () async {
+                          _playNextEpisode();
+                        },
+                        icon: Icon(
+                          size: AppTypography.normalIconSize,
+                          LucideIcons.skipForward,
+                        ),
                       ),
-                    ),
                   ],
                   if (!_isShow) ...[const Spacer()],
                   SubtitleAudioMenuButton(

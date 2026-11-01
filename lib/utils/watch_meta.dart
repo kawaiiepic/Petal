@@ -1,6 +1,7 @@
 import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/models/watch_history/show_item.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
+import 'package:petal/utils/watch_progress.dart';
 
 class WatchMeta {
   static String relative(DateTime date) {
@@ -52,14 +53,16 @@ class WatchMeta {
     var count = 0;
     for (final season in show.seasons) {
       for (final episode in season.episodes) {
-        if (episode.completion >= 1) count++;
+        if (WatchProgress.isWatched(episode.completion)) count++;
       }
     }
     return count;
   }
 
   static int watchedEpisodesFromHistory(WatchHistoryItem item) {
-    return item.episodes.where((e) => e.completion >= 1).length;
+    return item.episodes
+        .where((e) => WatchProgress.isWatched(e.completion))
+        .length;
   }
 
   static String? remainingLabel({

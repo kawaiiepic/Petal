@@ -40,7 +40,10 @@ class UpcomingReleases {
     for (final title in UserLibrary.watchlistTitles()) {
       if (title.type == MediaType.show) ids.add(title.tmdbId);
     }
-    if (ids.isEmpty) {
+    if (ids.isEmpty &&
+        !UserLibrary.watchlistTitles().any(
+          (title) => title.type == MediaType.movie,
+        )) {
       items.value = const [];
       return;
     }
@@ -96,6 +99,38 @@ class UpcomingReleases {
           }
         } catch (_) {}
       }),
+    );
+
+    await Future.wait(
+      UserLibrary.watchlistTitles()
+          .where((title) => title.type == MediaType.movie)
+          .take(30)
+          .map((title) async {
+            try {
+              final movie = await TMDB.movie(title.tmdbId);
+              final day = DateTime(
+                movie.releaseDate.year,
+                movie.releaseDate.month,
+                movie.releaseDate.day,
+              );
+              if (day.isBefore(today) || day.isAfter(cutoff)) return;
+              final path = movie.backdropPath ?? movie.posterPath;
+              found.add(
+                UpcomingItem(
+                  tmdbId: title.tmdbId,
+                  type: MediaType.movie,
+                  showName: movie.title,
+                  episodeName: '',
+                  season: 0,
+                  episode: 0,
+                  airDate: day,
+                  image: path == null
+                      ? null
+                      : Api.proxyImage('https://image.tmdb.org/t/p/w500$path'),
+                ),
+              );
+            } catch (_) {}
+          }),
     );
 
     found.sort((a, b) => a.airDate.compareTo(b.airDate));

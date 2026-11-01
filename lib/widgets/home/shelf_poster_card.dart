@@ -36,7 +36,13 @@ class ShelfPosterCard extends StatelessWidget {
               ? null
               : Api.proxyImage('https://image.tmdb.org/t/p/w342$posterPath'),
           label: name,
-          target: MediaCardTarget(tmdbId: item.tmdbId, type: item.type),
+          target: MediaCardTarget(
+            tmdbId: item.tmdbId,
+            type: item.type,
+            totalEpisodes: isShow && snapshot.hasData
+                ? (snapshot.data as dynamic).numberOfEpisodes as int?
+                : null,
+          ),
         );
       },
     );

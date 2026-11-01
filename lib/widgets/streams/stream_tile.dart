@@ -6,7 +6,6 @@ import 'package:petal/models/episode.dart';
 import 'package:petal/models/stream_item.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class StreamTile extends StatelessWidget {
   final StreamItem stream;
@@ -14,6 +13,8 @@ class StreamTile extends StatelessWidget {
   final Episode? episode;
   final bool download;
   final String title;
+  final String? mediaTitle;
+  final String? episodeTitle;
 
   const StreamTile({
     super.key,
@@ -22,6 +23,8 @@ class StreamTile extends StatelessWidget {
     this.episode,
     this.download = false,
     this.title = '',
+    this.mediaTitle,
+    this.episodeTitle,
   });
 
   @override
@@ -64,6 +67,8 @@ class StreamTile extends StatelessWidget {
               title: title.isEmpty ? stream.title : title,
               season: episode?.seasonNumber,
               episode: episode?.episodeNumber,
+              mediaTitle: mediaTitle,
+              episodeTitle: episodeTitle,
             );
             if (context.mounted) context.push('/downloads');
           } catch (_) {
@@ -77,11 +82,16 @@ class StreamTile extends StatelessWidget {
           }
           return;
         }
-        if (stream.external) {
-          launchUrl(Uri.parse(stream.url));
+        if (await ExternalPlayer.openTracked(
+          stream: stream,
+          mediaId: tmdbId,
+          episode: episode,
+          label: mediaTitle == null
+              ? title
+              : '$mediaTitle${episodeTitle == null ? '' : ' — $episodeTitle'}',
+        ))
           return;
-        }
-        if (await ExternalPlayer.open(stream.url)) return;
+        if (stream.external) return;
         if (!context.mounted) return;
         if (episode != null) {
           context.pushReplacement(

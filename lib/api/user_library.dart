@@ -8,6 +8,7 @@ import 'package:petal/models/library/title_rating.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/utils/app_notifications.dart';
+import 'package:petal/utils/watch_progress.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class UserLibrary {
@@ -112,11 +113,11 @@ class UserLibrary {
     for (final item in BackendCache.watchHistory.value) {
       if (item.tmdbId != tmdbId) continue;
       if (type == MediaType.movie && item.mediaType == MediaType.movie) {
-        return item.completion >= 1;
+        return WatchProgress.isWatched(item.completion);
       }
       if (type == MediaType.show && item.mediaType == MediaType.show) {
         return item.episodes.isNotEmpty &&
-            item.episodes.every((e) => e.completion >= 1);
+            item.episodes.every((e) => WatchProgress.isWatched(e.completion));
       }
     }
     return false;
