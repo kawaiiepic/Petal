@@ -135,6 +135,16 @@ Backend cache notifiers store values immediately and defer widget notifications
 until the end of the frame during build/disposal. This lets final player progress
 saves update shared state without rebuilding a locked widget tree.
 
+Shared media cards and movie/episode overviews display a determinate progress bar
+for partial playback of that exact movie or episode. Bars read existing caches,
+make no requests, and hide for unstarted or watched (90%+) items. A show-level card
+does not display an aggregate episode ratio.
+
+On Deck opens the selected episode overview or movie overview. Watchlist show
+suggestions open the first regular season's first episode. Resume and Restart stay
+available in the context menu; overview Play uses the cached resume position.
+Continue Watching and In Progress shelves retain direct resume playback.
+
 ## Verification
 
 ```bash
@@ -146,6 +156,7 @@ flutter test test/refactor_contracts_test.dart test/media_shelf_test.dart test/m
 flutter test test/watch_progress_test.dart test/external_playback_session_test.dart test/offline_download_test.dart test/home_progress_download_ui_test.dart test/home_overview_updates_test.dart
 flutter test test/on_deck_selection_test.dart test/on_deck_shelf_test.dart
 flutter test test/completion_skeleton_collection_test.dart test/frame_safe_value_notifier_test.dart
+flutter test test/media_playback_progress_test.dart
 flutter test
 ```
 

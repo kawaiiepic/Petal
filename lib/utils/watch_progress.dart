@@ -12,6 +12,53 @@ abstract final class WatchProgress {
   static double storedCompletion(double ratio) =>
       isWatched(ratio) ? 1 : ratio.clamp(0, 1);
 
+  /// Progress for a specific movie or episode, never an aggregate show ratio.
+  static double? playbackCompletion({
+    required int tmdbId,
+    required MediaType type,
+    int? season,
+    int? episode,
+    required List<WatchHistoryItem> history,
+    required List<ContinueWatchingItem> nextUp,
+  }) {
+    if (type != MediaType.movie && (season == null || episode == null))
+      return null;
+    for (final item in nextUp.where(
+      (item) => item.tmdbId == tmdbId && item.mediaType == type,
+    )) {
+      if (item is MovieItem) return item.completion;
+      if (item is ShowItem) {
+        final next = item.nextEpisode;
+        if (next?.season == season && next?.episode == episode)
+          return next!.completion;
+      }
+    }
+    final matches =
+        history
+            .where((item) => item.tmdbId == tmdbId && item.mediaType == type)
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    if (matches.isNotEmpty) {
+      if (type == MediaType.movie) return matches.first.completion;
+      for (final entry in matches.first.episodes) {
+        if (entry.season == season && entry.episode == episode)
+          return entry.completion;
+      }
+    }
+    for (final item in nextUp.whereType<ShowItem>().where(
+      (item) => item.tmdbId == tmdbId && type == MediaType.show,
+    )) {
+      for (final entry in item.seasons.where(
+        (entry) => entry.number == season,
+      )) {
+        for (final part in entry.episodes) {
+          if (part.episode == episode) return part.completion;
+        }
+      }
+    }
+    return null;
+  }
+
   static bool titleFinished({
     required int tmdbId,
     required MediaType type,

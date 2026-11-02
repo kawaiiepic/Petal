@@ -1,3 +1,4 @@
+import 'package:petal/widgets/media/media_progress_bar.dart';
 import 'package:petal/widgets/media/media_artwork_placeholder.dart';
 import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +29,7 @@ class MediaCard extends StatefulWidget {
   final bool showDefaultContextMenu;
   final String primaryActionLabel;
   final Orientation orientation;
+  final double? progress;
   final bool isLoading;
   final bool showLogo;
   final String? logoUrl;
@@ -46,6 +48,7 @@ class MediaCard extends StatefulWidget {
     this.orientation = Orientation.portrait,
     this.showLogo = true,
     this.isLoading = false,
+    this.progress,
     this.logoUrl,
   });
 
@@ -385,6 +388,25 @@ class _MediaCardState extends State<MediaCard> {
                         ),
                       ),
                     if (widget.overlay != null) widget.overlay!,
+                    if (widget.progress != null ||
+                        (_resolvedId != null && widget.target != null))
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: MediaProgressBar(
+                          progress: widget.progress,
+                          target: widget.target == null
+                              ? null
+                              : MediaCardTarget(
+                                  tmdbId: _resolvedId,
+                                  imdbId: widget.target!.imdbId,
+                                  type: widget.target!.type,
+                                  season: widget.target!.season,
+                                  episode: widget.target!.episode,
+                                ),
+                        ),
+                      ),
                     if (_resolvedId != null && widget.target != null)
                       Positioned(
                         top: 48,

@@ -1,3 +1,5 @@
+import 'package:petal/widgets/media/media_progress_bar.dart';
+import 'package:petal/models/media_card_target.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/models/media_type.dart';
@@ -91,6 +93,20 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     return rest == 0 ? '${hours}h' : '${hours}h ${rest}m';
   }
 
+  double get _resumeProgress {
+    final completion =
+        WatchProgress.playbackCompletion(
+          tmdbId: widget.tmdbId,
+          type: MediaType.show,
+          season: widget.season,
+          episode: widget.episode,
+          history: BackendCache.watchHistory.value,
+          nextUp: BackendCache.continueWatching.value,
+        ) ??
+        0;
+    return WatchProgress.isPartial(completion) ? completion : 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -160,6 +176,20 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                             surfaceOpacity: 0,
                             alignment: Alignment.topLeft,
                           ),
+                          if (snapshot.hasData)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: MediaProgressBar(
+                                target: MediaCardTarget(
+                                  tmdbId: widget.tmdbId,
+                                  type: MediaType.show,
+                                  season: widget.season,
+                                  episode: widget.episode,
+                                ),
+                              ),
+                            ),
                           Positioned(
                             left: 24,
                             right: 24,
@@ -223,7 +253,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                               Button(
                                 onPressed: snapshot.hasData
                                     ? () => context.push(
-                                        '/player?media=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}',
+                                        '/player?media=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}&p=$_resumeProgress',
                                       )
                                     : null,
                                 style: const ButtonStyle.primary()

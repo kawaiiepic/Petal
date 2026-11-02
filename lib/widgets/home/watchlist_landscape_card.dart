@@ -1,3 +1,5 @@
+import 'package:petal/models/tmdb/tmdb_show.dart';
+import 'package:petal/widgets/watch_meta_overlay.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
@@ -9,8 +11,13 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class WatchlistLandscapeCard extends StatelessWidget {
   final LibraryTitle item;
+  final bool openEpisode;
 
-  const WatchlistLandscapeCard({super.key, required this.item});
+  const WatchlistLandscapeCard({
+    super.key,
+    required this.item,
+    this.openEpisode = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -49,19 +56,40 @@ class WatchlistLandscapeCard extends StatelessWidget {
             }
           }
         }
+        final season = isShow && snapshot.hasData
+            ? (snapshot.data as TmdbShow)
+                      .mainSeasons
+                      .firstOrNull
+                      ?.seasonNumber ??
+                  1
+            : 1;
         return MediaCard(
           isLoading: snapshot.connectionState != ConnectionState.done,
           orientation: Orientation.landscape,
           onTap: () => context.push(
             isShow
-                ? '/series?tmdb=${item.tmdbId}'
+                ? openEpisode
+                      ? '/episode?tmdb=${item.tmdbId}&s=$season&e=1'
+                      : '/series?tmdb=${item.tmdbId}'
                 : '/movie?tmdb=${item.tmdbId}',
           ),
           imageUrl: image,
+          overlay: openEpisode
+              ? Positioned(
+                  left: 8,
+                  right: 8,
+                  bottom: 8,
+                  child: WatchMetaOverlay(
+                    episodeLabel: isShow ? 'S$season · E1' : 'Movie',
+                  ),
+                )
+              : null,
           label: name,
           target: MediaCardTarget(
             tmdbId: item.tmdbId,
             type: item.type,
+            season: openEpisode && isShow ? season : null,
+            episode: openEpisode && isShow ? 1 : null,
             totalEpisodes: isShow && snapshot.hasData
                 ? (snapshot.data as dynamic).numberOfEpisodes as int?
                 : null,

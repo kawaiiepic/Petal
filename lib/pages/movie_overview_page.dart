@@ -1,3 +1,7 @@
+import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/utils/watch_progress.dart';
+import 'package:petal/widgets/media/media_progress_bar.dart';
+import 'package:petal/models/media_card_target.dart';
 import 'package:petal/widgets/connection_error_view.dart';
 import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:petal/widgets/overview/title_comments.dart';
@@ -69,6 +73,18 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
     } catch (error) {
       if (mounted) setState(() => _loadError = error);
     }
+  }
+
+  double get _resumeProgress {
+    final completion =
+        WatchProgress.playbackCompletion(
+          tmdbId: _resolvedTmdbId ?? 0,
+          type: MediaType.movie,
+          history: BackendCache.watchHistory.value,
+          nextUp: BackendCache.continueWatching.value,
+        ) ??
+        0;
+    return WatchProgress.isPartial(completion) ? completion : 0;
   }
 
   @override
@@ -148,6 +164,18 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                                 ),
                         ),
                       ),
+                      if (movie != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: MediaProgressBar(
+                            target: MediaCardTarget(
+                              tmdbId: movie.id,
+                              type: MediaType.movie,
+                            ),
+                          ),
+                        ),
                       OverviewHeroActions(
                         mediaType: MediaType.movie,
                         tmdbId: _resolvedTmdbId,
@@ -177,7 +205,9 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                           child: Skeleton.keep(
                             child: Button(
                               onPressed: () => movie != null
-                                  ? router.push('/player?media=${movie.id}')
+                                  ? router.push(
+                                      '/player?media=${movie.id}&p=$_resumeProgress',
+                                    )
                                   : null,
                               style: const ButtonStyle.primary()
                                   .withBorderRadius(

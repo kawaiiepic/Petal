@@ -62,10 +62,12 @@ class _OnDeckShelfState extends State<OnDeckShelf> {
                 ? ContinueWatchingCard(
                     key: ValueKey('deck-${entry.key}'),
                     state: entry.progress!,
+                    openOverview: true,
                   )
                 : WatchlistLandscapeCard(
                     key: ValueKey('deck-${entry.key}'),
                     item: entry.watchlistTitle!,
+                    openEpisode: true,
                   );
           },
         ),

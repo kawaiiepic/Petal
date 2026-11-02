@@ -14,8 +14,13 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class ContinueWatchingCard extends StatefulWidget {
   final ContinueWatchingItem state;
+  final bool openOverview;
 
-  const ContinueWatchingCard({super.key, required this.state});
+  const ContinueWatchingCard({
+    super.key,
+    required this.state,
+    this.openOverview = false,
+  });
 
   @override
   State<StatefulWidget> createState() => _ContinueWatchingCardState();
@@ -91,7 +96,8 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
       builder: (context, snapshot) => MediaCard(
         isLoading: snapshot.connectionState != ConnectionState.done,
         orientation: Orientation.landscape,
-        primaryActionLabel: 'Resume',
+        primaryActionLabel: widget.openOverview ? 'View episode' : 'Resume',
+        progress: next?.completion,
         target: MediaCardTarget(
           tmdbId: state.tmdbId,
           type: state.mediaType,
@@ -99,6 +105,14 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
           episode: state.nextEpisode?.episode,
         ),
         extraContextItems: [
+          if (widget.openOverview && next != null)
+            MenuButton(
+              leading: const Icon(LucideIcons.play),
+              child: const Text('Resume'),
+              onPressed: (_) => context.push(
+                '/player?media=${state.tmdbId}&s=${next.season}&e=${next.episode}&p=${next.completion}',
+              ),
+            ),
           MenuButton(
             leading: const Icon(LucideIcons.repeat2),
             child: const Text('Restart'),
@@ -110,7 +124,9 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
         onTap: () {
           if (next == null) return;
           context.push(
-            '/player?media=${state.tmdbId}&s=${next.season}&e=${next.episode}${next.completion > 0.0 && next.completion < 1.0 ? '&p=${next.completion}' : ''}',
+            widget.openOverview
+                ? '/episode?tmdb=${state.tmdbId}&s=${next.season}&e=${next.episode}'
+                : '/player?media=${state.tmdbId}&s=${next.season}&e=${next.episode}${next.completion > 0.0 && next.completion < 1.0 ? '&p=${next.completion}' : ''}',
           );
         },
         imageUrl: snapshot.data?.stillUrl,
@@ -154,9 +170,18 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
     builder: (context, snapshot) => MediaCard(
       isLoading: snapshot.connectionState != ConnectionState.done,
       orientation: Orientation.landscape,
-      primaryActionLabel: 'Resume',
+      primaryActionLabel: widget.openOverview ? 'View movie' : 'Resume',
+      progress: state.completion,
       target: MediaCardTarget(tmdbId: state.tmdbId, type: state.mediaType),
       extraContextItems: [
+        if (widget.openOverview)
+          MenuButton(
+            leading: const Icon(LucideIcons.play),
+            child: const Text('Resume'),
+            onPressed: (_) => context.push(
+              '/player?media=${state.tmdbId}&p=${state.completion}',
+            ),
+          ),
         MenuButton(
           leading: const Icon(LucideIcons.repeat2),
           child: const Text('Restart'),
@@ -165,7 +190,9 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
       ],
       onTap: () {
         context.push(
-          '/player?media=${state.tmdbId}${state.completion > 0.0 && state.completion < 1.0 ? '&p=${state.completion}' : ''}',
+          widget.openOverview
+              ? '/movie?tmdb=${state.tmdbId}'
+              : '/player?media=${state.tmdbId}${state.completion > 0.0 && state.completion < 1.0 ? '&p=${state.completion}' : ''}',
         );
       },
       imageUrl: snapshot.data?.images?.backdrops.firstOrNull?.url,
