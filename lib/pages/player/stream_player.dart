@@ -1,3 +1,7 @@
+import 'package:petal/api/playback_media_session.dart';
+import 'package:petal/models/playback_item.dart';
+import 'package:petal/pages/player/playback_scope.dart';
+
 import 'dart:async';
 
 import 'package:go_router/go_router.dart';
@@ -36,11 +40,14 @@ class StreamPlayer extends StatefulWidget {
 }
 
 class StreamPlayerState extends State<StreamPlayer> {
+  late PlaybackItem _item;
+  bool _switching = true;
   MediaType mediaType = MediaType.movie;
   late final player = Player(configuration: PlayerConfiguration());
   late final VideoController controller;
+  late final PlaybackMediaSession _mediaSession = PlaybackMediaSession(player);
   StreamItem? selectedStream;
-  bool get isOffline => widget.stream?.isLocal ?? false;
+  bool get isOffline => _item.isOffline;
   final _subscriptions = <StreamSubscription<dynamic>>[];
   String? _profileKey;
   bool _resumeApplied = false;
@@ -54,8 +61,14 @@ class StreamPlayerState extends State<StreamPlayer> {
   @override
   void initState() {
     super.initState();
+    _item = PlaybackItem(
+      mediaId: widget.mediaId,
+      episode: widget.episode,
+      stream: widget.stream,
+      progress: widget.progress,
+    );
 
-    if (widget.episode != null) mediaType = MediaType.show;
+    if (_item.episode != null) mediaType = MediaType.show;
 
     PlayerOrientation.lockLandscape();
 
@@ -69,6 +82,7 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     _subscriptions.add(
       player.stream.error.listen((event) {
+        if (!mounted) return;
         showToast(
           context: context,
           builder: buildToast,
@@ -99,14 +113,16 @@ class StreamPlayerState extends State<StreamPlayer> {
     ).where((data) => data.$2 > Duration.zero).distinct();
 
     _discordSub = stream$.listen((data) async {
-      final episode = widget.episode;
+      final item = _item;
+      final episode = item.episode;
       if (episode != null) {
-        final show = await TMDB.tvShow(widget.mediaId);
+        final show = await TMDB.tvShow(_item.mediaId);
         final ep = await TMDB.tvEpisode(
-          widget.mediaId,
+          _item.mediaId,
           episode.seasonNumber,
           episode.episodeNumber,
         );
+        if (!mounted || _switching || !identical(item, _item)) return;
         Discord.updateStatus(
           show.name,
           '${ep.seasonNumber}x${ep.episodeNumber} ${ep.name}',
@@ -116,7 +132,8 @@ class StreamPlayerState extends State<StreamPlayer> {
           data.$1,
         );
       } else {
-        final movie = await TMDB.movie(widget.mediaId);
+        final movie = await TMDB.movie(_item.mediaId);
+        if (!mounted || _switching || !identical(item, _item)) return;
         Discord.updateStatus(
           '${movie.title} (${movie.releaseDate.year})',
           movie.genres.map((item) => item.name).join(', '),
@@ -141,7 +158,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     _lastWrittenProgress = completion;
     try {
       if (isOffline) {
-        final download = widget.stream?.download;
+        final download = _item.stream?.download;
         if (download != null)
           await DownloadManager.setPlaybackProgress(download.id, completion);
         return;
@@ -149,11 +166,11 @@ class StreamPlayerState extends State<StreamPlayer> {
       if (_profileKey == null || _profileKey != BackendApi.profileCacheKey)
         return;
       await BackendApi.setProgress(
-        widget.mediaId,
+        _item.mediaId,
         mediaType,
         completion,
-        season: widget.episode?.seasonNumber,
-        episode: widget.episode?.episodeNumber,
+        season: _item.episode?.seasonNumber,
+        episode: _item.episode?.episodeNumber,
       );
     } catch (_) {
       if (_lastWrittenProgress == completion) _lastWrittenProgress = null;
@@ -161,7 +178,8 @@ class StreamPlayerState extends State<StreamPlayer> {
     }
   }
 
-  Future<void> _saveCurrentProgress() async {
+  Future<void> _saveCurrentProgress({bool duringSwitch = false}) async {
+    if (_switching && !duringSwitch) return;
     if (player.state.duration <= Duration.zero) return;
     final ratio = _ratio();
     if (ratio <= 0 && !_finishedThisSession) return;
@@ -176,8 +194,9 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
   void _applyResume() {
-    final progress = widget.progress ?? 0;
-    if (_resumeApplied ||
+    final progress = _item.progress ?? 0;
+    if (_switching ||
+        _resumeApplied ||
         progress <= 0 ||
         player.state.duration <= Duration.zero)
       return;
@@ -188,6 +207,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   void _watchPlayback() {
     _subscriptions.add(
       player.stream.position.listen((position) {
+        if (_switching) return;
         if (_finishedThisSession &&
             position.inSeconds <= 5 &&
             player.state.playing &&
@@ -203,6 +223,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     );
     _subscriptions.add(
       player.stream.completed.listen((done) {
+        if (_switching) return;
         // End-of-file alone is not evidence of 90% progress.
         if (done &&
             !_finishedThisSession &&
@@ -215,6 +236,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     _subscriptions.add(player.stream.duration.listen((_) => _applyResume()));
     _subscriptions.add(
       player.stream.tracks.listen((tracks) {
+        if (_switching) return;
         applyPreferredTracks(
           audios: tracks.audio,
           subtitles: tracks.subtitle,
@@ -232,9 +254,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     return SurfaceCard(
       child: Basic(
         title: const Text('Stream failed to load'),
-        subtitle: Text(
-          selectedStream?.title ?? widget.stream?.title ?? 'Video',
-        ),
+        subtitle: Text(selectedStream?.title ?? _item.stream?.title ?? 'Video'),
         trailing: PrimaryButton(
           size: ButtonSize.small,
           onPressed: () {
@@ -247,12 +267,38 @@ class StreamPlayerState extends State<StreamPlayer> {
     );
   }
 
+  Future<void> _playEpisode(Episode next) async {
+    if (_switching || isOffline || !mounted) return;
+    setState(() => _switching = true);
+    try {
+      await player.pause();
+      await _saveCurrentProgress(duringSwitch: true);
+      if (!mounted) return;
+      await _discordSub?.cancel();
+      _item = PlaybackItem(mediaId: _item.mediaId, episode: next, progress: 0);
+      mediaType = MediaType.show;
+      _resumeApplied = false;
+      _finishedThisSession = false;
+      _lastWrittenProgress = null;
+      selectedStream = null;
+      await _startStream();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _switching = false);
+      showToast(
+        context: context,
+        builder: buildToast,
+        location: ToastLocation.bottomLeft,
+      );
+    }
+  }
+
   Future<void> _startStream() async {
     try {
       final stream = await PlaybackSource.resolve(
-        mediaId: widget.mediaId,
-        episode: widget.episode,
-        selected: widget.stream,
+        mediaId: _item.mediaId,
+        episode: _item.episode,
+        selected: _item.stream,
       );
       if (!mounted) return;
       if (stream == null) {
@@ -261,29 +307,44 @@ class StreamPlayerState extends State<StreamPlayer> {
       }
       selectedStream = stream;
       if (!isOffline &&
-          widget.stream == null &&
+          _item.stream == null &&
           await ExternalPlayer.openTracked(
             stream: stream,
-            mediaId: widget.mediaId,
-            episode: widget.episode,
+            mediaId: _item.mediaId,
+            episode: _item.episode,
             label: stream.title,
           )) {
         if (mounted) await _leave();
         return;
       }
-      await player.open(
+      await _mediaSession.open(
         Media(
           stream.url,
           extras: {
-            'mediaId': widget.mediaId,
-            'episode': widget.episode,
+            'mediaId': _item.mediaId,
+            'episode': _item.episode,
             'offline': isOffline,
             'title': stream.download?.displayTitle ?? stream.title,
             'subtitle': stream.download?.episodeLabel,
           },
         ),
+        beforePlay: () async {
+          if (!mounted) return;
+          _switching = false;
+          final tracks = player.state.tracks;
+          applyPreferredTracks(
+            audios: tracks.audio,
+            subtitles: tracks.subtitle,
+            audioLang: 'en',
+            subtitleLang: 'en',
+            preferAd: true,
+            allowAd: true,
+          );
+          _applyResume();
+        },
       );
       if (!mounted) return;
+      setState(() => _switching = false);
       if (!isOffline) _setupDiscord();
     } catch (_) {
       if (!mounted) return;
@@ -454,14 +515,31 @@ class StreamPlayerState extends State<StreamPlayer> {
       onPopInvokedWithResult: (didPop, result) {
         PlayerOrientation.restorePortrait();
       },
-      child: Video(
-        controller: controller,
-        controls: videoControls,
-        fit: BoxFit.contain,
-        aspectRatio: 16 / 9,
-        pip: const PipConfig(
-          autoEnter: true,
-          preferredSize: Size(1920 / 5, 1080 / 5),
+      child: PlaybackScope(
+        playEpisode: _playEpisode,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Video(
+              controller: controller,
+              controls: videoControls,
+              fit: BoxFit.contain,
+              aspectRatio: 16 / 9,
+              pip: const PipConfig(
+                autoEnter: true,
+                preferredSize: Size(1920 / 5, 1080 / 5),
+              ),
+            ),
+            if (_switching)
+              const Positioned.fill(
+                child: AbsorbPointer(
+                  child: ColoredBox(
+                    color: Color(0x80101018),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

@@ -173,6 +173,18 @@ it pauses while playback is paused, buffering, or the panel is suppressed. It ma
 finish after EOF, and manual play cancels its timer to prevent a duplicate launch.
 A new playback item resets dismissal. Hidden cards do not intercept input.
 
+Autoplay and Skip Next request a new episode through `PlaybackScope`, leaving the
+existing `StreamPlayer`, native `Player`, `VideoController`, and controls mounted.
+The outgoing episode is paused/saved before the active playback item changes.
+Tracking and resume flags reset for the new episode; native progress events are
+ignored while switching to avoid attributing old positions to the new episode.
+
+`PlaybackMediaSession` opens each source paused, restores volume, prepares tracks
+and resume, then starts playback. Device-local `PlaybackVolumeStore` persists user
+volume/mute changes (including the last audible volume) for future sessions and
+works offline. A volume adjustment made during source loading wins over the prior
+value. Opening failures never start playback at the backend's default volume.
+
 ## Verification
 
 ```bash
@@ -188,6 +200,7 @@ flutter test test/media_playback_progress_test.dart
 flutter test test/seek_slider_test.dart
 flutter test test/player_debug_buffer_test.dart
 flutter test test/next_up_card_test.dart
+flutter test test/playback_session_volume_test.dart
 flutter test
 ```
 

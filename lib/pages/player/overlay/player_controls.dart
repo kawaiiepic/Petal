@@ -1,3 +1,5 @@
+import 'package:petal/pages/player/playback_scope.dart';
+
 import 'dart:math' as math;
 
 import 'package:petal/pages/player/overlay/player_debug_overlay.dart';
@@ -43,6 +45,7 @@ class PlayerControls extends StatefulWidget {
 class _PlayerControlsState extends State<PlayerControls> {
   bool _showControls = true;
   bool _showDebug = false;
+  bool _openingNext = false;
   late bool _isShow;
   late Future<(TmdbShow, TmdbEpisode)> _showData;
   late Future<TmdbMovie> _movie;
@@ -109,15 +112,38 @@ class _PlayerControlsState extends State<PlayerControls> {
   }
 
   void _playNextEpisode() async {
-    if (_offline) return;
-    final extras =
-        widget.state.widget.controller.player.state.playlist.medias[0].extras;
-    final mediaId = extras?["mediaId"];
-    TmdbEpisode? nextEpisode = await _nextUpEpisode;
-    if (nextEpisode != null) {
-      context.pushReplacement(
-        '/player?media=${mediaId}&s=${nextEpisode.seasonNumber}&e=${nextEpisode.episodeNumber}',
+    if (_offline || _openingNext) return;
+    final request = _nextUpEpisode;
+    final currentMedia = mediaId;
+    final currentSeason = episode.seasonNumber;
+    final currentEpisode = episode.episodeNumber;
+    _openingNext = true;
+    try {
+      final next = await request;
+      if (!mounted ||
+          next == null ||
+          currentMedia != mediaId ||
+          currentSeason != episode.seasonNumber ||
+          currentEpisode != episode.episodeNumber)
+        return;
+      final session = PlaybackScope.maybeOf(context);
+      if (session == null) return;
+      await session.playEpisode(
+        Episode(
+          seasonNumber: next.seasonNumber,
+          episodeNumber: next.episodeNumber,
+        ),
       );
+    } catch (_) {
+      if (mounted)
+        showToast(
+          context: context,
+          builder: (_, _) =>
+              const Text('Could not load the next episode. Try again.'),
+          location: ToastLocation.bottomLeft,
+        );
+    } finally {
+      _openingNext = false;
     }
   }
 
