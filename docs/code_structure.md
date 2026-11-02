@@ -145,6 +145,14 @@ suggestions open the first regular season's first episode. Resume and Restart st
 available in the context menu; overview Play uses the cached resume position.
 Continue Watching and In Progress shelves retain direct resume playback.
 
+The player seek slider commits its final drag value on pointer release even when
+shadcn suppresses an equal-value `onChangeEnd` callback. A release sends one seek;
+cancellation sends none. It awaits the native command, handles failure, and ignores
+outdated command completions after another seek or a player change. Position and
+buffer events are unthrottled; interpolation stops while dragging, seeking,
+paused, hidden, or buffering and respects playback rate. Unknown durations disable
+the slider instead of dividing by zero.
+
 ## Verification
 
 ```bash
@@ -157,6 +165,7 @@ flutter test test/watch_progress_test.dart test/external_playback_session_test.d
 flutter test test/on_deck_selection_test.dart test/on_deck_shelf_test.dart
 flutter test test/completion_skeleton_collection_test.dart test/frame_safe_value_notifier_test.dart
 flutter test test/media_playback_progress_test.dart
+flutter test test/seek_slider_test.dart
 flutter test
 ```
 
