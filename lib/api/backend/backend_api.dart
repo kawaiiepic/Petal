@@ -273,14 +273,26 @@ class BackendApi {
       return;
     }
 
+    final lastWatched = watchedAt ?? DateTime.now();
     if (type == 'movie') {
       final index = list.indexWhere(
         (item) => item is MovieItem && item.tmdbId == tmdbId,
       );
       if (index != -1) {
-        list[index] = MovieItem(tmdbId: tmdbId, completion: progress);
+        list[index] = MovieItem(
+          tmdbId: tmdbId,
+          completion: progress,
+          lastWatched: lastWatched,
+        );
       } else {
-        list.insert(0, MovieItem(tmdbId: tmdbId, completion: progress));
+        list.insert(
+          0,
+          MovieItem(
+            tmdbId: tmdbId,
+            completion: progress,
+            lastWatched: lastWatched,
+          ),
+        );
       }
     } else if (season != null && episode != null) {
       final showIndex = list.indexWhere(
@@ -315,6 +327,7 @@ class BackendApi {
 
         list[showIndex] = ShowItem(
           tmdbId: tmdbId,
+          lastWatched: lastWatched,
           nextEpisode: NextEpisode(
             season: season,
             episode: episode,
@@ -327,6 +340,7 @@ class BackendApi {
           0,
           ShowItem(
             tmdbId: tmdbId,
+            lastWatched: lastWatched,
             nextEpisode: NextEpisode(
               season: season,
               episode: episode,

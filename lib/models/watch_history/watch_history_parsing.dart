@@ -15,3 +15,16 @@ List<DateTime> watchDatesFrom(dynamic raw, DateTime? fallback) {
   if (out.isEmpty && fallback != null) out.add(fallback);
   return out;
 }
+
+/// Backend last_watched may be a Unix timestamp or an ISO date.
+DateTime? lastWatchedFrom(dynamic raw) {
+  if (raw is String) {
+    final number = num.tryParse(raw);
+    return number == null ? DateTime.tryParse(raw) : lastWatchedFrom(number);
+  }
+  if (raw is! num || raw <= 0) return null;
+  return DateTime.fromMillisecondsSinceEpoch(
+    (raw < 100000000000 ? raw * 1000 : raw).toInt(),
+    isUtc: true,
+  );
+}

@@ -113,6 +113,14 @@ Movie and show heroes share working library actions. Their comments are embedded
 below recommendations. Episode details expose a watched/unwatched context menu
 that updates only the selected season and episode.
 
+On Deck mixes resumes and untouched next episodes in one list, newest
+`last_watched` first. Older backend payloads fall back to the latest available
+watch-history activity. Partial playback also updates its local activity timestamp.
+The shelf holds at most 12 distinct movie/show titles, fills spare slots from the
+watchlist, and reserves one fresh watchlist suggestion whenever available. If all
+saved titles already have progress, one saved title is retained with its resume
+card. An empty watchlist simply leaves room for up to 12 active titles.
+
 ## Verification
 
 ```bash
@@ -122,6 +130,7 @@ dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test test/refactor_contracts_test.dart test/media_shelf_test.dart test/media_card_test.dart test/tmdb_logo_test.dart test/async_cache_test.dart test/request_caching_test.dart
 flutter test test/watch_progress_test.dart test/external_playback_session_test.dart test/offline_download_test.dart test/home_progress_download_ui_test.dart test/home_overview_updates_test.dart
+flutter test test/on_deck_selection_test.dart test/on_deck_shelf_test.dart
 flutter test
 ```
 

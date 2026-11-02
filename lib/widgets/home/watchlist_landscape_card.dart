@@ -10,7 +10,7 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 class WatchlistLandscapeCard extends StatelessWidget {
   final LibraryTitle item;
 
-  const WatchlistLandscapeCard({required this.item});
+  const WatchlistLandscapeCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {

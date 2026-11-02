@@ -7,6 +7,7 @@ class WatchHistoryItem {
   final MediaType mediaType;
   final double completion;
   final DateTime updatedAt;
+  final DateTime? lastWatched;
   final DateTime? watchedAt;
   final int plays;
   final List<DateTime> watches;
@@ -18,6 +19,7 @@ class WatchHistoryItem {
     required this.completion,
     required this.updatedAt,
     this.watchedAt,
+    this.lastWatched,
     this.plays = 0,
     this.watches = const [],
     this.episodes = const [],
@@ -46,6 +48,7 @@ class WatchHistoryItem {
       mediaType: mediaType,
       completion: completion,
       updatedAt: updatedAt,
+      lastWatched: lastWatchedFrom(json['last_watched']),
       watchedAt: watches.isNotEmpty ? watches.last : watchedAt,
       plays: (json['plays'] as num?)?.toInt() ?? watches.length,
       watches: watches,
