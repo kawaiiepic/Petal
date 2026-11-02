@@ -153,6 +153,18 @@ buffer events are unthrottled; interpolation stops while dragging, seeking,
 paused, hidden, or buffering and respects playback rate. Unknown durations disable
 the slider instead of dividing by zero.
 
+The player Info button toggles a scrollable diagnostics panel over the video.
+It refreshes local player state once a second while open, works offline, exposes
+no source URLs/headers, and stops its timer when closed. Controls stay visible
+while diagnostics are open. It shows playback/buffer state, buffered endpoint and
+seconds ahead, codec/decoder/format, resolution, source FPS, audio and subtitle
+information. Buffer readiness is distinct from the media's buffered percentage.
+
+The seek bar paints a separate light-gray buffered layer below playback progress.
+The empty track is translucent, so the buffered extent remains visible instead of
+sharing the empty track's color. It uses the native absolute buffer endpoint,
+updates immediately on buffer events, clamps to duration, and ignores gestures.
+
 ## Verification
 
 ```bash
@@ -166,6 +178,7 @@ flutter test test/on_deck_selection_test.dart test/on_deck_shelf_test.dart
 flutter test test/completion_skeleton_collection_test.dart test/frame_safe_value_notifier_test.dart
 flutter test test/media_playback_progress_test.dart
 flutter test test/seek_slider_test.dart
+flutter test test/player_debug_buffer_test.dart
 flutter test
 ```
 

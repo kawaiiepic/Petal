@@ -1,3 +1,5 @@
+import 'package:petal/pages/player/overlay/player_debug_overlay.dart';
+
 import 'dart:async';
 
 import 'package:go_router/go_router.dart';
@@ -38,6 +40,7 @@ class PlayerControls extends StatefulWidget {
 
 class _PlayerControlsState extends State<PlayerControls> {
   bool _showControls = true;
+  bool _showDebug = false;
   late bool _isShow;
   late Future<(TmdbShow, TmdbEpisode)> _showData;
   late Future<TmdbMovie> _movie;
@@ -160,8 +163,17 @@ class _PlayerControlsState extends State<PlayerControls> {
     }
   }
 
+  void _toggleDebug() {
+    setState(() {
+      _showDebug = !_showDebug;
+      _showControls = true;
+    });
+    _startHideTimer();
+  }
+
   void _startHideTimer() {
     _hideTimer?.cancel();
+    if (_showDebug) return;
     _hideTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() => _showControls = false);
@@ -170,6 +182,7 @@ class _PlayerControlsState extends State<PlayerControls> {
   }
 
   void _onMouseMove({bool toggle = false}) {
+    if (_showDebug) return;
     if (!_showControls) {
       setState(() => _showControls = true);
       _startHideTimer();
@@ -228,6 +241,7 @@ class _PlayerControlsState extends State<PlayerControls> {
     return GestureDetector(
       behavior: HitTestBehavior.deferToChild,
       onDoubleTapDown: (details) {
+        if (_showDebug) return;
         final width = context.size?.width ?? MediaQuery.of(context).size.width;
         final tapX = details.localPosition.dx;
 
@@ -243,7 +257,9 @@ class _PlayerControlsState extends State<PlayerControls> {
       child: MouseRegion(
         onHover: (event) => _onMouseMove(),
         onEnter: (_) => setState(() => _showControls = true),
-        onExit: (_) => setState(() => _showControls = false),
+        onExit: (_) {
+          if (!_showDebug) setState(() => _showControls = false);
+        },
         child: Stack(
           children: [
             AnimatedOpacity(
@@ -254,6 +270,24 @@ class _PlayerControlsState extends State<PlayerControls> {
                 child: _buildControlsBar(),
               ),
             ),
+            if (_showDebug)
+              Positioned.fill(
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 56, 12, 96),
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: PlayerDebugOverlay(
+                          player: player,
+                          onClose: _toggleDebug,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             SeekIndicator(
               visible: _showLeftSeek,
               seconds: _leftSeekSeconds,
@@ -264,7 +298,7 @@ class _PlayerControlsState extends State<PlayerControls> {
               seconds: _rightSeekSeconds,
               isLeft: false,
             ),
-            if (_isShow && !_offline)
+            if (_isShow && !_offline && !_showDebug)
               Positioned(
                 right: 20,
                 bottom: 40,
@@ -366,10 +400,23 @@ class _PlayerControlsState extends State<PlayerControls> {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: ControlButton(
-                    icon: Icon(
-                      size: AppTypography.normalIconSize,
-                      LucideIcons.info,
+                  child: Tooltip(
+                    tooltip: (_) => Text(
+                      _showDebug
+                          ? 'Hide playback diagnostics'
+                          : 'Show playback diagnostics',
+                    ),
+                    child: Semantics(
+                      label: 'Playback diagnostics',
+                      toggled: _showDebug,
+                      child: ControlButton(
+                        onTap: _toggleDebug,
+                        icon: Icon(
+                          LucideIcons.info,
+                          size: AppTypography.normalIconSize,
+                          color: _showDebug ? Colors.pink : null,
+                        ),
+                      ),
                     ),
                   ),
                 ),

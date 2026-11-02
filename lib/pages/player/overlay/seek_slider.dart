@@ -1,3 +1,5 @@
+import 'package:petal/pages/player/overlay/seek_buffer_track.dart';
+
 import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
@@ -207,31 +209,45 @@ class _SeekSliderState extends State<SeekSlider>
             });
           },
           onPointerCancel: (_) => _cancelDrag(),
-          child: Slider(
-            enabled: ready,
-            value: SliderValue.single(
-              _isDragging ? (_dragValue ?? live) : live,
-            ),
-            hintValue: SliderValue.single(buffered),
-            valueIndicatorBuilder: (context, value) => SliderValueIndicator(
-              value: value,
-              formatter: (value) => MediaFormatting.fmt(duration * value),
-            ),
-            onChangeStart: (value) {
-              setState(() {
-                _isDragging = true;
-                _dragValue = value.value;
-              });
-              _updateTicker();
-            },
-            onChanged: (value) {
-              setState(() {
-                _isDragging = true;
-                _dragValue = value.value;
-              });
-              _updateTicker();
-            },
-            onChangeEnd: (value) => _finishDrag(value.value),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(child: SeekBufferTrack(fraction: buffered)),
+              ComponentTheme(
+                data: const SliderTheme(
+                  trackColor: Colors.transparent,
+                  disabledTrackColor: Colors.transparent,
+                ),
+                child: Slider(
+                  enabled: ready,
+                  value: SliderValue.single(
+                    _isDragging ? (_dragValue ?? live) : live,
+                  ),
+                  hintValue: SliderValue.single(buffered),
+                  valueIndicatorBuilder: (context, value) =>
+                      SliderValueIndicator(
+                        value: value,
+                        formatter: (value) =>
+                            MediaFormatting.fmt(duration * value),
+                      ),
+                  onChangeStart: (value) {
+                    setState(() {
+                      _isDragging = true;
+                      _dragValue = value.value;
+                    });
+                    _updateTicker();
+                  },
+                  onChanged: (value) {
+                    setState(() {
+                      _isDragging = true;
+                      _dragValue = value.value;
+                    });
+                    _updateTicker();
+                  },
+                  onChangeEnd: (value) => _finishDrag(value.value),
+                ),
+              ),
+            ],
           ),
         ),
         if (_seekFailed)
