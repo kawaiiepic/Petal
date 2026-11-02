@@ -20,6 +20,15 @@ class InProgressIndicator extends StatelessWidget {
     ]),
     builder: (context, _) {
       final id = target.tmdbId;
+      final finished = localProgress != null && localProgress! > 0
+          ? WatchProgress.isWatched(localProgress!)
+          : id != null &&
+                WatchProgress.titleFinished(
+                  tmdbId: id,
+                  type: target.type,
+                  totalEpisodes: target.totalEpisodes,
+                  history: BackendCache.watchHistory.value,
+                );
       final active = localProgress != null && localProgress! > 0
           ? WatchProgress.isPartial(localProgress!)
           : (id != null &&
@@ -30,21 +39,22 @@ class InProgressIndicator extends StatelessWidget {
                   history: BackendCache.watchHistory.value,
                   nextUp: BackendCache.continueWatching.value,
                 ));
-      if (!active) return const SizedBox.shrink();
+      if (!active && !finished) return const SizedBox.shrink();
+      final label = finished ? 'Finished' : 'In progress';
       return Tooltip(
-        tooltip: (_) => const Text('In progress'),
+        tooltip: (_) => Text(label),
         child: Semantics(
-          label: 'In progress',
+          label: label,
           child: Container(
             padding: const EdgeInsets.all(6),
             decoration: const BoxDecoration(
               color: Color(0xE6101018),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              LucideIcons.circlePlay,
+            child: Icon(
+              finished ? LucideIcons.circleCheck : LucideIcons.circlePlay,
               size: 18,
-              color: Colors.pink,
+              color: finished ? Colors.green : Colors.pink,
             ),
           ),
         ),

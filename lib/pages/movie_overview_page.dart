@@ -1,3 +1,5 @@
+import 'package:petal/widgets/connection_error_view.dart';
+import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:petal/widgets/overview/title_comments.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -39,28 +41,34 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
   }
 
   int? _resolvedTmdbId;
+  Object? _loadError;
 
   Future<void> initData() async {
-    int? tmdbId = widget.tmdbId;
+    setState(() {
+      _loadError = null;
+    });
+    try {
+      int? tmdbId = widget.tmdbId;
 
-    if (tmdbId == null && widget.imdbId != null) {
-      final result = await ApiCache.getTmdbSearch(widget.imdbId!);
+      if (tmdbId == null && widget.imdbId != null) {
+        final result = await ApiCache.getTmdbSearch(widget.imdbId!);
 
-      if (result.movies.isEmpty) {
-        return;
+        if (result.movies.isEmpty) throw StateError('Title not found');
+
+        tmdbId = result.movies.first.id;
       }
 
-      tmdbId = result.movies.first.id;
+      if (tmdbId == null || !mounted) return;
+
+      final movie = TMDB.movie(tmdbId);
+
+      setState(() {
+        _resolvedTmdbId = tmdbId;
+        _movie = movie;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _loadError = error);
     }
-
-    if (tmdbId == null || !mounted) return;
-
-    final movie = TMDB.movie(tmdbId);
-
-    setState(() {
-      _resolvedTmdbId = tmdbId;
-      _movie = movie;
-    });
   }
 
   @override
@@ -68,6 +76,13 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
     return FutureBuilder(
       future: _movie,
       builder: (context, snapshot) {
+        if (_loadError != null || snapshot.hasError) {
+          return ConnectionErrorView(
+            error: _loadError ?? snapshot.error,
+            onRetry: initData,
+          );
+        }
+        final loading = snapshot.connectionState != ConnectionState.done;
         final movie = snapshot.hasData ? snapshot.data! : null;
         final router = GoRouter.of(context);
 
@@ -97,12 +112,11 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        'https://image.tmdb.org/t/p/original${(movie?.images!.backdrops.where((l) => l.iso6391 == null).toList()?..shuffle())?.first.filePath}',
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        errorBuilder: (context, error, stackTrace) =>
-                            SizedBox.expand(),
+                      MediaArtwork(
+                        imageUrl: movie?.backdropPath == null
+                            ? null
+                            : 'https://image.tmdb.org/t/p/original${movie!.backdropPath}',
+                        isLoading: loading,
                       ),
                       const Positioned(
                         top: 0,
@@ -126,12 +140,12 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                             maxWidth: 200,
                             maxHeight: 80,
                           ),
-                          child: Image.network(
-                            'https://image.tmdb.org/t/p/original${movie?.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull?.filePath}',
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Text(movie?.title ?? 'Long ass show name.'),
-                          ),
+                          child: movie?.images?.preferredLogo?.url == null
+                              ? Text(movie?.title ?? 'Loading title')
+                              : MediaArtwork(
+                                  imageUrl: movie!.images!.preferredLogo!.url,
+                                  fit: BoxFit.contain,
+                                ),
                         ),
                       ),
                       OverviewHeroActions(
@@ -381,7 +395,7 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
               ),
             ],
           ),
-        ).asSkeleton(snapshot: snapshot);
+        ).asSkeleton(enabled: loading);
       },
     );
   }

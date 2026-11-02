@@ -1,4 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:petal/widgets/media/media_artwork_placeholder.dart';
+import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/backend/backend_api.dart';
@@ -27,6 +28,7 @@ class MediaCard extends StatefulWidget {
   final bool showDefaultContextMenu;
   final String primaryActionLabel;
   final Orientation orientation;
+  final bool isLoading;
   final bool showLogo;
   final String? logoUrl;
 
@@ -43,6 +45,7 @@ class MediaCard extends StatefulWidget {
     this.primaryActionLabel = 'Play',
     this.orientation = Orientation.portrait,
     this.showLogo = true,
+    this.isLoading = false,
     this.logoUrl,
   });
 
@@ -55,6 +58,8 @@ class _MediaCardState extends State<MediaCard> {
   Future<String?>? _logo;
   int? _resolvedId;
   int _generation = 0;
+  int? _totalEpisodes;
+  Future<void>? _countFuture;
 
   @override
   void initState() {
@@ -72,15 +77,20 @@ class _MediaCardState extends State<MediaCard> {
         oldWidget.target?.type != widget.target?.type ||
         oldWidget.orientation != widget.orientation ||
         oldWidget.showLogo != widget.showLogo ||
-        oldWidget.logoUrl != widget.logoUrl)
+        oldWidget.logoUrl != widget.logoUrl ||
+        oldWidget.isLoading != widget.isLoading ||
+        oldWidget.target?.totalEpisodes != widget.target?.totalEpisodes)
       _load();
   }
 
   void _load() {
     _generation++;
     _idFuture = null;
+    _countFuture = null;
+    _totalEpisodes = widget.target?.totalEpisodes;
     _resolvedId = widget.target?.tmdbId;
     _logo = null;
+    if (widget.isLoading) return;
     _resolveProgressTarget();
     if (!widget.showLogo || widget.orientation != Orientation.landscape) return;
     if (widget.logoUrl != null) {
@@ -94,12 +104,38 @@ class _MediaCardState extends State<MediaCard> {
   }
 
   void _resolveProgressTarget() {
-    if (widget.target == null || _resolvedId != null || _idFuture != null)
-      return;
+    final target = widget.target;
+    if (widget.isLoading || target == null) return;
     if (BackendCache.watchHistory.value.isEmpty &&
         BackendCache.continueWatching.value.isEmpty)
       return;
-    _resolveId().catchError((Object _) => null);
+    if (_resolvedId == null) {
+      if (_idFuture == null) _resolveId().catchError((Object _) => null);
+      return;
+    }
+    if (target.type != MediaType.show ||
+        _totalEpisodes != null ||
+        _countFuture != null)
+      return;
+    if (!BackendCache.watchHistory.value.any(
+      (item) =>
+          item.tmdbId == _resolvedId &&
+          item.mediaType == target.type &&
+          item.episodes.any(
+            (episode) => WatchProgress.isWatched(episode.completion),
+          ),
+    ))
+      return;
+    final generation = _generation;
+    _countFuture = () async {
+      try {
+        final show = await TMDB.tvShow(_resolvedId!);
+        if (mounted && generation == _generation)
+          setState(() => _totalEpisodes = show.numberOfEpisodes);
+      } catch (_) {
+        /* Keep an unknown total unmarked when metadata is unavailable. */
+      }
+    }();
   }
 
   @override
@@ -121,8 +157,10 @@ class _MediaCardState extends State<MediaCard> {
             ? result.movies
             : result.tv;
         final id = matches.firstOrNull?.id;
-        if (mounted && generation == _generation)
+        if (mounted && generation == _generation) {
           setState(() => _resolvedId = id);
+          _resolveProgressTarget();
+        }
         return id;
       } catch (_) {
         if (generation == _generation) _idFuture = null;
@@ -297,9 +335,6 @@ class _MediaCardState extends State<MediaCard> {
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = Container(color: Colors.white.withAlpha(20))
-        .asSkeleton(leaf: true);
-    final url = widget.imageUrl;
     return ListenableBuilder(
       listenable: Listenable.merge([
         UserLibrary.watchlist,
@@ -308,75 +343,75 @@ class _MediaCardState extends State<MediaCard> {
       ]),
       builder: (context, _) => Semantics(
         label: widget.label,
-        button: widget.onTap != null || widget.target != null,
+        button:
+            !widget.isLoading &&
+            (widget.onTap != null || widget.target != null),
         child: HoverableItem(
           orientation: widget.orientation,
-          onTap: widget.onTap != null || widget.target != null ? _open : null,
-          contextItems: _contextItems(),
-          extraWidget: Stack(
-            children: [
-              if (_logo != null)
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  right: 12,
-                  child: IgnorePointer(
-                    child: SizedBox(
-                      height: 36,
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 140),
-                          child: FutureBuilder<String?>(
-                            future: _logo,
-                            builder: (context, snapshot) => snapshot.hasData
-                                ? MediaTitleLogo(url: snapshot.data!)
-                                : const SizedBox.shrink(),
+          onTap:
+              !widget.isLoading &&
+                  (widget.onTap != null || widget.target != null)
+              ? _open
+              : null,
+          contextItems: widget.isLoading ? const [] : _contextItems(),
+          extraWidget: widget.isLoading
+              ? null
+              : Stack(
+                  children: [
+                    if (_logo != null)
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        right: 12,
+                        child: IgnorePointer(
+                          child: SizedBox(
+                            height: 36,
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 140,
+                                ),
+                                child: FutureBuilder<String?>(
+                                  future: _logo,
+                                  builder: (context, snapshot) =>
+                                      snapshot.hasData
+                                      ? MediaTitleLogo(url: snapshot.data!)
+                                      : const SizedBox.shrink(),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              if (widget.overlay != null) widget.overlay!,
-              if (_resolvedId != null && widget.target != null)
-                Positioned(
-                  top: 48,
-                  right: 12,
-                  child: RatingIndicator(
-                    tmdbId: _resolvedId!,
-                    type: widget.target!.type,
-                  ),
-                ),
-              if (_resolvedId != null && widget.target != null)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: InProgressIndicator(
-                    target: MediaCardTarget(
-                      tmdbId: _resolvedId,
-                      type: widget.target!.type,
-                      totalEpisodes: widget.target!.totalEpisodes,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          image:
-              widget.image ??
-              (url == null || url.isEmpty
-                  ? placeholder
-                  : CachedNetworkImage(
-                      imageUrl: url,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 780,
-                      fadeInDuration: Duration.zero,
-                      placeholder: (_, _) => placeholder,
-                      errorWidget: (_, _, _) => Container(
-                        color: Colors.white.withAlpha(30),
-                        child: const Icon(LucideIcons.imageOff),
+                    if (widget.overlay != null) widget.overlay!,
+                    if (_resolvedId != null && widget.target != null)
+                      Positioned(
+                        top: 48,
+                        right: 12,
+                        child: RatingIndicator(
+                          tmdbId: _resolvedId!,
+                          type: widget.target!.type,
+                        ),
                       ),
-                    )),
+                    if (_resolvedId != null && widget.target != null)
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: InProgressIndicator(
+                          target: MediaCardTarget(
+                            tmdbId: _resolvedId,
+                            type: widget.target!.type,
+                            totalEpisodes: _totalEpisodes,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+          image: widget.isLoading
+              ? const MediaArtworkPlaceholder(loading: true)
+              : widget.image ??
+                    MediaArtwork(imageUrl: widget.imageUrl, cacheWidth: 780),
         ),
       ),
     );

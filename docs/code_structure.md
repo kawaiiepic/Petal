@@ -121,6 +121,20 @@ watchlist, and reserves one fresh watchlist suggestion whenever available. If al
 saved titles already have progress, one saved title is retained with its resume
 card. An empty watchlist simply leaves room for up to 12 active titles.
 
+Media artwork has separate loading and unavailable states. `MediaCard.isLoading`
+hides overlays and disables interactions while metadata loads; image requests use
+the same artwork skeleton and stop animating on failure. Overview failures expose
+retry controls instead of permanent skeletons. Finished badges require all regular
+episodes to meet the 90% watched threshold and a known episode total.
+
+Collections resolve metadata through a bounded queue before splitting Watching,
+Watched, and Planned rows. Cards never remove their own allocated slots, and
+missing posters or failed metadata stay visible with fallback artwork.
+
+Backend cache notifiers store values immediately and defer widget notifications
+until the end of the frame during build/disposal. This lets final player progress
+saves update shared state without rebuilding a locked widget tree.
+
 ## Verification
 
 ```bash
@@ -131,6 +145,7 @@ flutter analyze
 flutter test test/refactor_contracts_test.dart test/media_shelf_test.dart test/media_card_test.dart test/tmdb_logo_test.dart test/async_cache_test.dart test/request_caching_test.dart
 flutter test test/watch_progress_test.dart test/external_playback_session_test.dart test/offline_download_test.dart test/home_progress_download_ui_test.dart test/home_overview_updates_test.dart
 flutter test test/on_deck_selection_test.dart test/on_deck_shelf_test.dart
+flutter test test/completion_skeleton_collection_test.dart test/frame_safe_value_notifier_test.dart
 flutter test
 ```
 

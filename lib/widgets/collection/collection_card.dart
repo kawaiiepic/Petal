@@ -1,4 +1,3 @@
-import 'package:petal/models/library/collection_status.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
@@ -11,20 +10,17 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 class CollectionCard extends StatelessWidget {
   final WatchHistoryItem item;
   final Widget poster;
-  final dynamic tmdb;
-  final CollectionStatus status;
+  final Object? tmdb;
 
   const CollectionCard({
     super.key,
     required this.item,
     required this.poster,
     required this.tmdb,
-    required this.status,
   });
 
-  int? get _episodeCount => item.mediaType == MediaType.show
-      ? (tmdb as dynamic).numberOfEpisodes as int?
-      : null;
+  int? get _episodeCount =>
+      tmdb is TmdbShow ? (tmdb as TmdbShow).numberOfEpisodes : null;
 
   String _lastWatched() {
     final d = item.updatedAt.toLocal();
@@ -57,6 +53,7 @@ class CollectionCard extends StatelessWidget {
   }
 
   Widget _progressOverlay() {
+    if (tmdb == null) return const SizedBox.shrink();
     if (item.mediaType == MediaType.movie) {
       final runtime = (tmdb as dynamic).runtime as int? ?? 0;
       String? remaining;
@@ -92,16 +89,6 @@ class CollectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (status == CollectionStatus.watched &&
-        !isFinished(item, tmdbEpisodeCount: _episodeCount)) {
-      return const SizedBox.shrink();
-    }
-
-    if (status == CollectionStatus.watching &&
-        !isWatching(item, tmdbEpisodeCount: _episodeCount)) {
-      return const SizedBox.shrink();
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -1,3 +1,5 @@
+import 'package:petal/widgets/connection_error_view.dart';
+import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
@@ -42,6 +44,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
   Future<TmdbSeason>? _season;
 
   int? _resolvedTmdbId;
+  Object? _loadError;
 
   Episode episode = Episode(seasonNumber: 1, episodeNumber: 1);
   final scrollController = ScrollController();
@@ -53,22 +56,29 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
   }
 
   Future<void> initData() async {
-    int? tmdbId = widget.tmdbId;
-
-    if (tmdbId == null && widget.imdbId != null) {
-      final result = await ApiCache.getTmdbSearch(widget.imdbId!);
-      if (result.tv.isEmpty) return;
-      tmdbId = result.tv.first.id;
-    }
-
-    if (tmdbId == null || !mounted) return;
-    final show = TMDB.tvShow(tmdbId);
-    final season = TMDB.tvSeason(tmdbId, episode.seasonNumber);
     setState(() {
-      _resolvedTmdbId = tmdbId;
-      _show = show;
-      _season = season;
+      _loadError = null;
     });
+    try {
+      int? tmdbId = widget.tmdbId;
+
+      if (tmdbId == null && widget.imdbId != null) {
+        final result = await ApiCache.getTmdbSearch(widget.imdbId!);
+        if (result.tv.isEmpty) throw StateError('Title not found');
+        tmdbId = result.tv.first.id;
+      }
+
+      if (tmdbId == null || !mounted) return;
+      final show = TMDB.tvShow(tmdbId);
+      final season = TMDB.tvSeason(tmdbId, episode.seasonNumber);
+      setState(() {
+        _resolvedTmdbId = tmdbId;
+        _show = show;
+        _season = season;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _loadError = error);
+    }
   }
 
   @override
@@ -76,6 +86,13 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
     return FutureBuilder(
       future: _show,
       builder: (context, snapshot) {
+        if (_loadError != null || snapshot.hasError) {
+          return ConnectionErrorView(
+            error: _loadError ?? snapshot.error,
+            onRetry: initData,
+          );
+        }
+        final loading = snapshot.connectionState != ConnectionState.done;
         final show = snapshot.hasData ? snapshot.data! : null;
         final router = GoRouter.of(context);
         final trailer =
@@ -100,12 +117,9 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        'https://image.tmdb.org/t/p/original${(show?.images!.backdrops.where((l) => l.iso6391 == null).toList()?..shuffle())?.first.filePath}',
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        errorBuilder: (context, error, stackTrace) =>
-                            SizedBox.expand(),
+                      MediaArtwork(
+                        imageUrl: show?.backdropUrl,
+                        isLoading: loading,
                       ),
                       AppBar(
                         leading: [BackButton()],
@@ -121,12 +135,12 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                             maxWidth: 200,
                             maxHeight: 80,
                           ),
-                          child: Image.network(
-                            'https://image.tmdb.org/t/p/original${show?.images?.logos.where((l) => l.iso6391 == null || l.iso6391 == 'en').firstOrNull?.filePath}',
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Text(show?.name ?? 'Long ass show name.'),
-                          ),
+                          child: show?.images?.preferredLogo?.url == null
+                              ? Text(show?.name ?? 'Loading title')
+                              : MediaArtwork(
+                                  imageUrl: show!.images!.preferredLogo!.url,
+                                  fit: BoxFit.contain,
+                                ),
                         ),
                       ),
                       OverviewHeroActions(
@@ -719,7 +733,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
               ),
             ],
           ),
-        ).asSkeleton(snapshot: snapshot);
+        ).asSkeleton(enabled: loading);
       },
     );
   }

@@ -12,6 +12,32 @@ abstract final class WatchProgress {
   static double storedCompletion(double ratio) =>
       isWatched(ratio) ? 1 : ratio.clamp(0, 1);
 
+  static bool titleFinished({
+    required int tmdbId,
+    required MediaType type,
+    required List<WatchHistoryItem> history,
+    int? totalEpisodes,
+  }) {
+    final matches =
+        history
+            .where((item) => item.tmdbId == tmdbId && item.mediaType == type)
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    if (matches.isEmpty) return false;
+    final item = matches.first;
+    if (type == MediaType.movie) return isWatched(item.completion);
+    if (totalEpisodes == null || totalEpisodes <= 0) return false;
+    final episodes = item.episodes.where(
+      (episode) => episode.season > 0 && episode.episode > 0,
+    );
+    if (episodes.any((episode) => isPartial(episode.completion))) return false;
+    final watched = episodes
+        .where((episode) => isWatched(episode.completion))
+        .map((episode) => '${episode.season}:${episode.episode}')
+        .toSet();
+    return watched.length >= totalEpisodes;
+  }
+
   static bool titleInProgress({
     required int tmdbId,
     required MediaType type,

@@ -1,3 +1,4 @@
+import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/models/tmdb/cast_member.dart';
 import 'package:petal/widgets/overview/cast_fallback_avatar.dart';
@@ -24,13 +25,13 @@ class CastCard extends StatelessWidget {
           children: [
             ClipOval(
               child: member != null && member!.profilePath != null
-                  ? Image.network(
-                      'https://image.tmdb.org/t/p/w185${member!.profilePath}',
+                  ? SizedBox(
                       width: 72,
                       height: 72,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          CastFallbackAvatar(icon: fallbackIcon),
+                      child: MediaArtwork(
+                        imageUrl:
+                            'https://image.tmdb.org/t/p/w185${member!.profilePath}',
+                      ),
                     )
                   : CastFallbackAvatar(icon: fallbackIcon),
             ),

@@ -15,6 +15,7 @@ class CatalogItemWidget extends StatelessWidget {
     final item = catalogItem;
     final poster = item?.poster ?? '';
     return MediaCard(
+      isLoading: item == null,
       imageUrl: poster.isEmpty || poster.contains('blossomvale.dev')
           ? poster
           : Api.proxyImage(poster),

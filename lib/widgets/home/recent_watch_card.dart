@@ -71,6 +71,7 @@ class RecentWatchCard extends StatelessWidget {
         }
 
         return MediaCard(
+          isLoading: snapshot.connectionState != ConnectionState.done,
           orientation: Orientation.landscape,
           onTap: () => context.push(
             item.type == MediaType.show

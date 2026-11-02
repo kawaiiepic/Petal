@@ -27,6 +27,7 @@ class ShelfPosterCard extends StatelessWidget {
                   : (snapshot.data as dynamic).title as String?)
             : null;
         return MediaCard(
+          isLoading: snapshot.connectionState != ConnectionState.done,
           onTap: () => context.push(
             isShow
                 ? '/series?tmdb=${item.tmdbId}'

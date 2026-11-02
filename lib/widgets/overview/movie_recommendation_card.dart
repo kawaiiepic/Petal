@@ -1,6 +1,6 @@
+import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/models/tmdb/recommended_movie.dart';
-import 'package:petal/widgets/overview/poster_fallback.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class MovieRecommendationCard extends StatelessWidget {
@@ -20,15 +20,16 @@ class MovieRecommendationCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: movie?.posterPath != null
-                  ? Image.network(
-                      'https://image.tmdb.org/t/p/w342${movie?.posterPath}',
-                      width: 110,
-                      height: 155,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => PosterFallback(),
-                    )
-                  : PosterFallback(),
+              child: SizedBox(
+                width: 110,
+                height: 155,
+                child: MediaArtwork(
+                  imageUrl: movie?.posterPath == null
+                      ? null
+                      : 'https://image.tmdb.org/t/p/w342${movie!.posterPath}',
+                  isLoading: movie == null,
+                ),
+              ),
             ),
             const SizedBox(height: 6),
             Text(

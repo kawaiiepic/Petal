@@ -354,7 +354,11 @@ class _PlayerControlsState extends State<PlayerControls> {
                                         : "Example Episode Name",
                                   ),
                               ],
-                            ).asSkeleton(snapshot: snapshot);
+                            ).asSkeleton(
+                              enabled:
+                                  snapshot.connectionState !=
+                                  ConnectionState.done,
+                            );
                           },
                         ),
                 ),

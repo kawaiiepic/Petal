@@ -4,6 +4,8 @@ import 'package:petal/models/media_type.dart';
 import 'package:petal/utils/watch_progress.dart';
 import 'package:petal/utils/app_notifications.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:petal/widgets/media/media_artwork.dart';
+import 'package:petal/widgets/connection_error_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/tmdb/tmdb_episode.dart';
@@ -30,10 +32,12 @@ class EpisodeDetailPage extends StatefulWidget {
 }
 
 class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
-  late final Future<List<dynamic>> _future = Future.wait([
+  Future<List<dynamic>> _load() => Future.wait([
     TMDB.tvShow(widget.tmdbId),
     TMDB.tvEpisode(widget.tmdbId, widget.season, widget.episode),
   ]);
+
+  late Future<List<dynamic>> _future = _load();
 
   bool get _watched => BackendCache.watchHistory.value
       .where(
@@ -92,6 +96,12 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     return FutureBuilder(
       future: _future,
       builder: (context, snapshot) {
+        if (snapshot.hasError)
+          return ConnectionErrorView(
+            error: snapshot.error,
+            onRetry: () => setState(() => _future = _load()),
+          );
+        final loading = snapshot.connectionState != ConnectionState.done;
         final show = snapshot.hasData ? snapshot.data![0] as TmdbShow : null;
         final episode = snapshot.hasData
             ? snapshot.data![1] as TmdbEpisode
@@ -124,18 +134,14 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          if (imagePath != null && imagePath.isNotEmpty)
-                            CachedNetworkImage(
-                              imageUrl: imagePath.startsWith('http')
-                                  ? imagePath
-                                  : 'https://image.tmdb.org/t/p/original$imagePath',
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              errorWidget: (context, url, error) =>
-                                  const SizedBox.expand(),
-                            )
-                          else
-                            const SizedBox.expand(),
+                          MediaArtwork(
+                            imageUrl: imagePath == null
+                                ? null
+                                : imagePath.startsWith('http')
+                                ? imagePath
+                                : 'https://image.tmdb.org/t/p/original$imagePath',
+                            isLoading: loading,
+                          ),
                           Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
@@ -399,7 +405,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
               ),
             ),
           ),
-        );
+        ).asSkeleton(enabled: loading);
       },
     );
   }

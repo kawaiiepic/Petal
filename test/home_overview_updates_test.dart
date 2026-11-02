@@ -101,6 +101,8 @@ void main() {
         ? jsonBody({
             'id': 42,
             'name': 'Example',
+            'season_number': 2,
+            'episode_number': 3,
             'overview': '',
             'guest_stars': [],
           })

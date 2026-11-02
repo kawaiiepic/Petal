@@ -7,13 +7,15 @@ import 'package:petal/models/watch_history/continue_watching_item.dart';
 import 'package:petal/models/watch_history/show_item.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
 import 'package:petal/models/watch_session.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:petal/utils/frame_safe_value_notifier.dart';
 
 class BackendCache {
   static final continueWatching =
-      ValueChangeNotifier<List<ContinueWatchingItem>>([]);
-  static final watchHistory = ValueChangeNotifier<List<WatchHistoryItem>>([]);
-  static final sessions = ValueChangeNotifier<List<WatchSession>>([]);
+      FrameSafeValueNotifier<List<ContinueWatchingItem>>([]);
+  static final watchHistory = FrameSafeValueNotifier<List<WatchHistoryItem>>(
+    [],
+  );
+  static final sessions = FrameSafeValueNotifier<List<WatchSession>>([]);
   static final _nextUp = AsyncCache<String, List<ContinueWatchingItem>>(
     ttl: const Duration(minutes: 1),
   );

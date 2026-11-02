@@ -16,10 +16,7 @@ bool isWatching(WatchHistoryItem item, {int? tmdbEpisodeCount}) {
   if (!anyStarted) return false;
 
   if (tmdbEpisodeCount != null && tmdbEpisodeCount > 0) {
-    final done = item.episodes
-        .where((e) => WatchProgress.isWatched(e.completion))
-        .length;
-    return done < tmdbEpisodeCount;
+    return !isFinished(item, tmdbEpisodeCount: tmdbEpisodeCount);
   }
   return true;
 }
@@ -28,18 +25,12 @@ bool isFinished(WatchHistoryItem item, {int? tmdbEpisodeCount}) {
   if (item.mediaType == MediaType.movie)
     return WatchProgress.isWatched(item.completion);
 
-  final anyInProgress = item.episodes.any(
-    (e) => WatchProgress.isPartial(e.completion),
+  return WatchProgress.titleFinished(
+    tmdbId: item.tmdbId,
+    type: item.mediaType,
+    totalEpisodes: tmdbEpisodeCount,
+    history: [item],
   );
-  if (anyInProgress) return false;
-
-  final done = item.episodes
-      .where((e) => WatchProgress.isWatched(e.completion))
-      .length;
-  if (tmdbEpisodeCount != null && tmdbEpisodeCount > 0) {
-    return done >= tmdbEpisodeCount;
-  }
-  return false;
 }
 
 bool isPlanned(WatchHistoryItem item) {

@@ -89,6 +89,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
     return FutureBuilder<TmdbEpisode>(
       future: _futureEpisode,
       builder: (context, snapshot) => MediaCard(
+        isLoading: snapshot.connectionState != ConnectionState.done,
         orientation: Orientation.landscape,
         primaryActionLabel: 'Resume',
         target: MediaCardTarget(
@@ -144,13 +145,14 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
             },
           ),
         ),
-      ).asSkeleton(snapshot: snapshot),
+      ),
     );
   }
 
   Widget movieWidget(MovieItem state) => FutureBuilder<TmdbMovie>(
     future: _futureMovie,
     builder: (context, snapshot) => MediaCard(
+      isLoading: snapshot.connectionState != ConnectionState.done,
       orientation: Orientation.landscape,
       primaryActionLabel: 'Resume',
       target: MediaCardTarget(tmdbId: state.tmdbId, type: state.mediaType),
@@ -185,6 +187,6 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
           }(),
         ),
       ),
-    ).asSkeleton(snapshot: snapshot),
+    ),
   );
 }

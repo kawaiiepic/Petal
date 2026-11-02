@@ -50,6 +50,7 @@ class WatchlistLandscapeCard extends StatelessWidget {
           }
         }
         return MediaCard(
+          isLoading: snapshot.connectionState != ConnectionState.done,
           orientation: Orientation.landscape,
           onTap: () => context.push(
             isShow
