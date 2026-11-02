@@ -1,3 +1,4 @@
+import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/media/media_progress_bar.dart';
 import 'package:petal/widgets/media/media_artwork_placeholder.dart';
 import 'package:petal/widgets/media/media_artwork.dart';
@@ -252,7 +253,7 @@ class _MediaCardState extends State<MediaCard> {
     if (profile != BackendApi.profileCacheKey) return;
     final target = widget.target!;
     if (target.isEpisode) {
-      await BackendApi.setProgress(
+      await HistoryActions.setProgress(
         id,
         target.type,
         _watched ? 0 : 1,
@@ -294,6 +295,10 @@ class _MediaCardState extends State<MediaCard> {
             leading: const Icon(LucideIcons.info),
             child: const Text('More Info'),
             onPressed: (_) => context.push(_infoRoute),
+          ),
+          MenuButton(
+            child: const Text('Manage playback history'),
+            onPressed: (_) => context.push('/history'),
           ),
           const MenuDivider(),
           MenuButton(

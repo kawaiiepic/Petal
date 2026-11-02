@@ -6,6 +6,7 @@ class DownloadEntry {
   final int tmdbId;
   final int? season;
   final int? episode;
+  String? validator;
   String? url;
   String? path;
   double progress;
@@ -24,6 +25,7 @@ class DownloadEntry {
     this.season,
     this.episode,
     this.url,
+    this.validator,
     this.path,
     this.progress = 0,
     this.status = DownloadStatus.queued,
@@ -51,6 +53,7 @@ class DownloadEntry {
     'season': season,
     'episode': episode,
     'url': url,
+    'validator': validator,
     'path': path,
     'progress': progress,
     'status': status.name,
@@ -70,6 +73,7 @@ class DownloadEntry {
       season: (json['season'] as num?)?.toInt(),
       episode: (json['episode'] as num?)?.toInt(),
       url: json['url'] as String?,
+      validator: json['validator'] as String?,
       path: json['path'] as String?,
       progress: (json['progress'] as num?)?.toDouble() ?? 0,
       status: DownloadStatus.values.firstWhere(

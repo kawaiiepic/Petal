@@ -95,6 +95,22 @@ class OfflineProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> settle() async {
+    await _syncing;
+  }
+
+  Future<void> discard({
+    required String profileKey,
+    required int mediaId,
+    int? season,
+    int? episode,
+  }) async {
+    await load();
+    _queue.remove('$profileKey|$mediaId|$season|$episode');
+    await _persist();
+    notifyListeners();
+  }
+
   Future<void> _persist() {
     final raw = jsonEncode(_queue);
     return _writes = _writes.catchError((Object _) {}).then((_) async {

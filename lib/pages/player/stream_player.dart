@@ -300,6 +300,20 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
   void _preferencesChanged() {
+    if (mounted) {
+      setState(() {});
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted)
+          _videoKey.currentState?.setSubtitleViewPadding(
+            EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              PlaybackPreferences.instance.subtitleBottom,
+            ),
+          );
+      });
+    }
     if (!mounted || _switching || _failure != null) return;
     PlaybackPreferences.instance.apply(player).catchError((Object _) {});
     final tracks = player.state.tracks;
@@ -624,6 +638,38 @@ class StreamPlayerState extends State<StreamPlayer> {
             Video(
               key: _videoKey,
               controller: controller,
+              subtitleViewConfiguration: SubtitleViewConfiguration(
+                style: TextStyle(
+                  fontSize: PlaybackPreferences.instance.subtitleSize,
+                  color: Colors.white,
+                  backgroundColor:
+                      PlaybackPreferences.instance.subtitleBackground
+                      ? const Color(0xAA000000)
+                      : const Color(0x00000000),
+                  shadows: [
+                    for (final offset in [
+                      const Offset(-1, -1),
+                      const Offset(-1, 1),
+                      const Offset(1, -1),
+                      const Offset(1, 1),
+                    ])
+                      Shadow(
+                        color: const Color(0xFF000000),
+                        offset:
+                            offset *
+                            PlaybackPreferences.instance.subtitleOutline,
+                        blurRadius:
+                            PlaybackPreferences.instance.subtitleOutline,
+                      ),
+                  ],
+                ),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  0,
+                  16,
+                  PlaybackPreferences.instance.subtitleBottom,
+                ),
+              ),
               controls: (state) => PlaybackScope(
                 playEpisode: _playEpisode,
                 child: PlayerControls(state: state),

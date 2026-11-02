@@ -1,1 +1,1 @@
-enum DownloadStatus { queued, running, done, failed, unavailable }
+enum DownloadStatus { queued, paused, running, done, failed, unavailable }

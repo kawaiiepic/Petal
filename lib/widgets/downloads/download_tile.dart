@@ -55,6 +55,27 @@ class DownloadTile extends StatelessWidget {
                     ),
                   ],
                 ),
+              if (entry.status == DownloadStatus.queued ||
+                  entry.status == DownloadStatus.running)
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    Button.outline(
+                      onPressed: () => DownloadManager.pause(entry.id),
+                      child: const Text('Pause'),
+                    ),
+                    if (entry.status == DownloadStatus.queued)
+                      Button.ghost(
+                        onPressed: () => DownloadManager.moveEarlier(entry.id),
+                        child: const Text('Move earlier'),
+                      ),
+                  ],
+                ),
+              if (entry.status == DownloadStatus.paused)
+                Button.outline(
+                  onPressed: () => DownloadManager.resume(entry.id),
+                  child: const Text('Resume download'),
+                ),
               if (entry.status == DownloadStatus.running)
                 LinearProgressIndicator(
                   value: entry.progress == 0 ? null : entry.progress,
@@ -78,7 +99,9 @@ class DownloadTile extends StatelessWidget {
   String _statusText(DownloadEntry entry) {
     switch (entry.status) {
       case DownloadStatus.queued:
-        return 'Waiting for a source';
+        return 'Queued';
+      case DownloadStatus.paused:
+        return 'Paused — partial file kept';
       case DownloadStatus.running:
         return 'Downloading ${(entry.progress * 100).clamp(0, 100).round()}%';
       case DownloadStatus.done:

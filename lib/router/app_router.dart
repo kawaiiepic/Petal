@@ -1,3 +1,4 @@
+import 'package:petal/pages/watch_history_page.dart';
 import 'package:petal/pages/home_customization_page.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_api.dart';
@@ -45,6 +46,10 @@ class AppRouter {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/history',
+        builder: (context, state) => const WatchHistoryPage(),
+      ),
       ShellRoute(
         navigatorKey: PetalApp.shellNavigatorKey,
         builder: (context, state, child) =>

@@ -1,3 +1,4 @@
+import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/media/media_progress_bar.dart';
 import 'package:petal/models/media_card_target.dart';
 import 'package:petal/api/backend/backend_api.dart';
@@ -60,7 +61,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     try {
       await BackendCache.fetchWatchHistory();
       if (profile != BackendApi.profileCacheKey) return;
-      await BackendApi.setProgress(
+      await HistoryActions.setProgress(
         widget.tmdbId,
         MediaType.show,
         _watched ? 0 : 1,

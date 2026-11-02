@@ -1,3 +1,5 @@
+import 'package:petal/utils/app_notifications.dart';
+import 'package:petal/api/download_manager.dart';
 import 'package:petal/widgets/connection_error_view.dart';
 import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -400,6 +402,42 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         builder: (context, snapshot) {
                           return Column(
                             children: [
+                              if (snapshot.hasData &&
+                                  snapshot.data!.episodes.isNotEmpty)
+                                Button.outline(
+                                  onPressed: () async {
+                                    try {
+                                      await DownloadManager.enqueueSeason(
+                                        tmdbId: _resolvedTmdbId!,
+                                        showName: show!.name,
+                                        season: snapshot
+                                            .data!
+                                            .episodes
+                                            .first
+                                            .seasonNumber,
+                                        episodes: snapshot.data!.episodes
+                                            .where(
+                                              (e) =>
+                                                  e.airDate != null &&
+                                                  !e.airDate!.isAfter(
+                                                    DateTime.now(),
+                                                  ),
+                                            )
+                                            .map((e) => e.episodeNumber)
+                                            .toList(),
+                                      );
+                                      if (context.mounted)
+                                        context.push('/downloads');
+                                    } catch (_) {
+                                      if (context.mounted)
+                                        AppNotifications.sendNotification(
+                                          const Text('Could not queue season'),
+                                          const Text('Please try again.'),
+                                        );
+                                    }
+                                  },
+                                  child: const Text('Download season'),
+                                ),
                               if (snapshot.hasData &&
                                   snapshot.data!.episodes.isEmpty)
                                 Text(

@@ -15,7 +15,7 @@ class _DownloadsPageState extends State<DownloadsPage> {
   @override
   void initState() {
     super.initState();
-    DownloadManager.refreshMetadata();
+    DownloadManager.load().then((_) => DownloadManager.refreshMetadata());
   }
 
   @override
@@ -27,6 +27,32 @@ class _DownloadsPageState extends State<DownloadsPage> {
       child: Column(
         children: [
           const DownloadStorageCard(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const Expanded(child: Text('Download on Wi-Fi only')),
+                ValueListenableBuilder(
+                  valueListenable: DownloadManager.wifiOnly,
+                  builder: (context, value, _) => Switch(
+                    value: value,
+                    onChanged: DownloadManager.setWifiOnly,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ValueListenableBuilder(
+            valueListenable: DownloadManager.waitingForWifi,
+            builder: (context, waiting, _) => waiting
+                ? const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Text(
+                      'Waiting for Wi-Fi. Resume automatically when connected.',
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           Expanded(
             child: ValueListenableBuilder(
               valueListenable: DownloadManager.items,

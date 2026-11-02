@@ -69,12 +69,14 @@ void main() {
     await tester.enterText(fields.at(1), 'de');
     await tester.enterText(fields.at(2), '1.5');
     await tester.enterText(fields.at(3), '.4');
+    await tester.ensureVisible(find.text('Save playback preferences'));
     await tester.tap(find.text('Save playback preferences'));
     await tester.pumpAndSettle();
     expect(PlaybackPreferences.instance.audioLanguage, 'ja');
     expect(PlaybackPreferences.instance.speed, 1.5);
     expect(PlaybackPreferences.instance.subtitleDelay, .4);
     await tester.enterText(fields.at(2), '900');
+    await tester.ensureVisible(find.text('Save playback preferences'));
     await tester.tap(find.text('Save playback preferences'));
     await tester.pumpAndSettle();
     expect(PlaybackPreferences.instance.speed, 1.5);

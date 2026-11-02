@@ -1,3 +1,4 @@
+import 'package:petal/api/history_actions.dart';
 import 'package:flutter/foundation.dart' show setEquals, mapEquals;
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/backend/backend_cache.dart';
@@ -195,7 +196,7 @@ class UserLibrary {
     final target = watched ? 0.0 : 1.0;
 
     if (type == MediaType.movie) {
-      await BackendApi.setProgress(
+      await HistoryActions.setProgress(
         tmdbId,
         MediaType.movie,
         target,

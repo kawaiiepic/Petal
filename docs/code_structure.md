@@ -245,3 +245,31 @@ forced refreshes, write invalidation, failure retries, and profile-switch races.
 The playback/download tests additionally exercise the 90% boundary, external-player
 lifecycle, offline source resolution with backend access blocked, local resume
 persistence, file deletion, shared progress badges, and downloaded-file menus.
+
+### Subtitle appearance, downloads, and history controls
+
+Playback preferences now persist subtitle font size, outline, background, and
+bottom offset. Settings and the player preference dialog share these controls;
+changes update the existing Video rather than replacing the player.
+
+Downloads use a FIFO queue with pause/resume and move-earlier controls. Partial
+files are kept on pause. HTTP resume uses Range and If-Range with a saved strong
+ETag or Last-Modified validator; unsupported ranges restart safely, invalid
+ranges fail without appending, and truncated responses are not marked complete.
+Queued/running work restored after an app restart is paused for explicit resume.
+Download season on show overview queues aired episodes without duplicating saved
+items. Wi-Fi-only is device-local, persists across restarts, polls the connection,
+pauses transfers when Wi-Fi is lost, and resumes queued work when Wi-Fi returns.
+Android/iOS use native network checks; desktop uses local operating-system tools.
+Unknown network status waits rather than assuming Wi-Fi. Linux requires nmcli
+for automatic Wi-Fi detection. Local-file copies do not require Wi-Fi.
+
+Manage playback history is available from Settings and shared card menus. It
+supports per-movie/episode progress reset, watched/unwatched, and undo of the
+latest manual progress edit in this session. Episode/card watched actions and
+movie library actions use the same undo service. Edits are bound to the original
+profile, wait for any active optional sync, discard the affected pending upload,
+and update matching downloaded playback progress locally without queuing an
+upload. Undo refuses to overwrite newer remote progress. Backend history-delete
+and watch-event restoration are not exposed by the current OpenAPI contract:
+reset/undo affect completion, not historical play counts or watch records.

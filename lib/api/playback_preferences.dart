@@ -11,6 +11,8 @@ class PlaybackPreferences extends ChangeNotifier {
   bool subtitles = true;
   double speed = 1;
   double subtitleDelay = 0;
+  double subtitleSize = 32, subtitleOutline = 2, subtitleBottom = 24;
+  bool subtitleBackground = true;
   bool _loaded = false;
   Future<void> _writes = Future.value();
   Future<void>? _loading;
@@ -27,6 +29,10 @@ class PlaybackPreferences extends ChangeNotifier {
           audioLanguage = map['audio'] as String? ?? 'en';
           subtitleLanguage = map['subtitle'] as String? ?? 'en';
           subtitles = map['subtitles'] as bool? ?? true;
+          subtitleSize = _number(map['subtitleSize'], 32, 12, 64);
+          subtitleOutline = _number(map['subtitleOutline'], 2, 0, 6);
+          subtitleBottom = _number(map['subtitleBottom'], 24, 0, 240);
+          subtitleBackground = map['subtitleBackground'] as bool? ?? true;
           final rate = (map['speed'] as num?)?.toDouble() ?? 1;
           final delay = (map['delay'] as num?)?.toDouble() ?? 0;
           speed = rate.isFinite ? rate.clamp(.25, 3) : 1;
@@ -38,6 +44,16 @@ class PlaybackPreferences extends ChangeNotifier {
     }();
   }
 
+  static double _number(
+    dynamic value,
+    double fallback,
+    double min,
+    double max,
+  ) {
+    final n = value is num ? value.toDouble() : fallback;
+    return n.isFinite ? n.clamp(min, max) : fallback;
+  }
+
   int _revision = 0;
   Future<void> update({
     String? audio,
@@ -45,6 +61,10 @@ class PlaybackPreferences extends ChangeNotifier {
     bool? enabled,
     double? rate,
     double? delay,
+    double? size,
+    double? outline,
+    double? bottom,
+    bool? background,
   }) {
     _loaded = true;
     _revision++;
@@ -55,6 +75,10 @@ class PlaybackPreferences extends ChangeNotifier {
     if (enabled != null) subtitles = enabled;
     if (rate != null && rate.isFinite) speed = rate.clamp(.25, 3);
     if (delay != null && delay.isFinite) subtitleDelay = delay.clamp(-60, 60);
+    if (size != null) subtitleSize = _number(size, 32, 12, 64);
+    if (outline != null) subtitleOutline = _number(outline, 2, 0, 6);
+    if (bottom != null) subtitleBottom = _number(bottom, 24, 0, 240);
+    if (background != null) subtitleBackground = background;
     notifyListeners();
     final raw = jsonEncode({
       'audio': audioLanguage,
@@ -62,6 +86,10 @@ class PlaybackPreferences extends ChangeNotifier {
       'subtitles': subtitles,
       'speed': speed,
       'delay': subtitleDelay,
+      'subtitleSize': subtitleSize,
+      'subtitleOutline': subtitleOutline,
+      'subtitleBottom': subtitleBottom,
+      'subtitleBackground': subtitleBackground,
     });
     return _writes = _writes.catchError((Object _) {}).then((_) async {
       await (await SharedPreferences.getInstance()).setString(

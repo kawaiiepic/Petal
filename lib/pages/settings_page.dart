@@ -112,6 +112,10 @@ class _SettingsPageState extends State<SettingsPage> {
           spacing: 12,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Button.outline(
+              onPressed: () => context.push('/history'),
+              child: const Text('Manage playback history'),
+            ),
             const PlaybackPreferencesCard(),
             const OfflineSyncCard(),
             Button.outline(

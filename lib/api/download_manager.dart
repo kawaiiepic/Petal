@@ -1,3 +1,8 @@
+import 'dart:async';
+
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:petal/api/download_network.dart';
+import 'package:petal/api/resumable_download.dart';
 import 'package:petal/api/offline_progress_sync.dart';
 import 'package:petal/api/device_storage.dart';
 import 'package:petal/models/downloads/download_storage.dart';
@@ -21,7 +26,62 @@ class DownloadManager {
   static final ValueNotifier<List<DownloadEntry>> items = ValueNotifier(
     const [],
   );
+  static final wifiOnly = ValueNotifier(false);
+  static final waitingForWifi = ValueNotifier(false);
+  static Timer? _networkTimer;
   static bool _busy = false;
+
+  static Future<void> setWifiOnly(bool value) async {
+    await load();
+    wifiOnly.value = value;
+    await (await SharedPreferences.getInstance()).setBool(
+      'downloads.wifiOnly',
+      value,
+    );
+    if (value && !await DownloadNetwork.wifi()) {
+      for (final token in _cancellations.values) {
+        token.cancel('Waiting for Wi-Fi');
+      }
+    }
+    _pump();
+  }
+
+  static Future<void> pause(String id) async {
+    final entry = items.value.where((e) => e.id == id).firstOrNull;
+    if (entry == null ||
+        (entry.status != DownloadStatus.running &&
+            entry.status != DownloadStatus.queued))
+      return;
+    entry.status = DownloadStatus.paused;
+    _cancellations[id]?.cancel('Paused');
+    _update(entry);
+    await _jobs[id];
+    await _persist();
+  }
+
+  static Future<void> resume(String id) async {
+    await _jobs[id];
+    final entry = items.value.where((e) => e.id == id).firstOrNull;
+    if (entry == null || entry.status != DownloadStatus.paused) return;
+    entry.status = DownloadStatus.queued;
+    entry.error = null;
+    _update(entry);
+    _pump();
+  }
+
+  static Future<void> moveEarlier(String id) async {
+    final list = [...items.value];
+    final i = list.indexWhere((e) => e.id == id);
+    final previous = list
+        .take(i < 0 ? 0 : i)
+        .lastWhereOrNull((e) => e.status == DownloadStatus.queued);
+    if (i < 0 || previous == null) return;
+    list.removeAt(i);
+    list.insert(list.indexOf(previous), items.value[i]);
+    items.value = list;
+    await _persist();
+  }
+
   static bool _loaded = false;
   static Future<void> _writes = Future.value();
   static Future<void>? _metadataRefresh;
@@ -41,9 +101,30 @@ class DownloadManager {
     return File('${dir.path}/index.json');
   }
 
-  static Future<void> load() async {
-    if (_loaded) return;
-    _loaded = true;
+  static Future<void>? _loading;
+  static Future<void> load() {
+    if (_loaded) return Future.value();
+    return _loading ??= _load().whenComplete(() {
+      _loaded = true;
+    });
+  }
+
+  static Future<void> _load() async {
+    try {
+      wifiOnly.value =
+          (await SharedPreferences.getInstance()).getBool(
+            'downloads.wifiOnly',
+          ) ??
+          false;
+    } catch (_) {}
+    _networkTimer ??= Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (wifiOnly.value && _busy && !await DownloadNetwork.wifi()) {
+        for (final token in _cancellations.values) {
+          token.cancel('Waiting for Wi-Fi');
+        }
+      }
+      if (!_busy) _pump();
+    });
     try {
       final file = await _indexFile();
       if (!await file.exists()) return;
@@ -57,8 +138,8 @@ class DownloadManager {
       for (final entry in items.value) {
         if (entry.status == DownloadStatus.running ||
             entry.status == DownloadStatus.queued) {
-          entry.status = DownloadStatus.failed;
-          entry.error = 'Download interrupted. Retry to restart.';
+          entry.status = DownloadStatus.paused;
+          entry.error = 'Download interrupted. Resume to continue.';
         } else if (entry.status == DownloadStatus.done &&
             (entry.path == null || !await File(entry.path!).exists())) {
           entry.status = DownloadStatus.failed;
@@ -83,17 +164,19 @@ class DownloadManager {
     String id,
     double completion, {
     String? profileKey,
+    bool sync = true,
   }) async {
     final entry = items.value.where((item) => item.id == id).firstOrNull;
     if (entry == null) return;
     entry.playbackProgress = completion.clamp(0, 1);
-    await OfflineProgressSync.instance.record(
-      profileKey: profileKey,
-      mediaId: entry.tmdbId,
-      season: entry.season,
-      episode: entry.episode,
-      completion: entry.playbackProgress,
-    );
+    if (sync)
+      await OfflineProgressSync.instance.record(
+        profileKey: profileKey,
+        mediaId: entry.tmdbId,
+        season: entry.season,
+        episode: entry.episode,
+        completion: entry.playbackProgress,
+      );
     items.value = [...items.value];
     await _persist();
   }
@@ -186,9 +269,9 @@ class DownloadManager {
       episodeTitle: episodeTitle,
     );
     if (index >= 0) {
-      existing[index] = entry;
+      return;
     } else {
-      existing.insert(0, entry);
+      existing.add(entry);
     }
     items.value = existing;
     await _persist();
@@ -209,6 +292,7 @@ class DownloadManager {
       return;
     _removed.remove(id);
     items.value = [
+      ...items.value.where((item) => item.id != id),
       DownloadEntry(
         id: id,
         title: title,
@@ -216,7 +300,6 @@ class DownloadManager {
         season: season,
         episode: episode,
       ),
-      ...items.value.where((item) => item.id != id),
     ];
     await _persist();
     _pump();
@@ -259,7 +342,12 @@ class DownloadManager {
             entry.status != DownloadStatus.unavailable))
       return;
     _removed.remove(id);
-    if (newSource) entry.url = null;
+    if (newSource) {
+      entry.url = null;
+      entry.validator = null;
+      if (entry.path != null && await File(entry.path!).exists())
+        await File(entry.path!).delete();
+    }
     entry.error = null;
     entry.progress = 0;
     entry.downloadedBytes = 0;
@@ -308,7 +396,20 @@ class DownloadManager {
         final queued = items.value
             .where((item) => item.status == DownloadStatus.queued)
             .firstOrNull;
-        if (queued == null) break;
+        if (queued == null) {
+          waitingForWifi.value = false;
+          break;
+        }
+        final local =
+            queued.url != null && Uri.tryParse(queued.url!)?.scheme == 'file';
+        if (wifiOnly.value && !local && !await DownloadNetwork.wifi()) {
+          waitingForWifi.value = true;
+          break;
+        }
+        waitingForWifi.value = false;
+        if (queued.status != DownloadStatus.queued ||
+            _removed.contains(queued.id))
+          continue;
         final job = _run(queued);
         _jobs[queued.id] = job;
         try {
@@ -333,6 +434,8 @@ class DownloadManager {
   static Future<void> _run(DownloadEntry entry) async {
     entry.status = DownloadStatus.running;
     _update(entry);
+    final cancellation = CancelToken();
+    _cancellations[entry.id] = cancellation;
     try {
       var url = entry.url;
       if (url == null || Uri.tryParse(url)?.scheme != 'file')
@@ -344,6 +447,10 @@ class DownloadManager {
             : await TMDB.movie(entry.tmdbId);
         final imdb = (details as dynamic).imdbId as String?;
         if (imdb == null || imdb.isEmpty) {
+          if (entry.status == DownloadStatus.paused ||
+              _removed.contains(entry.id))
+            return;
+          if (cancellation.isCancelled) throw cancellation.cancelError!;
           entry.status = DownloadStatus.unavailable;
           entry.error = 'Missing IMDb id';
           _update(entry);
@@ -362,6 +469,10 @@ class DownloadManager {
             .where((stream) => !stream.external && canSave(stream.url))
             .firstOrNull;
         if (match == null) {
+          if (entry.status == DownloadStatus.paused ||
+              _removed.contains(entry.id))
+            return;
+          if (cancellation.isCancelled) throw cancellation.cancelError!;
           entry.status = DownloadStatus.unavailable;
           entry.error = 'No downloadable source';
           _update(entry);
@@ -371,7 +482,9 @@ class DownloadManager {
         entry.url = url;
       }
 
-      if (_removed.contains(entry.id)) return;
+      if (_removed.contains(entry.id) || entry.status == DownloadStatus.paused)
+        return;
+      if (cancellation.isCancelled) throw cancellation.cancelError!;
       final dir = await _dir();
       final ext = url.split('?').first.split('.').last;
       final safeExt = ext.length <= 4 && ext.contains(RegExp(r'^[a-zA-Z0-9]+$'))
@@ -380,16 +493,20 @@ class DownloadManager {
       final file = File('${dir.path}/${entry.id}.$safeExt');
       entry.path = file.path;
       await _persist();
-      final cancellation = CancelToken();
-      _cancellations[entry.id] = cancellation;
       if (Uri.tryParse(url)?.scheme == 'file') {
         await File.fromUri(Uri.parse(url)).copy(file.path);
       } else {
-        await Dio().download(
-          url,
-          file.path,
+        await ResumableDownload.run(
+          dio: Dio(),
+          url: url,
+          file: file,
           cancelToken: cancellation,
-          onReceiveProgress: (count, total) {
+          previousValidator: entry.validator,
+          validator: (value) {
+            entry.validator = value;
+            _persist();
+          },
+          progress: (count, total) {
             entry.downloadedBytes = count;
             entry.totalBytes = total > 0 ? total : 0;
             if (total > 0) entry.progress = count / total;
@@ -397,12 +514,25 @@ class DownloadManager {
           },
         );
       }
+      if (entry.status == DownloadStatus.paused || _removed.contains(entry.id))
+        return;
+      if (cancellation.isCancelled) throw cancellation.cancelError!;
       entry.path = file.path;
       entry.downloadedBytes = entry.totalBytes = await file.length();
       entry.progress = 1;
       entry.status = DownloadStatus.done;
       _update(entry);
     } catch (error) {
+      if (_removed.contains(entry.id)) return;
+      if (entry.status == DownloadStatus.paused) {
+        _update(entry);
+        return;
+      }
+      if (error is DioException && CancelToken.isCancel(error)) {
+        entry.status = DownloadStatus.queued;
+        _update(entry);
+        return;
+      }
       entry.status = DownloadStatus.failed;
       entry.error = error.toString();
       _update(entry);

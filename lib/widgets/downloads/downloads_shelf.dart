@@ -102,6 +102,8 @@ class _DownloadsShelfState extends State<DownloadsShelf> {
         return 'Failed';
       case DownloadStatus.unavailable:
         return 'No source';
+      case DownloadStatus.paused:
+        return 'Paused';
       case DownloadStatus.queued:
         return 'Queued';
     }
