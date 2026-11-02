@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:petal/pages/player/overlay/player_debug_overlay.dart';
 
 import 'dart:async';
@@ -260,56 +262,70 @@ class _PlayerControlsState extends State<PlayerControls> {
         onExit: (_) {
           if (!_showDebug) setState(() => _showControls = false);
         },
-        child: Stack(
-          children: [
-            AnimatedOpacity(
-              opacity: _showControls ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              child: TickerMode(
-                enabled: _showControls,
-                child: _buildControlsBar(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final nextBottom = _showControls ? 100.0 : 24.0;
+            final nextWidth = math.min(
+              320.0,
+              math.min(
+                math.max(0.0, constraints.maxWidth - 40),
+                math.max(0.0, constraints.maxHeight - nextBottom - 12) * 16 / 9,
               ),
-            ),
-            if (_showDebug)
-              Positioned.fill(
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 56, 12, 96),
-                    child: Align(
-                      alignment: Alignment.topRight,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 420),
-                        child: PlayerDebugOverlay(
-                          player: player,
-                          onClose: _toggleDebug,
+            );
+            return Stack(
+              children: [
+                AnimatedOpacity(
+                  opacity: _showControls ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: TickerMode(
+                    enabled: _showControls,
+                    child: _buildControlsBar(),
+                  ),
+                ),
+                if (_showDebug)
+                  Positioned.fill(
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 56, 12, 96),
+                        child: Align(
+                          alignment: Alignment.topRight,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 420),
+                            child: PlayerDebugOverlay(
+                              player: player,
+                              onClose: _toggleDebug,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
+                SeekIndicator(
+                  visible: _showLeftSeek,
+                  seconds: _leftSeekSeconds,
+                  isLeft: true,
                 ),
-              ),
-            SeekIndicator(
-              visible: _showLeftSeek,
-              seconds: _leftSeekSeconds,
-              isLeft: true,
-            ),
-            SeekIndicator(
-              visible: _showRightSeek,
-              seconds: _rightSeekSeconds,
-              isLeft: false,
-            ),
-            if (_isShow && !_offline && !_showDebug)
-              Positioned(
-                right: 20,
-                bottom: 40,
-                child: NextUpCard(
-                  player: player,
-                  nextEpisode: _nextUpEpisode,
-                  uiIsActive: _showControls,
-                  playNextEpisode: _playNextEpisode,
+                SeekIndicator(
+                  visible: _showRightSeek,
+                  seconds: _rightSeekSeconds,
+                  isLeft: false,
                 ),
-              ),
-          ],
+                if (_isShow && !_offline)
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 200),
+                    right: 20,
+                    bottom: nextBottom,
+                    width: nextWidth,
+                    child: NextUpCard(
+                      player: player,
+                      nextEpisode: _nextUpEpisode,
+                      suppressed: _showDebug || nextWidth < 160,
+                      playNextEpisode: _playNextEpisode,
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );

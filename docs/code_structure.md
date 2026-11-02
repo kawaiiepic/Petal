@@ -165,6 +165,14 @@ The empty track is translucent, so the buffered extent remains visible instead o
 sharing the empty track's color. It uses the native absolute buffer endpoint,
 updates immediately on buffer events, clamps to duration, and ignores gestures.
 
+Up Next uses a 16:9 card capped at 320 px and constrained to the player's available
+width/height above its controls. Cancel autoplay dismisses it for the current
+playback item, including after seeks, control visibility changes, and diagnostics.
+The 45-second countdown starts only near the end with valid next-episode metadata;
+it pauses while playback is paused, buffering, or the panel is suppressed. It may
+finish after EOF, and manual play cancels its timer to prevent a duplicate launch.
+A new playback item resets dismissal. Hidden cards do not intercept input.
+
 ## Verification
 
 ```bash
@@ -179,6 +187,7 @@ flutter test test/completion_skeleton_collection_test.dart test/frame_safe_value
 flutter test test/media_playback_progress_test.dart
 flutter test test/seek_slider_test.dart
 flutter test test/player_debug_buffer_test.dart
+flutter test test/next_up_card_test.dart
 flutter test
 ```
 
