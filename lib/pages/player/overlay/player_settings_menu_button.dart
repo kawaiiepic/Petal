@@ -1,3 +1,5 @@
+import 'package:petal/widgets/settings/playback_preferences_card.dart';
+
 import 'dart:typed_data';
 
 import 'package:media_kit/media_kit.dart';
@@ -25,6 +27,36 @@ class PlayerSettingsMenuButton extends StatelessWidget {
             ),
           ),
           MenuDivider(),
+          MenuButton(
+            child: const Text('Playback preferences'),
+            onPressed: (context) {
+              showOverlay<void>(
+                context,
+                DialogConfiguration(),
+                builder: (context) => AlertDialog(
+                  title: const Text('Playback preferences'),
+                  content: const SizedBox(
+                    width: 380,
+                    child: SingleChildScrollView(
+                      child: PlaybackPreferencesCard(),
+                    ),
+                  ),
+                  actions: [
+                    Button.ghost(
+                      onPressed: () => closeOverlay(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const MenuLabel(
+            child: Text(
+              'Shortcuts: Space/K play · ←/→ or J/L seek · ↑/↓ volume\nM mute · S subtitles · F fullscreen · Esc exit\n+/− speed · [/] subtitle delay',
+            ),
+          ),
+
           MenuButton(
             child: Text('Take Screenshot'),
             onPressed: (context) async {

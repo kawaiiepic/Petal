@@ -1,3 +1,5 @@
+import 'package:petal/api/offline_progress_sync.dart';
+
 import 'dart:async';
 
 import 'package:petal/api/backend/backend_api.dart';
@@ -37,7 +39,9 @@ class Api {
 
   static Future<void> _onBackendRecovered() async {
     healthy.value = true;
-    if (await BackendApi.verifySession()) {}
+    if (await BackendApi.verifySession()) {
+      await OfflineProgressSync.instance.sync();
+    }
     CatalogApi.clearCache();
   }
 

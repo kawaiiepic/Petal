@@ -14,6 +14,8 @@ class DownloadEntry {
   String? mediaTitle;
   String? episodeTitle;
   double playbackProgress;
+  int downloadedBytes;
+  int totalBytes;
 
   DownloadEntry({
     required this.id,
@@ -29,6 +31,8 @@ class DownloadEntry {
     this.mediaTitle,
     this.episodeTitle,
     this.playbackProgress = 0,
+    this.downloadedBytes = 0,
+    this.totalBytes = 0,
   });
 
   bool get isShow => season != null && episode != null;
@@ -54,6 +58,8 @@ class DownloadEntry {
     'mediaTitle': mediaTitle,
     'episodeTitle': episodeTitle,
     'playbackProgress': playbackProgress,
+    'downloadedBytes': downloadedBytes,
+    'totalBytes': totalBytes,
   };
 
   factory DownloadEntry.fromJson(Map<String, dynamic> json) {
@@ -74,6 +80,8 @@ class DownloadEntry {
       mediaTitle: json['mediaTitle'] as String?,
       episodeTitle: json['episodeTitle'] as String?,
       playbackProgress: (json['playbackProgress'] as num?)?.toDouble() ?? 0,
+      downloadedBytes: (json['downloadedBytes'] as num?)?.toInt() ?? 0,
+      totalBytes: (json['totalBytes'] as num?)?.toInt() ?? 0,
     );
   }
 }

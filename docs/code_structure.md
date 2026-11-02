@@ -185,6 +185,37 @@ volume/mute changes (including the last audible volume) for future sessions and
 works offline. A volume adjustment made during source loading wins over the prior
 value. Opening failures never start playback at the backend's default volume.
 
+Playback recovery retains the active media, last confirmed position, volume, and
+saved language settings. Retry reopens the same source; Choose another source
+fetches fresh candidates without replacing the player. Downloads only offer local
+retry. Recovery exits fullscreen to show its controls, and pending old-media events
+cannot mark the new playback item watched during a transition.
+
+Playback preferences are device-local: preferred audio/subtitle language,
+subtitles enabled, speed (0.25–3×), and native subtitle delay (±60 seconds). Settings
+and the player menu expose an editor; explicit track selections remember their
+language. ISO aliases/regional codes are supported. The fullscreen button uses the
+video controller's fullscreen API. Player shortcuts: Space/K play, arrows/J/L seek,
+up/down volume, M mute, S subtitles, F fullscreen, Esc exit, +/- speed, [/] delay.
+Text entry and modifier shortcuts are excluded.
+
+Customize Home (Home header or Settings) shows/hides and reorders sections,
+including separate Recent/Stalled/Rewatched entries and addon catalogs as a group.
+Start now is hidden by default. The editor stays reachable with every shelf hidden.
+
+Downloads display persisted byte counts, actual disk usage, and free space using
+local desktop queries or Android/iOS storage channels. Interrupted/missing files
+become retryable failures. Retry restarts a download; Find new source refreshes its
+source. Partial-file paths are indexed before transfer so removal also cleans them.
+
+Offline progress sync is disabled by default. Enabling it queues future downloaded
+watch updates with the original account/profile. Playback records locally and
+suspends uploads; background retries run separately every 30 seconds when signed
+in, or after backend recovery/manual Sync now. Failed uploads remain queued, newer
+local revisions survive an in-flight upload, and known farther-ahead server
+progress is retained. Turning sync off clears pending uploads. Playback itself
+never performs backend tracking or discovery for local files.
+
 ## Verification
 
 ```bash
@@ -201,6 +232,7 @@ flutter test test/seek_slider_test.dart
 flutter test test/player_debug_buffer_test.dart
 flutter test test/next_up_card_test.dart
 flutter test test/playback_session_volume_test.dart
+flutter test test/media_feature_services_test.dart test/media_feature_widgets_test.dart test/player_shortcuts_test.dart
 flutter test
 ```
 

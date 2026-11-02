@@ -11,12 +11,29 @@ abstract final class PlaybackSource {
     StreamItem? selected,
   }) async {
     if (selected != null) return selected;
+    return StreamApi.autoSelectStream(
+      await options(mediaId: mediaId, episode: episode, includeExternal: true),
+    );
+  }
+
+  static Future<List<StreamItem>> options({
+    required int mediaId,
+    Episode? episode,
+    bool includeExternal = false,
+  }) async {
     final imdb = episode != null
         ? (await TMDB.tvShow(mediaId)).imdbId
         : (await TMDB.movie(mediaId)).imdbId;
-    if (imdb == null || imdb.isEmpty) return null;
-    return StreamApi.autoSelectStream(
-      await StreamApi.fetchStreams(imdb, episode),
-    );
+    if (imdb == null || imdb.isEmpty) return [];
+    final streams = await StreamApi.fetchStreams(imdb, episode);
+    final seen = <String>{};
+    return streams
+        .where(
+          (source) =>
+              (includeExternal || !source.external) &&
+              source.url.isNotEmpty &&
+              seen.add(source.url),
+        )
+        .toList();
   }
 }

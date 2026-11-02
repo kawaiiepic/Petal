@@ -1,3 +1,5 @@
+import 'package:petal/api/offline_progress_sync.dart';
+import 'package:petal/api/backend/backend_api.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:petal/api/discord_presence.dart';
@@ -15,6 +17,10 @@ void main() async {
   await QueryProxy.load();
   await UserLibrary.load();
   await DownloadManager.load();
+  await OfflineProgressSync.instance.load();
+  OfflineProgressSync.instance.start(
+    online: () => BackendApi.profileCacheKey != null,
+  );
 
   MediaKit.ensureInitialized();
   Discord.init();

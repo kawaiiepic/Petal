@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+import 'package:petal/api/home_layout.dart';
 import 'package:flutter/rendering.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/exceptions/connection_exception.dart';
@@ -33,6 +35,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    HomeLayout.instance.load();
     _catalogs = _loadCatalogs();
   }
 
@@ -91,52 +94,79 @@ class _HomePageState extends State<HomePage> {
         final catalogs = snapshot.data ?? const <Catalog>[];
         final loading = snapshot.connectionState != ConnectionState.done;
 
-        return CustomScrollView(
-          scrollCacheExtent: ScrollCacheExtent.pixels(200),
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            const SliverToBoxAdapter(child: SurpriseWatchlistButton()),
-            const SliverToBoxAdapter(child: DashboardStats()),
-            const SliverToBoxAdapter(child: UpcomingEpisodes()),
-            const SliverToBoxAdapter(child: OnDeckShelf()),
-            const SliverToBoxAdapter(child: StartNowShelf()),
-            // const SliverToBoxAdapter(child: InProgressShelf()),
-            const SliverToBoxAdapter(child: WatchlistShelf()),
-            const SliverToBoxAdapter(child: LikedShelf()),
-            const SliverToBoxAdapter(child: RecentAndStalledShelves()),
-            const SliverToBoxAdapter(child: BecauseYouWatchedShelf()),
-            if (loading && catalogs.isEmpty)
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) =>
-                      const CatalogRow(catalog: null, catalogItems: null),
-                  childCount: 3,
+        final catalogSlivers = <Widget>[
+          if (loading && catalogs.isEmpty)
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) =>
+                    const CatalogRow(catalog: null, catalogItems: null),
+                childCount: 3,
+              ),
+            )
+          else if (!loading && catalogs.isEmpty)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'No shows to browse yet. Add a catalog addon to fill this page.',
                 ),
-              )
-            else if (!loading && catalogs.isEmpty)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(
-                    'No shows to browse yet. Add a catalog addon to fill this page.',
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildListDelegate([
+                for (final catalog in catalogs)
+                  CatalogSection(
+                    key: ValueKey('${catalog.id}-${catalog.type}'),
+                    catalog: catalog,
+                  ),
+              ], addAutomaticKeepAlives: true),
+            ),
+        ];
+        final sections = <String, Widget>{
+          'surprise': const SurpriseWatchlistButton(),
+          'stats': const DashboardStats(),
+          'upcoming': const UpcomingEpisodes(),
+          'deck': const OnDeckShelf(),
+          'start': const StartNowShelf(),
+          'watchlist': const WatchlistShelf(),
+          'liked': const LikedShelf(),
+          'recent': const RecentAndStalledShelves(section: 'recent'),
+          'stalled': const RecentAndStalledShelves(section: 'stalled'),
+          'rewatched': const RecentAndStalledShelves(section: 'rewatched'),
+          'because': const BecauseYouWatchedShelf(),
+          'downloads': const DownloadsShelf(),
+          'friends': const FriendActivity(),
+          'calendar': const ReleaseCalendar(),
+        };
+        return ListenableBuilder(
+          listenable: HomeLayout.instance,
+          builder: (context, _) => CustomScrollView(
+            scrollCacheExtent: ScrollCacheExtent.pixels(200),
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Button.ghost(
+                    onPressed: () => context.push('/home-layout'),
+                    child: const Text('Customize Home'),
                   ),
                 ),
-              )
-            else
-              SliverList(
-                delegate: SliverChildListDelegate([
-                  for (final catalog in catalogs)
-                    CatalogSection(
-                      key: ValueKey('${catalog.id}-${catalog.type}'),
-                      catalog: catalog,
-                    ),
-                ], addAutomaticKeepAlives: true),
               ),
-            const SliverToBoxAdapter(child: DownloadsShelf()),
-            const SliverToBoxAdapter(child: FriendActivity()),
-            const SliverToBoxAdapter(child: ReleaseCalendar()),
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
-          ],
+              for (final id in HomeLayout.instance.order.where(
+                (id) => !HomeLayout.instance.hidden.contains(id),
+              ))
+                if (id == 'catalogs')
+                  ...catalogSlivers
+                else
+                  SliverToBoxAdapter(
+                    key: ValueKey('home-$id'),
+                    child: sections[id]!,
+                  ),
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            ],
+          ),
         );
       },
     );

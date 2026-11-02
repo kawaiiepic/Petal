@@ -1,3 +1,7 @@
+import 'package:petal/api/offline_progress_sync.dart';
+import 'package:petal/api/device_storage.dart';
+import 'package:petal/models/downloads/download_storage.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -50,6 +54,18 @@ class DownloadManager {
                 DownloadEntry.fromJson(Map<String, dynamic>.from(row as Map)),
           )
           .toList();
+      for (final entry in items.value) {
+        if (entry.status == DownloadStatus.running ||
+            entry.status == DownloadStatus.queued) {
+          entry.status = DownloadStatus.failed;
+          entry.error = 'Download interrupted. Retry to restart.';
+        } else if (entry.status == DownloadStatus.done &&
+            (entry.path == null || !await File(entry.path!).exists())) {
+          entry.status = DownloadStatus.failed;
+          entry.error =
+              'Downloaded file is missing. Retry to download it again.';
+        }
+      }
     } catch (_) {}
   }
 
@@ -63,10 +79,21 @@ class DownloadManager {
     });
   }
 
-  static Future<void> setPlaybackProgress(String id, double completion) async {
+  static Future<void> setPlaybackProgress(
+    String id,
+    double completion, {
+    String? profileKey,
+  }) async {
     final entry = items.value.where((item) => item.id == id).firstOrNull;
     if (entry == null) return;
     entry.playbackProgress = completion.clamp(0, 1);
+    await OfflineProgressSync.instance.record(
+      profileKey: profileKey,
+      mediaId: entry.tmdbId,
+      season: entry.season,
+      episode: entry.episode,
+      completion: entry.playbackProgress,
+    );
     items.value = [...items.value];
     await _persist();
   }
@@ -224,6 +251,55 @@ class DownloadManager {
     await _persist();
   }
 
+  static Future<void> retry(String id, {bool newSource = false}) async {
+    if (_jobs.containsKey(id)) return;
+    final entry = items.value.where((entry) => entry.id == id).firstOrNull;
+    if (entry == null ||
+        (entry.status != DownloadStatus.failed &&
+            entry.status != DownloadStatus.unavailable))
+      return;
+    _removed.remove(id);
+    if (newSource) entry.url = null;
+    entry.error = null;
+    entry.progress = 0;
+    entry.downloadedBytes = 0;
+    entry.totalBytes = 0;
+    entry.status = DownloadStatus.queued;
+    _update(entry);
+    await _persist();
+    _pump();
+  }
+
+  static Future<DownloadStorage> storage() async {
+    final dir = await _dir();
+    var used = 0;
+    await for (final file in dir.list()) {
+      if (file is File &&
+          !file.path.endsWith('index.json') &&
+          !file.path.endsWith('.tmp')) {
+        try {
+          used += await file.length();
+        } catch (_) {}
+      }
+    }
+    var changed = false;
+    for (final entry in items.value.where(
+      (entry) => entry.status == DownloadStatus.done && entry.path != null,
+    )) {
+      try {
+        final size = await File(entry.path!).length();
+        if (entry.downloadedBytes != size || entry.totalBytes != size)
+          changed = true;
+        entry.downloadedBytes = entry.totalBytes = size;
+      } catch (_) {}
+    }
+    if (changed) items.value = [...items.value];
+    return DownloadStorage(
+      usedBytes: used,
+      freeBytes: await DeviceStorage.freeBytes(dir.path),
+    );
+  }
+
   static Future<void> _pump() async {
     if (_busy) return;
     _busy = true;
@@ -302,6 +378,8 @@ class DownloadManager {
           ? ext
           : 'mp4';
       final file = File('${dir.path}/${entry.id}.$safeExt');
+      entry.path = file.path;
+      await _persist();
       final cancellation = CancelToken();
       _cancellations[entry.id] = cancellation;
       if (Uri.tryParse(url)?.scheme == 'file') {
@@ -312,14 +390,15 @@ class DownloadManager {
           file.path,
           cancelToken: cancellation,
           onReceiveProgress: (count, total) {
-            if (total > 0) {
-              entry.progress = count / total;
-              items.value = [...items.value];
-            }
+            entry.downloadedBytes = count;
+            entry.totalBytes = total > 0 ? total : 0;
+            if (total > 0) entry.progress = count / total;
+            items.value = [...items.value];
           },
         );
       }
       entry.path = file.path;
+      entry.downloadedBytes = entry.totalBytes = await file.length();
       entry.progress = 1;
       entry.status = DownloadStatus.done;
       _update(entry);

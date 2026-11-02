@@ -8,7 +8,8 @@ import 'package:petal/widgets/poster_shelf.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class RecentAndStalledShelves extends StatelessWidget {
-  const RecentAndStalledShelves({super.key});
+  final String? section;
+  const RecentAndStalledShelves({super.key, this.section});
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +61,12 @@ class RecentAndStalledShelves extends StatelessWidget {
 
         return Column(
           children: [
-            RecentlyWatchedShelf(history: history),
-            PosterShelf(title: 'Stalled', items: stalled),
-            PosterShelf(title: 'Most rewatched', items: topRewatched),
+            if (section == null || section == 'recent')
+              RecentlyWatchedShelf(history: history),
+            if (section == null || section == 'stalled')
+              PosterShelf(title: 'Stalled', items: stalled),
+            if (section == null || section == 'rewatched')
+              PosterShelf(title: 'Most rewatched', items: topRewatched),
           ],
         );
       },

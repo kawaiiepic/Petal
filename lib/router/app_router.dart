@@ -1,3 +1,4 @@
+import 'package:petal/pages/home_customization_page.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/app/petal_app.dart';
@@ -159,6 +160,10 @@ class AppRouter {
           applicationName: state.uri.queryParameters['name'] ?? 'Petal',
           applicationVersion: state.uri.queryParameters['version'] ?? '',
         ),
+      ),
+      GoRoute(
+        path: '/home-layout',
+        builder: (_, _) => const HomeCustomizationPage(),
       ),
       GoRoute(path: '/addons', builder: (context, state) => AddonsPage()),
       GoRoute(path: '/offline', builder: (context, state) => OfflinePage()),

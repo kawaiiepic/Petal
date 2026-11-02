@@ -1,3 +1,6 @@
+import 'package:flutter/services.dart';
+import 'package:petal/api/playback_preferences.dart';
+import 'package:petal/api/playback_volume_store.dart';
 import 'package:petal/pages/player/playback_scope.dart';
 
 import 'dart:math' as math;
@@ -45,6 +48,7 @@ class PlayerControls extends StatefulWidget {
 class _PlayerControlsState extends State<PlayerControls> {
   bool _showControls = true;
   bool _showDebug = false;
+  bool _fullscreen = false;
   bool _openingNext = false;
   late bool _isShow;
   late Future<(TmdbShow, TmdbEpisode)> _showData;
@@ -191,6 +195,107 @@ class _PlayerControlsState extends State<PlayerControls> {
     }
   }
 
+  bool _isFullscreen() {
+    try {
+      return widget.state.isFullscreen();
+    } catch (_) {
+      return _fullscreen;
+    }
+  }
+
+  Future<void> _toggleFullscreen() async {
+    try {
+      final next = !_isFullscreen();
+      await widget.state.toggleFullscreen();
+      if (mounted) setState(() => _fullscreen = next);
+    } catch (_) {
+      if (mounted)
+        showToast(
+          context: context,
+          builder: (_, _) => const Text('Fullscreen is unavailable.'),
+        );
+    }
+  }
+
+  Future<void> _keyboardVolume(double value) async {
+    final volume = value.clamp(0.0, 100.0);
+    PlaybackVolumeStore.instance.save(volume).catchError((Object _) {});
+    await player.setVolume(volume);
+  }
+
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent)
+      return KeyEventResult.ignored;
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused?.findAncestorWidgetOfExactType<EditableText>() != null)
+      return KeyEventResult.ignored;
+    if (HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isAltPressed)
+      return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyK) {
+      player.playOrPause();
+    } else if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.keyJ) {
+      _seekBackward();
+    } else if (key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.keyL) {
+      _seekForward();
+    } else if (key == LogicalKeyboardKey.arrowUp) {
+      _keyboardVolume(player.state.volume + 5);
+    } else if (key == LogicalKeyboardKey.arrowDown) {
+      _keyboardVolume(player.state.volume - 5);
+    } else if (key == LogicalKeyboardKey.keyM) {
+      _keyboardVolume(
+        player.state.volume == 0
+            ? PlaybackVolumeStore.instance.audibleVolume
+            : 0,
+      );
+    } else if (key == LogicalKeyboardKey.keyF) {
+      _toggleFullscreen();
+    } else if (key == LogicalKeyboardKey.escape) {
+      if (_isFullscreen()) {
+        _toggleFullscreen();
+      } else if (_showDebug) {
+        _toggleDebug();
+      }
+    } else if (key == LogicalKeyboardKey.keyS) {
+      final p = PlaybackPreferences.instance;
+      p.update(enabled: !p.subtitles).catchError((Object _) {});
+      player.setSubtitleTrack(
+        p.subtitles ? SubtitleTrack.auto() : SubtitleTrack.no(),
+      );
+    } else if (key == LogicalKeyboardKey.equal ||
+        key == LogicalKeyboardKey.numpadAdd ||
+        key == LogicalKeyboardKey.minus ||
+        key == LogicalKeyboardKey.numpadSubtract) {
+      final direction =
+          key == LogicalKeyboardKey.minus ||
+              key == LogicalKeyboardKey.numpadSubtract
+          ? -1
+          : 1;
+      final rate = (player.state.rate + .25 * direction).clamp(.25, 3.0);
+      PlaybackPreferences.instance.update(rate: rate).catchError((Object _) {});
+      player.setRate(rate);
+    } else if (key == LogicalKeyboardKey.bracketLeft ||
+        key == LogicalKeyboardKey.bracketRight) {
+      final p = PlaybackPreferences.instance;
+      p
+          .update(
+            delay:
+                p.subtitleDelay +
+                (key == LogicalKeyboardKey.bracketRight ? .1 : -.1),
+          )
+          .catchError((Object _) {});
+      p.apply(player).catchError((Object _) {});
+    } else {
+      return KeyEventResult.ignored;
+    }
+    _onMouseMove();
+    return KeyEventResult.handled;
+  }
+
   void _toggleDebug() {
     setState(() {
       _showDebug = !_showDebug;
@@ -266,92 +371,99 @@ class _PlayerControlsState extends State<PlayerControls> {
       return SplashScreen();
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.deferToChild,
-      onDoubleTapDown: (details) {
-        if (_showDebug) return;
-        final width = context.size?.width ?? MediaQuery.of(context).size.width;
-        final tapX = details.localPosition.dx;
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handleKey,
+      child: GestureDetector(
+        behavior: HitTestBehavior.deferToChild,
+        onDoubleTapDown: (details) {
+          if (_showDebug) return;
+          final width =
+              context.size?.width ?? MediaQuery.of(context).size.width;
+          final tapX = details.localPosition.dx;
 
-        if (tapX < width / 2) {
-          _seekBackward();
-        } else {
-          _seekForward();
-        }
-      },
-      onTapDown: (details) {
-        _onMouseMove(toggle: true);
-      },
-      child: MouseRegion(
-        onHover: (event) => _onMouseMove(),
-        onEnter: (_) => setState(() => _showControls = true),
-        onExit: (_) {
-          if (!_showDebug) setState(() => _showControls = false);
+          if (tapX < width / 2) {
+            _seekBackward();
+          } else {
+            _seekForward();
+          }
         },
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final nextBottom = _showControls ? 100.0 : 24.0;
-            final nextWidth = math.min(
-              320.0,
-              math.min(
-                math.max(0.0, constraints.maxWidth - 40),
-                math.max(0.0, constraints.maxHeight - nextBottom - 12) * 16 / 9,
-              ),
-            );
-            return Stack(
-              children: [
-                AnimatedOpacity(
-                  opacity: _showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: TickerMode(
-                    enabled: _showControls,
-                    child: _buildControlsBar(),
-                  ),
+        onTapDown: (details) {
+          _onMouseMove(toggle: true);
+        },
+        child: MouseRegion(
+          onHover: (event) => _onMouseMove(),
+          onEnter: (_) => setState(() => _showControls = true),
+          onExit: (_) {
+            if (!_showDebug) setState(() => _showControls = false);
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final nextBottom = _showControls ? 100.0 : 24.0;
+              final nextWidth = math.min(
+                320.0,
+                math.min(
+                  math.max(0.0, constraints.maxWidth - 40),
+                  math.max(0.0, constraints.maxHeight - nextBottom - 12) *
+                      16 /
+                      9,
                 ),
-                if (_showDebug)
-                  Positioned.fill(
-                    child: SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 56, 12, 96),
-                        child: Align(
-                          alignment: Alignment.topRight,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 420),
-                            child: PlayerDebugOverlay(
-                              player: player,
-                              onClose: _toggleDebug,
+              );
+              return Stack(
+                children: [
+                  AnimatedOpacity(
+                    opacity: _showControls ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: TickerMode(
+                      enabled: _showControls,
+                      child: _buildControlsBar(),
+                    ),
+                  ),
+                  if (_showDebug)
+                    Positioned.fill(
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 56, 12, 96),
+                          child: Align(
+                            alignment: Alignment.topRight,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 420),
+                              child: PlayerDebugOverlay(
+                                player: player,
+                                onClose: _toggleDebug,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
+                  SeekIndicator(
+                    visible: _showLeftSeek,
+                    seconds: _leftSeekSeconds,
+                    isLeft: true,
                   ),
-                SeekIndicator(
-                  visible: _showLeftSeek,
-                  seconds: _leftSeekSeconds,
-                  isLeft: true,
-                ),
-                SeekIndicator(
-                  visible: _showRightSeek,
-                  seconds: _rightSeekSeconds,
-                  isLeft: false,
-                ),
-                if (_isShow && !_offline)
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 200),
-                    right: 20,
-                    bottom: nextBottom,
-                    width: nextWidth,
-                    child: NextUpCard(
-                      player: player,
-                      nextEpisode: _nextUpEpisode,
-                      suppressed: _showDebug || nextWidth < 160,
-                      playNextEpisode: _playNextEpisode,
+                  SeekIndicator(
+                    visible: _showRightSeek,
+                    seconds: _rightSeekSeconds,
+                    isLeft: false,
+                  ),
+                  if (_isShow && !_offline)
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 200),
+                      right: 20,
+                      bottom: nextBottom,
+                      width: nextWidth,
+                      child: NextUpCard(
+                        player: player,
+                        nextEpisode: _nextUpEpisode,
+                        suppressed: _showDebug || nextWidth < 160,
+                        playNextEpisode: _playNextEpisode,
+                      ),
                     ),
-                  ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -533,10 +645,10 @@ class _PlayerControlsState extends State<PlayerControls> {
                   ),
                   PlayerSettingsMenuButton(player: player),
                   ControlButton(
-                    onTap: () {},
+                    onTap: _toggleFullscreen,
                     icon: Icon(
                       size: AppTypography.normalIconSize,
-                      false
+                      _isFullscreen()
                           ? RadixIcons.exitFullScreen
                           : RadixIcons.enterFullScreen,
                     ),

@@ -1,3 +1,4 @@
+import 'package:petal/api/playback_preferences.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:petal/pages/player/overlay/control_button.dart';
 import 'package:petal/pages/player/overlay/player_dropdown_button.dart';
@@ -38,6 +39,14 @@ class SubtitleAudioMenuButton extends StatelessWidget {
             ),
           ),
           const MenuDivider(),
+          MenuButton(
+            child: const Text('Subtitles off'),
+            onPressed: (_) {
+              PlaybackPreferences.instance.update(enabled: false);
+              player.setSubtitleTrack(SubtitleTrack.no());
+              onChanged();
+            },
+          ),
           MenuLabel(
             child: Collapsible(
               children: [
@@ -57,6 +66,10 @@ class SubtitleAudioMenuButton extends StatelessWidget {
                       (e) => CollapsibleContent(
                         child: MenuButton(
                           onPressed: (context) {
+                            PlaybackPreferences.instance.update(
+                              subtitle: e.language,
+                              enabled: true,
+                            );
                             player.setSubtitleTrack(e);
                             onChanged();
                           },
@@ -89,6 +102,9 @@ class SubtitleAudioMenuButton extends StatelessWidget {
                       (e) => CollapsibleContent(
                         child: MenuButton(
                           onPressed: (context) {
+                            PlaybackPreferences.instance.update(
+                              audio: e.language,
+                            );
                             player.setAudioTrack(e);
                             onChanged();
                           },

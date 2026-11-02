@@ -1,3 +1,6 @@
+import 'package:petal/widgets/settings/offline_sync_card.dart';
+import 'package:petal/widgets/settings/playback_preferences_card.dart';
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -109,6 +112,12 @@ class _SettingsPageState extends State<SettingsPage> {
           spacing: 12,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const PlaybackPreferencesCard(),
+            const OfflineSyncCard(),
+            Button.outline(
+              onPressed: () => context.push('/home-layout'),
+              child: const Text('Customize Home'),
+            ),
             Button.card(
               leading: const Icon(LucideIcons.info),
               child: FutureBuilder<PackageInfo>(

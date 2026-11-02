@@ -1,3 +1,4 @@
+import 'package:petal/utils/byte_format.dart';
 import 'package:petal/api/download_manager.dart';
 import 'package:petal/models/downloads/download_entry.dart';
 import 'package:petal/models/downloads/download_status.dart';
@@ -34,6 +35,26 @@ class DownloadTile extends StatelessWidget {
                 ],
               ),
               if (entry.episodeLabel != null) Text(entry.episodeLabel!),
+              if (entry.downloadedBytes > 0 || entry.totalBytes > 0)
+                Text(
+                  '${formatBytes(entry.downloadedBytes)}${entry.totalBytes > 0 ? ' / ${formatBytes(entry.totalBytes)}' : ''}',
+                ),
+              if (entry.status == DownloadStatus.failed ||
+                  entry.status == DownloadStatus.unavailable)
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    Button.outline(
+                      onPressed: () => DownloadManager.retry(entry.id),
+                      child: const Text('Retry download'),
+                    ),
+                    Button.ghost(
+                      onPressed: () =>
+                          DownloadManager.retry(entry.id, newSource: true),
+                      child: const Text('Find new source'),
+                    ),
+                  ],
+                ),
               if (entry.status == DownloadStatus.running)
                 LinearProgressIndicator(
                   value: entry.progress == 0 ? null : entry.progress,

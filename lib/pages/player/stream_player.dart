@@ -1,3 +1,7 @@
+import 'package:petal/api/playback_volume_store.dart';
+import 'package:petal/api/playback_preferences.dart';
+import 'package:petal/pages/player/overlay/playback_recovery_overlay.dart';
+import 'package:petal/api/offline_progress_sync.dart';
 import 'package:petal/api/playback_media_session.dart';
 import 'package:petal/models/playback_item.dart';
 import 'package:petal/pages/player/playback_scope.dart';
@@ -42,9 +46,15 @@ class StreamPlayer extends StatefulWidget {
 class StreamPlayerState extends State<StreamPlayer> {
   late PlaybackItem _item;
   bool _switching = true;
+  bool _syncSuspended = false;
+  String? _failure;
+  double _lastGoodProgress = 0;
+  List<StreamItem>? _alternateSources;
+  bool _loadingSources = false;
   MediaType mediaType = MediaType.movie;
   late final player = Player(configuration: PlayerConfiguration());
   late final VideoController controller;
+  final _videoKey = GlobalKey<VideoState>();
   late final PlaybackMediaSession _mediaSession = PlaybackMediaSession(player);
   StreamItem? selectedStream;
   bool get isOffline => _item.isOffline;
@@ -72,7 +82,13 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     PlayerOrientation.lockLandscape();
 
-    if (!isOffline) _profileKey = BackendApi.profileCacheKey;
+    _profileKey = BackendApi.profileCacheKey;
+    if (isOffline) {
+      OfflineProgressSync.instance.suspend();
+      _syncSuspended = true;
+    }
+    PlaybackPreferences.instance.load();
+    PlaybackPreferences.instance.addListener(_preferencesChanged);
     saveProgressTask();
 
     controller = VideoController(
@@ -82,13 +98,7 @@ class StreamPlayerState extends State<StreamPlayer> {
 
     _subscriptions.add(
       player.stream.error.listen((event) {
-        if (!mounted) return;
-        showToast(
-          context: context,
-          builder: buildToast,
-          location: ToastLocation.bottomLeft,
-        );
-        _leave();
+        if (mounted) _handleFailure();
       }),
     );
 
@@ -160,7 +170,11 @@ class StreamPlayerState extends State<StreamPlayer> {
       if (isOffline) {
         final download = _item.stream?.download;
         if (download != null)
-          await DownloadManager.setPlaybackProgress(download.id, completion);
+          await DownloadManager.setPlaybackProgress(
+            download.id,
+            completion,
+            profileKey: _profileKey,
+          );
         return;
       }
       if (_profileKey == null || _profileKey != BackendApi.profileCacheKey)
@@ -180,8 +194,8 @@ class StreamPlayerState extends State<StreamPlayer> {
 
   Future<void> _saveCurrentProgress({bool duringSwitch = false}) async {
     if (_switching && !duringSwitch) return;
-    if (player.state.duration <= Duration.zero) return;
-    final ratio = _ratio();
+    if (player.state.duration <= Duration.zero && _failure == null) return;
+    final ratio = _failure == null ? _ratio() : _lastGoodProgress;
     if (ratio <= 0 && !_finishedThisSession) return;
     await _writeProgress(_finishedThisSession ? 1 : ratio);
   }
@@ -207,7 +221,8 @@ class StreamPlayerState extends State<StreamPlayer> {
   void _watchPlayback() {
     _subscriptions.add(
       player.stream.position.listen((position) {
-        if (_switching) return;
+        if (_switching || _failure != null) return;
+        if (_ratio() > 0) _lastGoodProgress = _ratio();
         if (_finishedThisSession &&
             position.inSeconds <= 5 &&
             player.state.playing &&
@@ -223,7 +238,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     );
     _subscriptions.add(
       player.stream.completed.listen((done) {
-        if (_switching) return;
+        if (_switching || _failure != null) return;
         // End-of-file alone is not evidence of 90% progress.
         if (done &&
             !_finishedThisSession &&
@@ -236,12 +251,12 @@ class StreamPlayerState extends State<StreamPlayer> {
     _subscriptions.add(player.stream.duration.listen((_) => _applyResume()));
     _subscriptions.add(
       player.stream.tracks.listen((tracks) {
-        if (_switching) return;
+        if (_switching || _failure != null) return;
         applyPreferredTracks(
           audios: tracks.audio,
           subtitles: tracks.subtitle,
-          audioLang: 'en',
-          subtitleLang: 'en',
+          audioLang: PlaybackPreferences.instance.audioLanguage,
+          subtitleLang: PlaybackPreferences.instance.subtitleLanguage,
           preferAd: true,
           allowAd: true,
         );
@@ -267,6 +282,85 @@ class StreamPlayerState extends State<StreamPlayer> {
     );
   }
 
+  void _handleFailure() {
+    if (!mounted || _failure != null) return;
+    if (!_switching && _ratio() > 0) _lastGoodProgress = _ratio();
+    _discordSub?.cancel();
+    () async {
+      try {
+        final video = _videoKey.currentState;
+        if (video != null && video.isFullscreen()) await video.exitFullscreen();
+      } catch (_) {}
+    }();
+    player.pause().catchError((Object _) {});
+    setState(() {
+      _failure = 'Playback interrupted';
+      _switching = false;
+    });
+  }
+
+  void _preferencesChanged() {
+    if (!mounted || _switching || _failure != null) return;
+    PlaybackPreferences.instance.apply(player).catchError((Object _) {});
+    final tracks = player.state.tracks;
+    applyPreferredTracks(
+      audios: tracks.audio,
+      subtitles: tracks.subtitle,
+      audioLang: PlaybackPreferences.instance.audioLanguage,
+      subtitleLang: PlaybackPreferences.instance.subtitleLanguage,
+      preferAd: true,
+      allowAd: true,
+    );
+  }
+
+  Future<void> _recover({StreamItem? source}) async {
+    if (_switching || !mounted) return;
+    final previous = _item;
+    final selected = source ?? selectedStream ?? previous.stream;
+    setState(() {
+      _failure = null;
+      _switching = true;
+      _alternateSources = null;
+    });
+    _item = PlaybackItem(
+      mediaId: previous.mediaId,
+      episode: previous.episode,
+      stream: selected,
+      progress: _lastGoodProgress,
+    );
+    if (isOffline && !_syncSuspended) {
+      OfflineProgressSync.instance.suspend();
+      _syncSuspended = true;
+    }
+    _resumeApplied = false;
+    try {
+      await player.setVolume(
+        PlaybackVolumeStore.instance.value ?? player.state.volume,
+      );
+    } catch (_) {}
+    await _startStream();
+  }
+
+  Future<void> _findRecoverySources() async {
+    if (isOffline || _loadingSources) return;
+    setState(() => _loadingSources = true);
+    try {
+      final sources = await PlaybackSource.options(
+        mediaId: _item.mediaId,
+        episode: _item.episode,
+      );
+      if (mounted)
+        setState(
+          () => _alternateSources = sources
+              .where((source) => source.url != selectedStream?.url)
+              .toList(),
+        );
+    } catch (_) {
+      if (mounted) setState(() => _alternateSources = []);
+    }
+    if (mounted) setState(() => _loadingSources = false);
+  }
+
   Future<void> _playEpisode(Episode next) async {
     if (_switching || isOffline || !mounted) return;
     setState(() => _switching = true);
@@ -281,6 +375,8 @@ class StreamPlayerState extends State<StreamPlayer> {
       _finishedThisSession = false;
       _lastWrittenProgress = null;
       selectedStream = null;
+      _lastGoodProgress = 0;
+      _failure = null;
       await _startStream();
     } catch (_) {
       if (!mounted) return;
@@ -302,7 +398,7 @@ class StreamPlayerState extends State<StreamPlayer> {
       );
       if (!mounted) return;
       if (stream == null) {
-        await _leave();
+        _handleFailure();
         return;
       }
       selectedStream = stream;
@@ -329,14 +425,16 @@ class StreamPlayerState extends State<StreamPlayer> {
           },
         ),
         beforePlay: () async {
-          if (!mounted) return;
+          if (!mounted || _failure != null)
+            throw StateError('Playback opening cancelled');
+          await PlaybackPreferences.instance.apply(player);
           _switching = false;
           final tracks = player.state.tracks;
           applyPreferredTracks(
             audios: tracks.audio,
             subtitles: tracks.subtitle,
-            audioLang: 'en',
-            subtitleLang: 'en',
+            audioLang: PlaybackPreferences.instance.audioLanguage,
+            subtitleLang: PlaybackPreferences.instance.subtitleLanguage,
             preferAd: true,
             allowAd: true,
           );
@@ -347,18 +445,12 @@ class StreamPlayerState extends State<StreamPlayer> {
       setState(() => _switching = false);
       if (!isOffline) _setupDiscord();
     } catch (_) {
-      if (!mounted) return;
-      showToast(
-        context: context,
-        builder: buildToast,
-        location: ToastLocation.bottomLeft,
-      );
-      await _leave();
+      if (mounted) _handleFailure();
     }
   }
 
   bool _matchesLanguage(String? language, String? title, String preferred) {
-    final want = preferred.toLowerCase().trim();
+    final want = preferred.toLowerCase().trim().split('-').first;
     final lang = (language ?? '').toLowerCase().trim();
     final name = (title ?? '').toLowerCase();
 
@@ -379,7 +471,10 @@ class StreamPlayerState extends State<StreamPlayer> {
       'it': {'it', 'ita', 'italian'},
     };
 
-    final names = aliases[want] ?? {want};
+    final names = aliases.values.firstWhere(
+      (names) => names.contains(want),
+      orElse: () => {want},
+    );
     if (names.contains(lang) || lang.startsWith(want)) return true;
     if (names.any((n) => n.length > 2 && name.contains(n))) return true;
     return false;
@@ -475,6 +570,10 @@ class StreamPlayerState extends State<StreamPlayer> {
       );
     }
 
+    if (!PlaybackPreferences.instance.subtitles) {
+      player.setSubtitleTrack(SubtitleTrack.no());
+      return;
+    }
     final sub = pickTrack<SubtitleTrack>(
       tracks: subtitles,
       preferred: subtitleLang,
@@ -497,6 +596,8 @@ class StreamPlayerState extends State<StreamPlayer> {
   @override
   void dispose() {
     _saveCurrentProgress();
+    PlaybackPreferences.instance.removeListener(_preferencesChanged);
+    if (_syncSuspended) OfflineProgressSync.instance.resume();
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }
@@ -521,8 +622,12 @@ class StreamPlayerState extends State<StreamPlayer> {
           fit: StackFit.expand,
           children: [
             Video(
+              key: _videoKey,
               controller: controller,
-              controls: videoControls,
+              controls: (state) => PlaybackScope(
+                playEpisode: _playEpisode,
+                child: PlayerControls(state: state),
+              ),
               fit: BoxFit.contain,
               aspectRatio: 16 / 9,
               pip: const PipConfig(
@@ -530,6 +635,18 @@ class StreamPlayerState extends State<StreamPlayer> {
                 preferredSize: Size(1920 / 5, 1080 / 5),
               ),
             ),
+            if (_failure != null)
+              Positioned.fill(
+                child: PlaybackRecoveryOverlay(
+                  offline: isOffline,
+                  loading: _loadingSources,
+                  sources: _alternateSources,
+                  retry: () => _recover(),
+                  findSources: _findRecoverySources,
+                  choose: (source) => _recover(source: source),
+                  close: _leave,
+                ),
+              ),
             if (_switching)
               const Positioned.fill(
                 child: AbsorbPointer(
