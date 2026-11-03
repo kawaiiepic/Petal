@@ -31,6 +31,7 @@ import 'package:petal/pages/player/overlay/volume_button.dart';
 import 'package:petal/pages/splash_screen.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
 
 Widget videoControls(VideoState state) {
   return PlayerControls(state: state);

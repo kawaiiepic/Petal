@@ -1,4 +1,5 @@
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
 
 /// Artwork keeps the card's dimensions while loading, missing, or unavailable.
 class MediaArtworkPlaceholder extends StatelessWidget {

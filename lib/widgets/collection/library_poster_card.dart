@@ -7,6 +7,7 @@ import 'package:petal/models/media_type.dart';
 import 'package:petal/models/media_card_target.dart';
 import 'package:petal/widgets/media/media_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
 
 class LibraryPosterCard extends StatelessWidget {
   final LibraryTitle title;

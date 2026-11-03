@@ -28,5 +28,5 @@ void main() async {
   GoRouter.optionURLReflectsImperativeAPIs = true;
   runApp(PetalApp());
 
-  windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+  WindowManager.instance.getCurrent()!.titleBarStyle = TitleBarStyle.hidden;
 }

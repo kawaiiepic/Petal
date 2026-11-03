@@ -17,6 +17,7 @@ import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
+import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
 
 class EpisodeDetailPage extends StatefulWidget {
   final int tmdbId;
