@@ -1,3 +1,4 @@
+import 'package:petal/api/user_library.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/backend/backend_api.dart';
@@ -688,11 +689,13 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                                         return Container();
                                                       },
                                                     ),
-                                                    ValueListenableBuilder(
-                                                      valueListenable:
-                                                          BackendCache
-                                                              .watchHistory,
-                                                      builder: (context, history, child) {
+                                                    ListenableBuilder(
+                                                      listenable: Listenable.merge([
+                                                        BackendCache.watchHistory,
+                                                        UserLibrary.pendingWatched,
+                                                      ]),
+                                                      builder: (context, child) {
+                                                        final history = BackendCache.watchHistory.value;
                                                         final entry = history
                                                             .where(
                                                               (h) =>
@@ -730,9 +733,9 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                                               orElse: () =>
                                                                   null,
                                                             );
-                                                        final progress = entry
-                                                            ?.ep
-                                                            .completion;
+                                                        final pending = episode.airDate == null || !episode.airDate!.isAfter(DateTime.now())
+                                                          ? UserLibrary.pendingCompletion(show?.id ?? 0, MediaType.show) : null;
+                                                        final progress = pending ?? entry?.ep.completion;
                                                         if (progress == null ||
                                                             progress <= 0.0)
                                                           return const SizedBox.shrink();

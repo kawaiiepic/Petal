@@ -226,7 +226,7 @@ class _MediaCardState extends State<MediaCard> {
     final target = widget.target!;
     final id = _resolvedId;
     if (id == null) return false;
-    if (!target.isEpisode) return UserLibrary.isWatched(id, target.type);
+    if (!target.isEpisode) return UserLibrary.isWatched(id, target.type, totalEpisodes: _totalEpisodes);
     return BackendCache.watchHistory.value
         .where((item) => item.tmdbId == id && item.mediaType == target.type)
         .any(
@@ -249,10 +249,10 @@ class _MediaCardState extends State<MediaCard> {
 
   Future<void> _toggleWatched(int id) async {
     final profile = BackendApi.profileCacheKey;
-    await BackendCache.fetchWatchHistory();
-    if (profile != BackendApi.profileCacheKey) return;
     final target = widget.target!;
     if (target.isEpisode) {
+      await BackendCache.fetchWatchHistory();
+      if (profile != BackendApi.profileCacheKey) return;
       await HistoryActions.setProgress(
         id,
         target.type,
@@ -265,7 +265,7 @@ class _MediaCardState extends State<MediaCard> {
         BackendCache.fetchContinueWatching(),
       ]);
     } else {
-      await UserLibrary.toggleWatched(id, target.type);
+      await UserLibrary.toggleWatched(id, target.type, watched: _watched);
     }
   }
 
@@ -318,8 +318,10 @@ class _MediaCardState extends State<MediaCard> {
           ),
           MenuButton(
             leading: const Icon(LucideIcons.check),
-            child: Text(_watched ? 'Mark as Unwatched' : 'Mark as Watched'),
-            onPressed: (_) => _run(() => _libraryAction(_toggleWatched)),
+            child: Text(_resolvedId != null && UserLibrary.isChangingWatched(_resolvedId!, target.type)
+              ? 'Saving watch status…' : _watched ? 'Mark as Unwatched' : 'Mark as Watched'),
+            onPressed: _resolvedId != null && UserLibrary.isChangingWatched(_resolvedId!, target.type)
+              ? null : (_) => _run(() => _libraryAction(_toggleWatched)),
           ),
           MenuButton(
             leading: const Icon(LucideIcons.thumbsUp),
@@ -347,6 +349,7 @@ class _MediaCardState extends State<MediaCard> {
       listenable: Listenable.merge([
         UserLibrary.watchlist,
         UserLibrary.ratings,
+        UserLibrary.pendingWatched,
         BackendCache.watchHistory,
       ]),
       builder: (context, _) => Semantics(

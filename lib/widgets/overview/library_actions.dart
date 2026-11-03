@@ -26,15 +26,18 @@ class LibraryActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       spacing: 8,
       children: [
-        ValueListenableBuilder(
-          valueListenable: BackendCache.watchHistory,
-          builder: (context, _, __) {
-            final watched = UserLibrary.isWatched(tmdbId, mediaType);
+        ListenableBuilder(
+          listenable: Listenable.merge([
+            BackendCache.watchHistory, UserLibrary.pendingWatched,
+          ]),
+          builder: (context, _) {
+            final watched = UserLibrary.isWatched(tmdbId, mediaType, totalEpisodes: show?.numberOfEpisodes);
             return LibraryActionButton(
               icon: LucideIcons.check,
               active: watched,
+              busy: UserLibrary.isChangingWatched(tmdbId, mediaType),
               onTap: () =>
-                  UserLibrary.toggleWatched(tmdbId, mediaType, show: show),
+                  UserLibrary.toggleWatched(tmdbId, mediaType, show: show, watched: watched),
             );
           },
         ),

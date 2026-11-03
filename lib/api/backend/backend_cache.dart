@@ -29,6 +29,37 @@ class BackendCache {
     decode: (raw) => (raw as List).map((r) =>
       WatchHistoryItem.fromJson(Map<String, dynamic>.from(r as Map))).toList(),
   );
+  static final _optimisticShows = <String, Map<int, WatchHistoryItem>>{};
+
+  static List<WatchHistoryItem> _withOptimistic(
+      String profile, List<WatchHistoryItem> rows) {
+    final overlays = _optimisticShows[profile];
+    if (overlays == null || overlays.isEmpty) return rows;
+    return [
+      ...rows.where((h) => h.mediaType.name != 'show' || !overlays.containsKey(h.tmdbId)),
+      ...overlays.values,
+    ];
+  }
+
+  static void optimisticShow(String profile, WatchHistoryItem row) {
+    (_optimisticShows[profile] ??= {})[row.tmdbId] = row;
+    if (profile == BackendApi.profileCacheKey) {
+      watchHistory.value = _withOptimistic(profile, watchHistory.value);
+    }
+  }
+
+  static void finishOptimisticShow(String profile, int id,
+      {WatchHistoryItem? restore, bool rollback = false}) {
+    _optimisticShows[profile]?.remove(id);
+    if (_optimisticShows[profile]?.isEmpty == true) _optimisticShows.remove(profile);
+    if (rollback && profile == BackendApi.profileCacheKey) {
+      watchHistory.value = [
+        ...watchHistory.value.where((h) => h.mediaType.name != 'show' || h.tmdbId != id),
+        if (restore != null) restore,
+      ];
+    }
+  }
+
   static String? _profileKey;
   static int _revision = 0;
 
@@ -90,7 +121,7 @@ class BackendCache {
       load: BackendApi.watchHistory, force: force,
       onUpdated: (items) {
         if (revision == _revision && key == BackendApi.profileCacheKey) {
-          watchHistory.value = items;
+          watchHistory.value = _withOptimistic(key, items);
         }
       },
     );
