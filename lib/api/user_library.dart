@@ -215,7 +215,7 @@ class UserLibrary {
   }
 
   static Future<void> toggleWatched(
-    int tmdbId, MediaType type, {TmdbShow? show, bool? watched},
+    int tmdbId, MediaType type, {TmdbShow? show, bool? watched}
   ) {
     final profile = BackendApi.profileCacheKey;
     final profileId = BackendApi.authState.selectedProfile?.id;
