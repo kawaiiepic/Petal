@@ -21,6 +21,63 @@ abstract final class HistoryActions {
       _edit(id, type, completion == 0 ? 'reset' : 'set',
           season: season, episode: episode, completion: completion, refresh: refresh);
 
+  static Future<void> rewatch(int id, MediaType type,
+      {int? season, int? episode}) =>
+      _edit(id, type, 'rewatch', season: season, episode: episode);
+
+  static Future<void> startTitleRewatch(int id, MediaType type) async {
+    if (_busy) throw StateError('A history update is already in progress.');
+    final profile = BackendApi.profileCacheKey;
+    final profileId = BackendApi.authState.selectedProfile?.id;
+    if (profile == null || profileId == null) throw StateError('Select a profile first.');
+    _busy = true;
+    OfflineProgressSync.instance.suspend();
+    try {
+      await OfflineProgressSync.instance.settle();
+      await DownloadManager.load();
+      _checkProfile(profile);
+      final downloads = DownloadManager.items.value
+          .where((d) => d.tmdbId == id && d.isShow == (type == MediaType.show))
+          .toList();
+      final before = {for (final d in downloads) d.id: d.playbackProgress};
+      final response = await retryableWrite((options) => BackendApi.dio.post(
+        '${Api.ServerUrl}/track/bulk/$profileId/rewatch/${type == MediaType.movie ? 'movie' : 'show'}/$id',
+        options: options));
+      final editId = response.data['result']['edit_id'] as String;
+      _profile = profile;
+      final undoKey = newRequestKey();
+      _undo = () async {
+        _checkProfile(profile);
+        if (OfflineProgressSync.instance.hasPendingTitle(
+            profileKey: profile, mediaId: id, isShow: type == MediaType.show) ||
+            DownloadManager.items.value.any((d) => before.containsKey(d.id) &&
+                d.playbackProgress > .0001)) {
+          throw StateError('New playback exists. Undo would overwrite it.');
+        }
+        await retryableWrite((options) => BackendApi.dio.post(
+          '${Api.ServerUrl}/track/bulk/$profileId/undo/$editId',
+          options: options), requestKey: undoKey);
+        _checkProfile(profile);
+        for (final d in DownloadManager.items.value.where((d) => before.containsKey(d.id))) {
+          await DownloadManager.setPlaybackProgress(d.id, before[d.id]!, sync: false);
+        }
+        BackendCache.invalidateProgress(profileKey: profile);
+      };
+      canUndo.value = true;
+      await OfflineProgressSync.instance.discardTitle(
+          profileKey: profile, mediaId: id, isShow: type == MediaType.show);
+      _checkProfile(profile);
+      BackendCache.invalidateProgress(profileKey: profile);
+      for (final d in downloads) {
+        await DownloadManager.setPlaybackProgress(d.id, 0, sync: false);
+      }
+      await _refresh();
+    } finally {
+      OfflineProgressSync.instance.resume();
+      _busy = false;
+    }
+  }
+
   static Future<void> remove(int id, MediaType type,
       {int? season, int? episode}) =>
       _edit(id, type, 'delete', season: season, episode: episode);

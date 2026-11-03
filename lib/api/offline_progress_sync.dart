@@ -98,6 +98,20 @@ class OfflineProgressSync extends ChangeNotifier {
   bool hasPending({required String profileKey, required int mediaId, int? season, int? episode}) =>
       _queue.containsKey('$profileKey|$mediaId|$season|$episode');
 
+  bool hasPendingTitle({required String profileKey, required int mediaId,
+      required bool isShow}) => _queue.values.any((row) =>
+      row['profile'] == profileKey && row['media'] == mediaId &&
+      (row['season'] != null) == isShow);
+
+  Future<void> discardTitle({required String profileKey, required int mediaId,
+      required bool isShow}) async {
+    await load();
+    _queue.removeWhere((_, row) => row['profile'] == profileKey &&
+        row['media'] == mediaId && (row['season'] != null) == isShow);
+    await _persist();
+    notifyListeners();
+  }
+
   Future<void> settle() async {
     await _syncing;
   }

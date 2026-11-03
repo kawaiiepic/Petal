@@ -1,3 +1,4 @@
+import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/media/media_progress_bar.dart';
 import 'package:petal/models/media_card_target.dart';
@@ -250,6 +251,11 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 16,
                         children: [
+                          if (snapshot.hasData)
+                            WatchActivityPanel(
+                              tmdbId: widget.tmdbId, mediaType: MediaType.show,
+                              season: widget.season, episode: widget.episode,
+                            ),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
