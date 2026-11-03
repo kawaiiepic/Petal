@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:petal/api/backend/backend_api.dart';
-import 'package:petal/api/cache/async_cache.dart';
+import 'package:petal/api/backend/backend_datasets.dart';
+import 'package:petal/models/watch_history/show_item.dart';
+import 'package:petal/models/watch_history/movie_item.dart';
 import 'package:petal/models/watch_history/continue_watching_item.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
 import 'package:petal/models/watch_session.dart';
@@ -14,11 +16,18 @@ class BackendCache {
     [],
   );
   static final sessions = FrameSafeValueNotifier<List<WatchSession>>([]);
-  static final _nextUp = AsyncCache<String, List<ContinueWatchingItem>>(
-    ttl: const Duration(minutes: 1),
+  static final _nextUp = BackendDatasets.create<List<ContinueWatchingItem>>(
+    name: 'next-up', versionField: 'progress_version',
+    maxAge: const Duration(minutes: 5),
+    encode: (items) => items.map(_nextUpJson).toList(),
+    decode: (raw) => (raw as List).map((r) =>
+      ContinueWatchingItem.fromJson(Map<String, dynamic>.from(r as Map))).toList(),
   );
-  static final _history = AsyncCache<String, List<WatchHistoryItem>>(
-    ttl: const Duration(minutes: 1),
+  static final _history = BackendDatasets.create<List<WatchHistoryItem>>(
+    name: 'history', versionField: 'progress_version',
+    encode: (items) => items.map(_historyJson).toList(),
+    decode: (raw) => (raw as List).map((r) =>
+      WatchHistoryItem.fromJson(Map<String, dynamic>.from(r as Map))).toList(),
   );
   static String? _profileKey;
   static int _revision = 0;
@@ -34,8 +43,6 @@ class BackendCache {
     if (key != _profileKey) {
       _profileKey = key;
       _revision++;
-      _nextUp.clear();
-      _history.clear();
       continueWatching.value = [];
       watchHistory.value = [];
       sessions.value = [];
@@ -59,9 +66,13 @@ class BackendCache {
     // The backend selects aired next episodes and resumes saved partial progress.
     // Card artwork and metadata load independently after this list is published.
     final items = await _nextUp.get(
-      key,
-      BackendApi.continueWatching,
-      force: force,
+      scope: key, profileId: BackendApi.authState.selectedProfile!.id,
+      load: BackendApi.continueWatching, force: force,
+      onUpdated: (items) {
+        if (revision == _revision && key == BackendApi.profileCacheKey) {
+          continueWatching.value = items;
+        }
+      },
     );
     if (revision == _revision &&
         key == BackendApi.profileCacheKey &&
@@ -75,9 +86,13 @@ class BackendCache {
     if (key == null) return;
     final revision = _revision;
     final items = await _history.get(
-      key,
-      BackendApi.watchHistory,
-      force: force,
+      scope: key, profileId: BackendApi.authState.selectedProfile!.id,
+      load: BackendApi.watchHistory, force: force,
+      onUpdated: (items) {
+        if (revision == _revision && key == BackendApi.profileCacheKey) {
+          watchHistory.value = items;
+        }
+      },
     );
     if (revision == _revision &&
         key == BackendApi.profileCacheKey &&
@@ -86,3 +101,34 @@ class BackendCache {
     }
   }
 }
+
+int? _unix(DateTime? date) => date == null ? null : date.toUtc().millisecondsSinceEpoch ~/ 1000;
+
+Map<String, dynamic> _historyJson(WatchHistoryItem item) => {
+  'tmdb_id': item.tmdbId, 'media_type': item.mediaType.name,
+  'completion': item.completion, 'updated_at': _unix(item.updatedAt),
+  'last_watched': _unix(item.lastWatched), 'watched_at': _unix(item.watchedAt),
+  'plays': item.plays, 'watches': item.watches.map(_unix).toList(),
+  'episodes': item.episodes.map((e) => {
+    'season': e.season, 'episode': e.episode, 'completion': e.completion,
+    'plays': e.plays, 'watched_at': _unix(e.watchedAt),
+    'watches': e.watches.map(_unix).toList(),
+  }).toList(),
+};
+
+Map<String, dynamic> _nextUpJson(ContinueWatchingItem item) => {
+  'tmdb_id': item.tmdbId, 'media_type': item is MovieItem ? 'movie' : 'episode',
+  'last_watched': _unix(item.lastWatched),
+  if (item is MovieItem) 'completion': item.completion,
+  if (item is ShowItem) ...{
+    'next_episode': item.nextEpisode == null ? null : {
+      'season': item.nextEpisode!.season, 'episode': item.nextEpisode!.episode,
+      'completion': item.nextEpisode!.completion,
+    },
+    'seasons': item.seasons.map((s) => {
+      'number': s.number, 'episodes': s.episodes.map((e) => {
+        'episode': e.episode, 'completion': e.completion,
+      }).toList(),
+    }).toList(),
+  },
+};

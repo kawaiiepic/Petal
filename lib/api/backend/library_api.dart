@@ -1,11 +1,16 @@
 import 'package:petal/api/api.dart';
 import 'package:petal/api/backend/backend_api.dart';
-import 'package:petal/api/cache/async_cache.dart';
+import 'package:petal/api/backend/backend_datasets.dart';
+import 'package:petal/utils/frame_safe_value_notifier.dart';
 import 'package:petal/models/media_type.dart';
 
 class LibraryApi {
-  static final _cache = AsyncCache<String, List<Map<String, dynamic>>>(
-    ttl: const Duration(minutes: 1),
+  static final updated = FrameSafeValueNotifier<int>(0);
+  static final _cache = BackendDatasets.create<List<Map<String, dynamic>>>(
+    name: 'library', versionField: 'library_version',
+    encode: (rows) => rows,
+    decode: (raw) => (raw as List).map((r) =>
+      Map<String, dynamic>.from(r as Map)).toList(),
   );
   static String? _scope;
   static bool _listening = false;
@@ -20,14 +25,17 @@ class LibraryApi {
     final key = _syncScope();
     final profileId = BackendApi.authState.selectedProfile?.id;
     if (profileId == null || key == null) return Future.value([]);
-    return _cache.get(key, () => _fetch(profileId), force: force);
+    return _cache.get(
+      scope: key, profileId: profileId, load: () => _fetch(profileId),
+      force: force,
+      onUpdated: (_) { if (key == BackendApi.profileCacheKey) updated.value++; },
+    );
   }
 
   static String? _syncScope() {
     final key = BackendApi.profileCacheKey;
     if (key != _scope) {
       _scope = key;
-      _cache.clear();
       _revision++;
     }
     return key;

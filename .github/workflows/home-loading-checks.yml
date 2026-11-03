@@ -2,6 +2,12 @@ name: Home loading checks
 on:
   pull_request:
     paths:
+      - 'lib/api/backend/cache_versions.dart'
+      - 'lib/api/backend/backend_datasets.dart'
+      - 'lib/api/cache/versioned_dataset.dart'
+      - 'lib/api/backend/library_api.dart'
+      - 'lib/api/user_library.dart'
+      - 'test/versioned_dataset_checks.dart'
       - 'lib/pages/home_page.dart'
       - 'lib/api/upcoming_releases.dart'
       - 'lib/api/backend/backend_cache.dart'
@@ -29,4 +35,5 @@ jobs:
           flutter-version: 3.47.2
           cache: true
       - run: flutter pub get
-      - run: dart analyze lib/api/backend/backend_cache.dart lib/api/upcoming_releases.dart lib/pages/home_page.dart lib/widgets/home/home_shelf_skeleton.dart lib/widgets/home/because_you_watched_shelf.dart lib/widgets/poster_shelf.dart lib/widgets/upcoming_episodes.dart lib/widgets/friend_activity.dart lib/widgets/downloads/downloads_shelf.dart
+      - run: dart --enable-asserts --packages=.dart_tool/package_config.json test/versioned_dataset_checks.dart
+      - run: dart analyze lib/api/backend/cache_versions.dart lib/api/backend/backend_datasets.dart lib/api/cache/versioned_dataset.dart lib/api/backend/library_api.dart lib/api/user_library.dart lib/api/backend/backend_cache.dart lib/api/upcoming_releases.dart lib/pages/home_page.dart lib/widgets/home/home_shelf_skeleton.dart lib/widgets/home/because_you_watched_shelf.dart lib/widgets/poster_shelf.dart lib/widgets/upcoming_episodes.dart lib/widgets/friend_activity.dart lib/widgets/downloads/downloads_shelf.dart

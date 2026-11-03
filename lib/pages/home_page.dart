@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:petal/api/upcoming_releases.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/user_library.dart';
@@ -32,14 +34,21 @@ class HomePage extends StatefulWidget {
   State<StatefulWidget> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late Future<List<Catalog>> _catalogs;
   late Future<void> _homeData;
   String? _profileKey;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        unawaited(_revalidate());
+      }
+    });
     HomeLayout.instance.load();
     _catalogs = _loadCatalogs();
     _profileKey = BackendApi.profileCacheKey;
@@ -56,6 +65,25 @@ class _HomePageState extends State<HomePage> {
     ]);
   }
 
+  Future<void> _revalidate() async {
+    if (BackendApi.profileCacheKey == null) return;
+    try {
+      await Future.wait([
+        BackendCache.fetchWatchHistory(force: true),
+        BackendCache.fetchContinueWatching(force: true),
+        UserLibrary.load(force: true),
+      ]);
+      await UpcomingReleases.fetch();
+    } catch (_) {
+      // Retain visible snapshots while offline; retry on resume or the next tick.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_revalidate());
+  }
+
   void _onProfileChanged() {
     final key = BackendApi.profileCacheKey;
     if (key == _profileKey) return;
@@ -67,6 +95,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     BackendApi.authState.removeListener(_onProfileChanged);
     super.dispose();
   }

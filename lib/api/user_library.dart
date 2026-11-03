@@ -59,6 +59,7 @@ class UserLibrary {
   static Future<void> load({bool force = false}) async {
     if (!_listening) {
       _listening = true;
+      LibraryApi.updated.addListener(() => load());
       BackendApi.authState.addListener(() {
         load();
       });
