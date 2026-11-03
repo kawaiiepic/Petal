@@ -1,3 +1,4 @@
+import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/utils/watch_progress.dart';
 import 'package:petal/widgets/media/media_progress_bar.dart';
@@ -20,7 +21,6 @@ import 'package:petal/widgets/overview/movie_recommendation_card.dart';
 import 'package:petal/widgets/overview/overview_hero_actions.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MovieOverviewPage extends StatefulWidget {
@@ -230,6 +230,13 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (movie != null) ...[
+                        WatchActivityPanel(
+                          tmdbId: movie.id, mediaType: MediaType.movie,
+                          
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       Row(
                         spacing: 8,
                         children: [

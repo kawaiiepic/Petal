@@ -1,3 +1,5 @@
+import 'package:petal/api/history_actions.dart';
+import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/utils/show_playback.dart';
 import 'package:petal/utils/app_notifications.dart';
@@ -30,7 +32,6 @@ import 'package:petal/widgets/overview/season_dropdown.dart';
 import 'package:petal/widgets/overview/show_recommendation_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ShowOverviewPage extends StatefulWidget {
@@ -54,6 +55,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
   bool _playbackReady = false;
   bool _hasAiredEpisode = false;
   bool _rewatch = false;
+  bool _startingPlayback = false;
   int _selectedSeasonNumber = 1;
   int _targetRevision = 0;
   int _loadRevision = 0;
@@ -107,6 +109,26 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
           profile == BackendApi.profileCacheKey) {
         setState(() => _loadError = error);
       }
+    }
+  }
+
+  Future<void> _playShow(TmdbShow show, {bool selectSource = false}) async {
+    if (_startingPlayback) return;
+    final profile = BackendApi.profileCacheKey;
+    final target = episode;
+    final restarting = _rewatch;
+    setState(() => _startingPlayback = true);
+    try {
+      if (restarting) await HistoryActions.startTitleRewatch(show.id, MediaType.show);
+      if (!mounted || profile != BackendApi.profileCacheKey) return;
+      await context.push(selectSource
+        ? '/streams?show=${show.id}&s=${target.seasonNumber}&e=${target.episodeNumber}'
+        : '/player?media=${show.id}&s=${target.seasonNumber}&e=${target.episodeNumber}');
+    } catch (error) {
+      if (mounted) AppNotifications.sendNotification(
+        const Text('Could not start playback'), Text(HistoryActions.errorMessage(error)));
+    } finally {
+      if (mounted) setState(() => _startingPlayback = false);
     }
   }
 
@@ -171,7 +193,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
         }
         final loading = snapshot.connectionState != ConnectionState.done;
         final show = snapshot.hasData ? snapshot.data! : null;
-        final router = GoRouter.of(context);
         final trailer =
             show?.videos?.results
                 .where((v) => v.site == 'YouTube' && v.type == 'Trailer')
@@ -234,9 +255,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                               ),
                               onPressed: (_) {
                                 if (show != null && _playbackReady && _hasAiredEpisode) {
-                                  AppRouter.appRouter.push(
-                                    '/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                  );
+                                  _playShow(show, selectSource: true);
                                 }
                               },
                               child: const Text('Select Source'),
@@ -244,10 +263,8 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                           ],
                           child: Skeleton.keep(
                             child: Button(
-                              onPressed: show != null && _playbackReady && _hasAiredEpisode
-                                  ? () => router.push(
-                                      '/player?media=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                    )
+                              onPressed: show != null && _playbackReady && _hasAiredEpisode && !_startingPlayback
+                                  ? () => _playShow(show)
                                   : null,
                               style: const ButtonStyle.primary()
                                   .withBorderRadius(
@@ -284,6 +301,13 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (show != null) ...[
+                        WatchActivityPanel(
+                          tmdbId: show.id, mediaType: MediaType.show,
+                          show: show,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       Row(
                         spacing: 8,
                         children: [
