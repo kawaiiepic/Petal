@@ -1,3 +1,4 @@
+import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/utils/show_playback.dart';
@@ -55,6 +56,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
   bool _playbackReady = false;
   bool _hasAiredEpisode = false;
   bool _rewatch = false;
+  bool _startingPlayback = false;
   int _selectedSeasonNumber = 1;
   int _targetRevision = 0;
   int _loadRevision = 0;
@@ -108,6 +110,24 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
           profile == BackendApi.profileCacheKey) {
         setState(() => _loadError = error);
       }
+    }
+  }
+
+  Future<void> _playShow(TmdbShow show) async {
+    if (_startingPlayback) return;
+    final profile = BackendApi.profileCacheKey;
+    final target = episode;
+    final restarting = _rewatch;
+    setState(() => _startingPlayback = true);
+    try {
+      if (restarting) await HistoryActions.startTitleRewatch(show.id, MediaType.show);
+      if (!mounted || profile != BackendApi.profileCacheKey) return;
+      await context.push('/player?media=${show.id}&s=${target.seasonNumber}&e=${target.episodeNumber}');
+    } catch (error) {
+      if (mounted) AppNotifications.sendNotification(
+        const Text('Could not start playback'), Text(HistoryActions.errorMessage(error)));
+    } finally {
+      if (mounted) setState(() => _startingPlayback = false);
     }
   }
 
@@ -172,7 +192,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
         }
         final loading = snapshot.connectionState != ConnectionState.done;
         final show = snapshot.hasData ? snapshot.data! : null;
-        final router = GoRouter.of(context);
         final trailer =
             show?.videos?.results
                 .where((v) => v.site == 'YouTube' && v.type == 'Trailer')
@@ -245,10 +264,8 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                           ],
                           child: Skeleton.keep(
                             child: Button(
-                              onPressed: show != null && _playbackReady && _hasAiredEpisode
-                                  ? () => router.push(
-                                      '/player?media=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                    )
+                              onPressed: show != null && _playbackReady && _hasAiredEpisode && !_startingPlayback
+                                  ? () => _playShow(show)
                                   : null,
                               style: const ButtonStyle.primary()
                                   .withBorderRadius(
