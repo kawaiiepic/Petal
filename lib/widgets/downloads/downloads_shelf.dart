@@ -1,3 +1,4 @@
+import 'package:petal/widgets/media/media_artwork_placeholder.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/download_manager.dart';
 import 'package:petal/models/downloads/download_entry.dart';
@@ -17,10 +18,23 @@ class DownloadsShelf extends StatefulWidget {
 }
 
 class _DownloadsShelfState extends State<DownloadsShelf> {
+  bool _loading = true;
+
+  Future<void> _load() async {
+    try {
+      await DownloadManager.load();
+      DownloadManager.refreshMetadata().catchError((Object _) {});
+    } catch (_) {
+      // Finish loading even when the local download index is unavailable.
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    DownloadManager.refreshMetadata();
+    _load();
   }
 
   @override
@@ -28,6 +42,20 @@ class _DownloadsShelfState extends State<DownloadsShelf> {
     return ValueListenableBuilder(
       valueListenable: DownloadManager.items,
       builder: (context, items, _) {
+        if (items.isEmpty && _loading) {
+          return HomeSection(
+            title: 'Downloads',
+            child: Column(
+              children: List.generate(3, (_) => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: SizedBox(
+                  height: 48,
+                  child: MediaArtworkPlaceholder(loading: true),
+                ),
+              )),
+            ),
+          );
+        }
         if (items.isEmpty) return const SizedBox.shrink();
         return HomeSection(
           title: 'Downloads',

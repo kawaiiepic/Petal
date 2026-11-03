@@ -1,0 +1,30 @@
+name: Home loading checks
+on:
+  pull_request:
+    paths:
+      - 'lib/pages/home_page.dart'
+      - 'lib/widgets/home/home_shelf_skeleton.dart'
+      - 'lib/widgets/home/because_you_watched_shelf.dart'
+      - 'lib/widgets/poster_shelf.dart'
+      - 'lib/widgets/upcoming_episodes.dart'
+      - 'lib/widgets/friend_activity.dart'
+      - 'lib/widgets/downloads/downloads_shelf.dart'
+      - '.github/workflows/home-loading-checks.yml'
+permissions:
+  contents: read
+concurrency:
+  group: home-loading-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+      - run: flutter pub get
+      - run: dart analyze lib/pages/home_page.dart lib/widgets/home/home_shelf_skeleton.dart lib/widgets/home/because_you_watched_shelf.dart lib/widgets/poster_shelf.dart lib/widgets/upcoming_episodes.dart lib/widgets/friend_activity.dart lib/widgets/downloads/downloads_shelf.dart
