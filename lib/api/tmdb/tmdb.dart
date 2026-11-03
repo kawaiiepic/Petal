@@ -93,7 +93,6 @@ class TMDB {
   }
 
   static Future<TmdbShow> tvShow(int tmdbId) async {
-    print("Getting tv show $tmdbId");
     final response = await tmdbApi(
       '/tv/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations&include_image_language=en,null',
     );
@@ -104,7 +103,6 @@ class TMDB {
   }
 
   static Future<TmdbMovie> movie(int tmdbId) async {
-    print("Getting movie $tmdbId");
     final response = await tmdbApi(
       '/movie/$tmdbId?append_to_response=images,external_ids,videos,credits,recommendations&include_image_language=en,null',
     );

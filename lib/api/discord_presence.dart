@@ -24,7 +24,6 @@ class Discord {
     try {
       await discordRPC.initialize('1525744175272951909');
     } catch (e) {
-      print("Discord nto running...");
     }
   }
 
@@ -52,7 +51,6 @@ class Discord {
         ),
       );
     } catch (e) {
-      print("Still not connected");
     }
   }
 
