@@ -1,3 +1,4 @@
+import 'package:petal/pages/player/player_theme.dart';
 import 'package:petal/api/playback_volume_store.dart';
 import 'package:petal/api/playback_preferences.dart';
 import 'package:petal/pages/player/overlay/playback_recovery_overlay.dart';
@@ -626,83 +627,85 @@ class StreamPlayerState extends State<StreamPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      onPopInvokedWithResult: (didPop, result) {
-        PlayerOrientation.restorePortrait();
-      },
-      child: PlaybackScope(
-        playEpisode: _playEpisode,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Video(
-              key: _videoKey,
-              controller: controller,
-              subtitleViewConfiguration: SubtitleViewConfiguration(
-                style: TextStyle(
-                  fontSize: PlaybackPreferences.instance.subtitleSize,
-                  color: Colors.white,
-                  backgroundColor:
-                      PlaybackPreferences.instance.subtitleBackground
-                      ? const Color(0xAA000000)
-                      : const Color(0x00000000),
-                  shadows: [
-                    for (final offset in [
-                      const Offset(-1, -1),
-                      const Offset(-1, 1),
-                      const Offset(1, -1),
-                      const Offset(1, 1),
-                    ])
-                      Shadow(
-                        color: const Color(0xFF000000),
-                        offset:
-                            offset *
-                            PlaybackPreferences.instance.subtitleOutline,
-                        blurRadius:
-                            PlaybackPreferences.instance.subtitleOutline,
-                      ),
-                  ],
-                ),
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  0,
-                  16,
-                  PlaybackPreferences.instance.subtitleBottom,
-                ),
-              ),
-              controls: (state) => PlaybackScope(
-                playEpisode: _playEpisode,
-                child: PlayerControls(state: state),
-              ),
-              fit: BoxFit.contain,
-              aspectRatio: 16 / 9,
-              pip: const PipConfig(
-                autoEnter: true,
-                preferredSize: Size(1920 / 5, 1080 / 5),
-              ),
-            ),
-            if (_failure != null)
-              Positioned.fill(
-                child: PlaybackRecoveryOverlay(
-                  offline: isOffline,
-                  loading: _loadingSources,
-                  sources: _alternateSources,
-                  retry: () => _recover(),
-                  findSources: _findRecoverySources,
-                  choose: (source) => _recover(source: source),
-                  close: _leave,
-                ),
-              ),
-            if (_switching)
-              const Positioned.fill(
-                child: AbsorbPointer(
-                  child: ColoredBox(
-                    color: Color(0x80101018),
-                    child: Center(child: CircularProgressIndicator()),
+    return PlayerTheme(
+      child: PopScope(
+        onPopInvokedWithResult: (didPop, result) {
+          PlayerOrientation.restorePortrait();
+        },
+        child: PlaybackScope(
+          playEpisode: _playEpisode,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Video(
+                key: _videoKey,
+                controller: controller,
+                subtitleViewConfiguration: SubtitleViewConfiguration(
+                  style: TextStyle(
+                    fontSize: PlaybackPreferences.instance.subtitleSize,
+                    color: Colors.white,
+                    backgroundColor:
+                        PlaybackPreferences.instance.subtitleBackground
+                        ? const Color(0xAA000000)
+                        : const Color(0x00000000),
+                    shadows: [
+                      for (final offset in [
+                        const Offset(-1, -1),
+                        const Offset(-1, 1),
+                        const Offset(1, -1),
+                        const Offset(1, 1),
+                      ])
+                        Shadow(
+                          color: const Color(0xFF000000),
+                          offset:
+                              offset *
+                              PlaybackPreferences.instance.subtitleOutline,
+                          blurRadius:
+                              PlaybackPreferences.instance.subtitleOutline,
+                        ),
+                    ],
+                  ),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    PlaybackPreferences.instance.subtitleBottom,
                   ),
                 ),
+                controls: (state) => PlaybackScope(
+                  playEpisode: _playEpisode,
+                  child: PlayerTheme(child: PlayerControls(state: state)),
+                ),
+                fit: BoxFit.contain,
+                aspectRatio: 16 / 9,
+                pip: const PipConfig(
+                  autoEnter: true,
+                  preferredSize: Size(1920 / 5, 1080 / 5),
+                ),
               ),
-          ],
+              if (_failure != null)
+                Positioned.fill(
+                  child: PlaybackRecoveryOverlay(
+                    offline: isOffline,
+                    loading: _loadingSources,
+                    sources: _alternateSources,
+                    retry: () => _recover(),
+                    findSources: _findRecoverySources,
+                    choose: (source) => _recover(source: source),
+                    close: _leave,
+                  ),
+                ),
+              if (_switching)
+                const Positioned.fill(
+                  child: AbsorbPointer(
+                    child: ColoredBox(
+                      color: Color(0x80101018),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
