@@ -198,65 +198,37 @@ void main() {
     expect(restored.subtitleOutline, 6);
     expect(restored.subtitleBottom, 0);
   });
-  test(
-    'manual reset and undo target exact episode and original profile',
-    () async {
-      BackendApi.dio = dio;
-      BackendApi.authState.setLoggedIn({'id': 'u'});
-      BackendApi.authState.setProfile(
-        Profile(id: 'p', userId: 'u', name: 'p', createdAt: ''),
-      );
-      double remote = .6;
-      adapter.respond = (r) {
-        if (r.method == 'PUT')
-          remote = (r.data['completion'] as num).toDouble();
-        return jsonBody({
-          'result': r.path.contains('/states/')
-              ? [
-                  {
-                    'tmdb_id': 42,
-                    'media_type': 'show',
-                    'updated_at': 1,
-                    'episodes': [
-                      {'season': 2, 'episode': 3, 'completion': remote},
-                    ],
-                  },
-                ]
-              : [],
-        });
-      };
-      await HistoryActions.setProgress(
-        42,
-        MediaType.show,
-        0,
-        season: 2,
-        episode: 3,
-      );
-      final put = adapter.requests.where((r) => r.method == 'PUT').last;
-      expect(put.path, contains('/track/state/p/episode/42'));
-      expect(put.data, containsPair('season', 2));
-      expect(put.data, containsPair('episode', 3));
-      expect(put.data, containsPair('completion', 0));
-      await HistoryActions.undo();
-      expect(
-        adapter.requests.where((r) => r.method == 'PUT').last.data,
-        containsPair('completion', .6),
-      );
-      await HistoryActions.setProgress(
-        42,
-        MediaType.show,
-        1,
-        season: 2,
-        episode: 3,
-      );
-      BackendApi.authState.setProfile(
-        Profile(id: 'other', userId: 'u', name: 'other', createdAt: ''),
-      );
-      final count = adapter.requests.where((r) => r.method == 'PUT').length;
-      await expectLater(HistoryActions.undo(), throwsStateError);
-      expect(adapter.requests.where((r) => r.method == 'PUT').length, count);
-    },
-  );
+  test('manual history edits use server snapshots and profile-scoped undo', () async {
+    BackendApi.dio = dio;
+    BackendApi.authState.setLoggedIn({'id': 'u'});
+    BackendApi.authState.setProfile(Profile(id: 'p', userId: 'u', name: 'p', createdAt: ''));
+    adapter.respond = (r) {
+      if (r.path.endsWith('/edit')) return jsonBody({'result': {
+        'edit_id': 'edit-token', 'expires_at': 9999999999,
+        'state': {'episodes': '[]'},
+      }});
+      if (r.path.contains('/undo/')) return jsonBody({'result': {'restored': true}});
+      return jsonBody({'result': []});
+    };
+    await HistoryActions.setProgress(42, MediaType.show, 0, season: 2, episode: 3);
+    final edit = adapter.requests.where((r) => r.path.endsWith('/edit')).last;
+    expect(edit.path, contains('/track/history/p/episode/42/edit'));
+    expect(edit.data, containsPair('action', 'reset'));
+    expect(edit.data, containsPair('season', 2));
+    expect(edit.data, containsPair('episode', 3));
+    await HistoryActions.undo();
+    expect(adapter.requests.where((r) => r.path.endsWith('/undo/edit-token')).length, 1);
+    await HistoryActions.remove(42, MediaType.show, season: 2, episode: 3);
+    expect(adapter.requests.where((r) => r.path.endsWith('/edit')).last.data, containsPair('action', 'delete'));
+    await HistoryActions.deleteWatch(42, MediaType.show, 1, DateTime.fromMillisecondsSinceEpoch(90000, isUtc: true), season: 2, episode: 3);
+    final removeWatch = adapter.requests.where((r) => r.path.endsWith('/edit')).last.data;
+    expect(removeWatch, containsPair('watch_index', 1));
+    expect(removeWatch, containsPair('watched_at', 90));
+    BackendApi.authState.setProfile(Profile(id: 'other', userId: 'u', name: 'other', createdAt: ''));
+    final count = adapter.requests.where((r) => r.method == 'POST').length;
+    await expectLater(HistoryActions.undo(), throwsStateError);
+    expect(adapter.requests.where((r) => r.method == 'POST').length, count);
+  });
   test('reset discards pending offline progress for only its target', () async {
     final sync = OfflineProgressSync();
     await sync.load();

@@ -270,6 +270,13 @@ latest manual progress edit in this session. Episode/card watched actions and
 movie library actions use the same undo service. Edits are bound to the original
 profile, wait for any active optional sync, discard the affected pending upload,
 and update matching downloaded playback progress locally without queuing an
-upload. Undo refuses to overwrite newer remote progress. Backend history-delete
-and watch-event restoration are not exposed by the current OpenAPI contract:
-reset/undo affect completion, not historical play counts or watch records.
+upload. Undo refuses to overwrite newer remote progress. History edits now use the owned-profile /track/history endpoints from
+petal-backend PR #1. Remove history, remove one play, reset, and watched/unwatched
+create server snapshots; Undo restores records, timestamps, and counts for one
+day unless newer progress changed the title. Pending sync and changed local
+download progress also block stale undo. Reset/delete clear the matching queued
+offline update, including when a profile switch happens during the request.
+The backend requires migration 0016 and JWT_SECRET configuration/deployment
+before these client controls work. Background tracking keeps PUT /track/state.
+Show-wide bulk tracking starts deferred jobs in bounded pairs rather than
+starting every episode request before awaiting a chunk.

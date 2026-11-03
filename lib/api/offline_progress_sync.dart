@@ -95,6 +95,9 @@ class OfflineProgressSync extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool hasPending({required String profileKey, required int mediaId, int? season, int? episode}) =>
+      _queue.containsKey('$profileKey|$mediaId|$season|$episode');
+
   Future<void> settle() async {
     await _syncing;
   }

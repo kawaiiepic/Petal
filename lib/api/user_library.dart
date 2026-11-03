@@ -208,12 +208,12 @@ class UserLibrary {
       final seasons = resolved.mainSeasons.isNotEmpty
           ? resolved.mainSeasons
           : resolved.seasons.where((s) => s.seasonNumber > 0).toList();
-      final jobs = <Future<void>>[];
+      final jobs = <Future<void> Function()>[];
       for (final season in seasons) {
         final count = season.episodeCount <= 0 ? 1 : season.episodeCount;
         for (var episode = 1; episode <= count; episode++) {
           jobs.add(
-            BackendApi.setProgress(
+            () => BackendApi.setProgress(
               tmdbId,
               MediaType.show,
               target,
@@ -234,9 +234,11 @@ class UserLibrary {
           refresh: false,
         );
       } else {
-        for (var i = 0; i < jobs.length; i += 8) {
+        for (var i = 0; i < jobs.length; i += 2) {
+          if (profile != BackendApi.profileCacheKey) return;
           await Future.wait(
-            jobs.sublist(i, i + 8 > jobs.length ? jobs.length : i + 8),
+            jobs.sublist(i, i + 2 > jobs.length ? jobs.length : i + 2)
+                .map((job) => job()),
           );
         }
       }

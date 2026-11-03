@@ -28,9 +28,9 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
     });
     try {
       await action();
-    } catch (_) {
+    } catch (error) {
       if (mounted)
-        setState(() => _error = 'Could not update history. Please try again.');
+        setState(() => _error = HistoryActions.errorMessage(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -49,7 +49,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
             spacing: 8,
             children: [
               const Text(
-                'Reset accidental progress or mark an episode/movie watched. Undo restores the previous progress. Play records and play counts cannot be deleted with the current backend.',
+                'Remove accidental plays, reset progress, or mark an episode/movie watched. Undo restores watch records and counts for up to one day, unless newer playback changes the title.',
               ),
               Wrap(
                 spacing: 8,
@@ -68,7 +68,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                       onPressed: !canUndo || _busy
                           ? null
                           : () => _run(HistoryActions.undo),
-                      child: const Text('Undo last progress change'),
+                      child: const Text('Undo last history edit'),
                     ),
                   ),
                 ],
@@ -101,6 +101,8 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                                 item.tmdbId,
                                 item.mediaType,
                                 item.completion,
+                                watches: item.watches,
+                                plays: item.plays,
                               ),
                             if (item.mediaType == MediaType.show)
                               for (final episode in item.episodes)
@@ -124,6 +126,8 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                                         episode.completion,
                                         season: episode.season,
                                         episode: episode.episode,
+                                        watches: episode.watches,
+                                        plays: episode.plays,
                                       ),
                                     ],
                                   ),
@@ -146,14 +150,16 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
     double completion, {
     int? season,
     int? episode,
+    List<DateTime> watches = const [],
+    int plays = 0,
   }) => Wrap(
     spacing: 8,
     runSpacing: 8,
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
-      Text('${(completion * 100).round()}%'),
+      Text('${(completion * 100).round()}% · $plays plays'),
       Button.outline(
-        onPressed: _busy || completion == 0
+        onPressed: _busy || (completion == 0 && watches.isEmpty && plays == 0)
             ? null
             : () => _run(
                 () => HistoryActions.setProgress(
@@ -180,6 +186,17 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
               ),
         child: Text(completion >= .9 ? 'Mark unwatched' : 'Mark watched'),
       ),
+      Button.outline(
+        onPressed: _busy ? null : () => _run(() => HistoryActions.remove(
+          id, type, season: season, episode: episode)),
+        child: const Text('Remove from history'),
+      ),
+      for (var index = 0; index < watches.length; index++)
+        Button.ghost(
+          onPressed: _busy ? null : () => _run(() => HistoryActions.deleteWatch(
+            id, type, index, watches[index], season: season, episode: episode)),
+          child: Text('Remove play ${index + 1} · ${watches[index].toLocal().toString().split('.').first}'),
+        ),
     ],
   );
 }
