@@ -32,7 +32,6 @@ import 'package:petal/widgets/overview/season_dropdown.dart';
 import 'package:petal/widgets/overview/show_recommendation_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ShowOverviewPage extends StatefulWidget {

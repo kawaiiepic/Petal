@@ -126,7 +126,7 @@ abstract final class HistoryActions {
         final currentDownload = DownloadManager.find(tmdbId: id, season: season, episode: episode);
         if (OfflineProgressSync.instance.hasPending(profileKey: profile, mediaId: id, season: season, episode: episode) ||
             (currentDownload != null && editedLocalProgress != null &&
-              (currentDownload.playbackProgress - editedLocalProgress!).abs() > .0001)) {
+              (currentDownload.playbackProgress - editedLocalProgress).abs() > .0001)) {
           throw StateError('New offline progress exists. Undo would overwrite it.');
         }
         await retryableWrite((options) => BackendApi.dio.post(

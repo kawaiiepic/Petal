@@ -12,6 +12,9 @@ on:
       - 'test/watch_counts_test.dart'
       - 'test/watch_counts_checks.dart'
       - '.github/workflows/rewatch-checks.yml'
+concurrency:
+  group: rewatch-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
