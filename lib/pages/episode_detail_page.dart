@@ -1,3 +1,4 @@
+import 'package:petal/api/user_library.dart';
 import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/media/media_progress_bar.dart';
@@ -46,7 +47,9 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
 
   late Future<List<dynamic>> _future = _load();
 
-  bool get _watched => BackendCache.watchHistory.value
+  bool get _watched => UserLibrary.pendingCompletion(widget.tmdbId, MediaType.show) != null
+      ? UserLibrary.pendingCompletion(widget.tmdbId, MediaType.show)! >= 1
+      : BackendCache.watchHistory.value
       .where(
         (item) =>
             item.tmdbId == widget.tmdbId && item.mediaType == MediaType.show,
@@ -135,13 +138,17 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
         final guest = episode?.guestStars.take(12).toList() ?? const [];
 
         return ListenableBuilder(
-          listenable: BackendCache.watchHistory,
+          listenable: Listenable.merge([
+            BackendCache.watchHistory, UserLibrary.pendingWatched,
+          ]),
           builder: (context, _) => ContextMenu(
             items: [
               MenuButton(
                 leading: const Icon(LucideIcons.check),
-                child: Text(_watched ? 'Mark as Unwatched' : 'Mark as Watched'),
-                onPressed: (_) => _toggleWatched(),
+                child: Text(UserLibrary.isChangingWatched(widget.tmdbId, MediaType.show)
+                  ? 'Saving show watch status…' : _watched ? 'Mark as Unwatched' : 'Mark as Watched'),
+                onPressed: UserLibrary.isChangingWatched(widget.tmdbId, MediaType.show)
+                  ? null : (_) => _toggleWatched(),
               ),
             ],
             child: Container(
