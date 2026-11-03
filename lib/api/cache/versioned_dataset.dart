@@ -92,7 +92,7 @@ class VersionedDataset<T> {
         final fresh = maxAge == null || (blob != null &&
             now().millisecondsSinceEpoch - (blob['saved_at'] as int) <
                 maxAge!.inMilliseconds);
-        if (stamp != null && blob != null &&
+        if (!_dirty.contains(scope) && stamp != null && blob != null &&
             blob['generation'] == stamp['generation'] &&
             blob['version'] == stamp[versionField] && fresh &&
             _values.containsKey(scope)) {
