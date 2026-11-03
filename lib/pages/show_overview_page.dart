@@ -1,3 +1,5 @@
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/utils/show_playback.dart';
 import 'package:petal/utils/app_notifications.dart';
 import 'package:petal/api/download_manager.dart';
 import 'package:petal/widgets/connection_error_view.dart';
@@ -48,6 +50,13 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
 
   int? _resolvedTmdbId;
   Object? _loadError;
+  TmdbShow? _details;
+  bool _playbackReady = false;
+  bool _hasAiredEpisode = false;
+  bool _rewatch = false;
+  int _selectedSeasonNumber = 1;
+  int _targetRevision = 0;
+  int _loadRevision = 0;
 
   Episode episode = Episode(seasonNumber: 1, episodeNumber: 1);
   final scrollController = ScrollController();
@@ -55,33 +64,98 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
   @override
   void initState() {
     super.initState();
+    BackendCache.watchHistory.addListener(_onProgressChanged);
+    BackendCache.continueWatching.addListener(_onProgressChanged);
     initData();
   }
 
+  void _onProgressChanged() {
+    final details = _details;
+    if (details != null) _updatePlaybackTarget(details);
+  }
+
+  Future<void> _updatePlaybackTarget(TmdbShow details) async {
+    final revision = ++_targetRevision;
+    final profile = BackendApi.profileCacheKey;
+    if (mounted) setState(() => _playbackReady = false);
+    try {
+      final target = await ShowPlayback.resolve(
+        show: details,
+        history: [...BackendCache.watchHistory.value],
+        nextUp: [...BackendCache.continueWatching.value],
+        loadSeason: (number) => TMDB.tvSeason(details.id, number),
+      );
+      if (!mounted || revision != _targetRevision ||
+          profile != BackendApi.profileCacheKey) return;
+      final next = target.episode;
+      final changed = next != null && (episode.seasonNumber != next.seasonNumber ||
+          episode.episodeNumber != next.episodeNumber);
+      setState(() {
+        _hasAiredEpisode = next != null;
+        _rewatch = target.rewatch;
+        _playbackReady = true;
+        if (next != null) episode = next;
+        if (_season == null || changed) {
+          _selectedSeasonNumber = next?.seasonNumber ??
+              details.seasons.where((s) => s.seasonNumber > 0)
+                  .firstOrNull?.seasonNumber ?? 1;
+          _season = TMDB.tvSeason(details.id, _selectedSeasonNumber);
+        }
+      });
+    } catch (error) {
+      if (mounted && revision == _targetRevision &&
+          profile == BackendApi.profileCacheKey) {
+        setState(() => _loadError = error);
+      }
+    }
+  }
+
   Future<void> initData() async {
+    final revision = ++_loadRevision;
+    _targetRevision++;
+    _details = null;
     setState(() {
       _loadError = null;
+      _playbackReady = false;
+      _season = null;
     });
     try {
       int? tmdbId = widget.tmdbId;
-
       if (tmdbId == null && widget.imdbId != null) {
         final result = await ApiCache.getTmdbSearch(widget.imdbId!);
         if (result.tv.isEmpty) throw StateError('Title not found');
         tmdbId = result.tv.first.id;
       }
-
-      if (tmdbId == null || !mounted) return;
+      if (tmdbId == null || !mounted || revision != _loadRevision) return;
       final show = TMDB.tvShow(tmdbId);
-      final season = TMDB.tvSeason(tmdbId, episode.seasonNumber);
       setState(() {
         _resolvedTmdbId = tmdbId;
         _show = show;
-        _season = season;
       });
+      final details = await show;
+      // Use the scoped caches; temporarily unavailable history keeps its saved values.
+      await Future.wait([
+        BackendCache.fetchWatchHistory().catchError((Object _) {}),
+        BackendCache.fetchContinueWatching().catchError((Object _) {}),
+      ]);
+      if (!mounted || revision != _loadRevision) return;
+      _details = details;
+      await _updatePlaybackTarget(details);
     } catch (error) {
-      if (mounted) setState(() => _loadError = error);
+      if (mounted && revision == _loadRevision) {
+        setState(() => _loadError = error);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _loadRevision++;
+    _targetRevision++;
+    BackendCache.watchHistory.removeListener(_onProgressChanged);
+    BackendCache.continueWatching.removeListener(_onProgressChanged);
+    scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -164,7 +238,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                 ),
                               ),
                               onPressed: (_) {
-                                if (show != null) {
+                                if (show != null && _playbackReady && _hasAiredEpisode) {
                                   AppRouter.appRouter.push(
                                     '/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
                                   );
@@ -175,8 +249,8 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                           ],
                           child: Skeleton.keep(
                             child: Button(
-                              onPressed: () => show != null
-                                  ? router.push(
+                              onPressed: show != null && _playbackReady && _hasAiredEpisode
+                                  ? () => router.push(
                                       '/player?media=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
                                     )
                                   : null,
@@ -195,7 +269,9 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                     style: TextStyle(
                                       fontSize: AppTypography.bodySize,
                                     ),
-                                    'S${episode.seasonNumber}:E${episode.episodeNumber}',
+                                    !_playbackReady ? 'Finding next episode…'
+                                        : !_hasAiredEpisode ? 'No aired episodes'
+                                        : '${_rewatch ? 'Rewatch ' : ''}S${episode.seasonNumber}:E${episode.episodeNumber}',
                                   ),
                                 ],
                               ),
@@ -384,10 +460,11 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                             ).h3,
                             SeasonDropdown(
                               tvShow: show,
-                              selectedSeason: show?.seasons.firstWhere(
-                                (s) => s.seasonNumber == episode.seasonNumber,
+                              selectedSeason: show?.seasons.firstWhereOrNull(
+                                (s) => s.seasonNumber == _selectedSeasonNumber,
                               ),
                               onSeasonChanged: (season) {
+                                _selectedSeasonNumber = season.seasonNumber;
                                 _season = TMDB.tvSeason(
                                   _resolvedTmdbId!,
                                   season.seasonNumber,
@@ -401,7 +478,10 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                       FutureBuilder(
                         future: _season,
                         builder: (context, snapshot) {
-                          return Column(
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Column(
+                            spacing: 16,
                             children: [
                               if (snapshot.hasData &&
                                   snapshot.data!.episodes.isNotEmpty)
@@ -736,6 +816,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                   },
                                 ),
                             ],
+                            ),
                           );
                         },
                       ),

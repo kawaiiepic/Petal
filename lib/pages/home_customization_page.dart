@@ -3,7 +3,8 @@ import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class HomeCustomizationPage extends StatefulWidget {
-  const HomeCustomizationPage({super.key});
+  final bool popup;
+  const HomeCustomizationPage({super.key, this.popup = false});
   @override
   State<HomeCustomizationPage> createState() => _HomeCustomizationPageState();
 }
@@ -29,7 +30,7 @@ class _HomeCustomizationPageState extends State<HomeCustomizationPage> {
   Widget build(BuildContext context) {
     final layout = HomeLayout.instance;
     return Scaffold(
-      headers: const [
+      headers: widget.popup ? const [] : const [
         AppBar(leading: [BackButton()], title: Text('Customize Home')),
       ],
       child: ListenableBuilder(

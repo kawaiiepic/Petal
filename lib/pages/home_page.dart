@@ -1,4 +1,3 @@
-import 'package:go_router/go_router.dart';
 import 'package:petal/api/home_layout.dart';
 import 'package:flutter/rendering.dart';
 import 'package:petal/api/api_cache.dart';
@@ -145,15 +144,6 @@ class _HomePageState extends State<HomePage> {
             scrollCacheExtent: ScrollCacheExtent.pixels(200),
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              SliverToBoxAdapter(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Button.ghost(
-                    onPressed: () => context.push('/home-layout'),
-                    child: const Text('Customize Home'),
-                  ),
-                ),
-              ),
               for (final id in HomeLayout.instance.order.where(
                 (id) => !HomeLayout.instance.hidden.contains(id),
               ))
