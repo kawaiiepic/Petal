@@ -1,3 +1,4 @@
+import 'package:petal/api/retryable_write.dart';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -54,14 +55,15 @@ abstract final class HistoryActions {
       final download = DownloadManager.find(tmdbId: id, season: season, episode: episode);
       final localProgress = download?.playbackProgress;
       double? editedLocalProgress;
-      final response = await BackendApi.dio.post('$url/edit', data: {
+      final response = await retryableWrite((options) => BackendApi.dio.post('$url/edit', options: options, data: {
         ...target, 'action': action,
         if (completion != null) 'completion': completion,
         if (index != null) 'watch_index': index,
         if (at != null) 'watched_at': at.toUtc().millisecondsSinceEpoch ~/ 1000,
-      });
+      }));
       final editId = response.data['result']['edit_id'] as String;
       _profile = profile;
+      final undoKey = newRequestKey();
       _undo = () async {
         _checkProfile(profile);
         final currentDownload = DownloadManager.find(tmdbId: id, season: season, episode: episode);
@@ -70,7 +72,8 @@ abstract final class HistoryActions {
               (currentDownload.playbackProgress - editedLocalProgress!).abs() > .0001)) {
           throw StateError('New offline progress exists. Undo would overwrite it.');
         }
-        await BackendApi.dio.post('${Api.ServerUrl}/track/history/$profileId/undo/$editId');
+        await retryableWrite((options) => BackendApi.dio.post(
+          '${Api.ServerUrl}/track/history/$profileId/undo/$editId', options: options), requestKey: undoKey);
         _checkProfile(profile);
         BackendCache.invalidateProgress(profileKey: profile);
         if (download != null && localProgress != null) {
@@ -115,6 +118,9 @@ abstract final class HistoryActions {
   static String errorMessage(Object error) {
     if (error is StateError) return error.message.toString();
     if (error is DioException) {
+      if (error.response?.statusCode == 409 && error.response?.headers.value('Retry-After') != null) {
+        return 'Request outcome is pending. Refresh history before another edit.';
+      }
       if (error.response?.statusCode == 409) return 'History changed or Undo expired. Refresh before editing again.';
       if (error.response?.statusCode == 404) return 'History editing is unavailable. The updated backend must be deployed first.';
     }

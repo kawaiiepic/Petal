@@ -1,3 +1,5 @@
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:web_socket_channel/io.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -9,6 +11,8 @@ class WatchPresenceClient {
   final String? profileId;
 
   WebSocketChannel? _channel;
+  bool _disposed = false;
+  int _generation = 0;
   Timer? _heartbeatTimer;
   Timer? _reconnectTimer;
   StreamSubscription? _sub;
@@ -18,30 +22,42 @@ class WatchPresenceClient {
 
   WatchPresenceClient({this.profileId});
 
-  void connect() {
-    final uri = profileId != null
-        ? Uri.parse('$baseUrl?profileId=$profileId')
-        : Uri.parse(baseUrl);
+  void connect() { unawaited(_connect()); }
 
-    _channel = WebSocketChannel.connect(uri);
-
-    _sub = _channel!.stream.listen(
-      (raw) {
-        final msg = jsonDecode(raw as String);
-        if (msg['type'] == 'sessions') {
-          _sessionsController.add(
-            (msg['sessions'] as List)
-                .map((s) => WatchSession.fromJson(s as Map<String, dynamic>))
-                .toList(),
-          );
-        }
-      },
-      onError: (_) => _scheduleReconnect(),
-      onDone: _scheduleReconnect,
-    );
+  Future<void> _connect() async {
+    if (_disposed) return;
+    _reconnectTimer?.cancel();
+    final generation = ++_generation;
+    try {
+      final uri = Uri.parse(baseUrl).replace(
+        queryParameters: profileId == null ? null : {'profileId': profileId!});
+      final cookies = await BackendApi.cookieJar.loadForRequest(uri.replace(scheme: 'https'));
+      if (_disposed || generation != _generation) return;
+      if (!cookies.any((cookie) => cookie.name == 'auth')) { _scheduleReconnect(); return; }
+      await _sub?.cancel();
+      await _channel?.sink.close();
+      if (_disposed || generation != _generation) return;
+      final channel = IOWebSocketChannel.connect(uri, headers: {
+        'Cookie': cookies.map((c) => '${c.name}=${c.value}').join('; '),
+      });
+      _channel = channel;
+      _sub = channel.stream.listen((raw) {
+        if (_disposed || generation != _generation) return;
+        try {
+          final msg = jsonDecode(raw as String);
+          if (msg['type'] == 'sessions') {
+            _sessionsController.add((msg['sessions'] as List)
+                .map((s) => WatchSession.fromJson(Map<String, dynamic>.from(s as Map))).toList());
+          }
+        } catch (_) {}
+      }, onError: (_) { if (generation == _generation) _scheduleReconnect(); },
+         onDone: () { if (generation == _generation) _scheduleReconnect(); });
+      await channel.ready;
+    } catch (_) { if (!_disposed && generation == _generation) _scheduleReconnect(); }
   }
 
   void _scheduleReconnect() {
+    if (_disposed) return;
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(const Duration(seconds: 3), connect);
   }
@@ -53,6 +69,8 @@ class WatchPresenceClient {
     int? episode,
     required int position,
     required int duration,
+    String? title,
+    String? episodeTitle,
   }) {
     _channel?.sink.add(
       jsonEncode({
@@ -60,6 +78,8 @@ class WatchPresenceClient {
         'profileId': profileId,
         'tmdbId': tmdbId,
         'mediaType': mediaType,
+        'title': title ?? 'Media $tmdbId',
+        'episodeTitle': episodeTitle,
         'season': season,
         'episode': episode,
         'position': position,
@@ -100,6 +120,9 @@ class WatchPresenceClient {
   }
 
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _generation++;
     _heartbeatTimer?.cancel();
     _reconnectTimer?.cancel();
     _sub?.cancel();
