@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/cache/async_cache.dart';
-import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/watch_history/continue_watching_item.dart';
-import 'package:petal/models/watch_history/show_item.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
 import 'package:petal/models/watch_session.dart';
 import 'package:petal/utils/frame_safe_value_notifier.dart';
@@ -58,34 +56,18 @@ class BackendCache {
     final key = _syncProfile();
     if (key == null) return;
     final revision = _revision;
-    final items = await _nextUp.get(key, _loadContinueWatching, force: force);
+    // The backend selects aired next episodes and resumes saved partial progress.
+    // Card artwork and metadata load independently after this list is published.
+    final items = await _nextUp.get(
+      key,
+      BackendApi.continueWatching,
+      force: force,
+    );
     if (revision == _revision &&
         key == BackendApi.profileCacheKey &&
         !identical(continueWatching.value, items)) {
       continueWatching.value = items;
     }
-  }
-
-  static Future<List<ContinueWatchingItem>> _loadContinueWatching() async {
-    final items = await BackendApi.continueWatching();
-    final filtered = <ContinueWatchingItem>[];
-    for (final item in items) {
-      if (item is ShowItem && item.nextEpisode != null) {
-        try {
-          final episode = await TMDB.tvEpisode(
-            item.tmdbId,
-            item.nextEpisode!.season,
-            item.nextEpisode!.episode,
-          );
-          final airDate = episode.airDate;
-          if (airDate == null || airDate.isAfter(DateTime.now())) continue;
-        } catch (_) {
-          // Keep the item when metadata is temporarily unavailable.
-        }
-      }
-      filtered.add(item);
-    }
-    return filtered;
   }
 
   static Future<void> fetchWatchHistory({bool force = false}) async {
