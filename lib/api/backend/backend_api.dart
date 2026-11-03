@@ -1,3 +1,4 @@
+import 'package:petal/api/retryable_write.dart';
 import 'dart:typed_data';
 
 import 'package:cookie_jar/cookie_jar.dart';
@@ -68,9 +69,9 @@ class BackendApi {
     print("Verifying session");
 
     try {
-      final uri = Uri.parse("${Api.ServerUrl}/users/verify");
 
-      print("Cookies: ${await cookieJar.loadForRequest(uri)}");
+
+
 
       final response = await dio.get("${Api.ServerUrl}/users/verify");
 
@@ -218,14 +219,24 @@ class BackendApi {
   }
 
   static Future<List<WatchHistoryItem>> watchHistory() async {
-    if (authState.selectedProfile == null) return [];
-    final url =
-        '${Api.ServerUrl}/track/states/${authState.selectedProfile?.id}';
-    final response = await dio.get(url);
-
-    final items = (response.data['result'] as List<dynamic>)
-        .map((e) => WatchHistoryItem.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final profile = profileCacheKey;
+    final id = authState.selectedProfile?.id;
+    if (profile == null || id == null) return [];
+    final items = <WatchHistoryItem>[];
+    final cursors = <String>{};
+    String? cursor;
+    do {
+      if (profileCacheKey != profile) return [];
+      final response = await dio.get('${Api.ServerUrl}/track/states/$id',
+        queryParameters: {'limit': 200, if (cursor != null) 'cursor': cursor});
+      if (profileCacheKey != profile) return [];
+      items.addAll((response.data['result'] as List)
+          .map((e) => WatchHistoryItem.fromJson(Map<String, dynamic>.from(e as Map))));
+      cursor = response.data['next_cursor'] as String?;
+      if (cursor != null && !cursors.add(cursor)) {
+        throw const FormatException('Backend repeated its history cursor');
+      }
+    } while (cursor != null);
     return items;
   }
 
@@ -369,7 +380,7 @@ class BackendApi {
     Map<String, dynamic> data,
     String profileKey,
   ) async {
-    await dio.put(url, data: data);
+    await retryableWrite((options) => dio.put(url, data: data, options: options));
     BackendCache.invalidateProgress(profileKey: profileKey);
   }
 }
