@@ -1,4 +1,4 @@
-import 'package:petal/api/watch_stats.dart';
+import 'package:petal/models/watch_history/watch_stats_snapshot.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class WatchCalendar extends StatelessWidget {
@@ -7,7 +7,13 @@ class WatchCalendar extends StatelessWidget {
   final ValueChanged<DateTime>? onMonthChanged;
   final ValueChanged<DateTime>? onDaySelected;
 
-  const WatchCalendar({super.key, required this.stats, this.selectedDay, this.onMonthChanged, this.onDaySelected});
+  const WatchCalendar({
+    super.key,
+    required this.stats,
+    this.selectedDay,
+    this.onMonthChanged,
+    this.onDaySelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +24,10 @@ class WatchCalendar extends StatelessWidget {
     final cells = lead + daysInMonth;
     final rows = ((cells + 6) / 7).floor();
     const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    final max = stats.activityByDay.values.fold<int>(1, (a, b) => a > b ? a : b);
+    final max = stats.activityByDay.values.fold<int>(
+      1,
+      (a, b) => a > b ? a : b,
+    );
 
     return Card(
       child: Padding(
@@ -30,7 +39,11 @@ class WatchCalendar extends StatelessWidget {
               children: [
                 IconButton.ghost(
                   icon: const Icon(LucideIcons.chevronLeft),
-                  onPressed: onMonthChanged == null ? null : () => onMonthChanged!(DateTime(month.year, month.month - 1)),
+                  onPressed: onMonthChanged == null
+                      ? null
+                      : () => onMonthChanged!(
+                          DateTime(month.year, month.month - 1),
+                        ),
                 ),
                 Expanded(
                   child: Text(
@@ -41,7 +54,11 @@ class WatchCalendar extends StatelessWidget {
                 ),
                 IconButton.ghost(
                   icon: const Icon(LucideIcons.chevronRight),
-                  onPressed: onMonthChanged == null ? null : () => onMonthChanged!(DateTime(month.year, month.month + 1)),
+                  onPressed: onMonthChanged == null
+                      ? null
+                      : () => onMonthChanged!(
+                          DateTime(month.year, month.month + 1),
+                        ),
                 ),
               ],
             ),
@@ -50,7 +67,14 @@ class WatchCalendar extends StatelessWidget {
               children: [
                 for (final label in labels)
                   Expanded(
-                    child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5))),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -79,13 +103,25 @@ class WatchCalendar extends StatelessWidget {
     );
   }
 
-  Widget _cell({required int index, required int lead, required int daysInMonth, required DateTime month, required int max}) {
+  Widget _cell({
+    required int index,
+    required int lead,
+    required int daysInMonth,
+    required DateTime month,
+    required int max,
+  }) {
     final dayNum = index - lead + 1;
     if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(height: 32);
     final day = DateTime(month.year, month.month, dayNum);
     final count = stats.activityByDay[day] ?? 0;
-    final selected = selectedDay != null && selectedDay!.year == day.year && selectedDay!.month == day.month && selectedDay!.day == day.day;
-    final intensity = count == 0 ? 0.08 : (0.18 + (count / max) * 0.82).clamp(0.18, 1.0);
+    final selected =
+        selectedDay != null &&
+        selectedDay!.year == day.year &&
+        selectedDay!.month == day.month &&
+        selectedDay!.day == day.day;
+    final intensity = count == 0
+        ? 0.08
+        : (0.18 + (count / max) * 0.82).clamp(0.18, 1.0);
     return Padding(
       padding: const EdgeInsets.all(2),
       child: GestureDetector(
@@ -96,16 +132,39 @@ class WatchCalendar extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF7C4DFF).withValues(alpha: intensity),
             borderRadius: BorderRadius.circular(6),
-            border: selected ? Border.all(color: Colors.white, width: 1.5) : null,
+            border: selected
+                ? Border.all(color: Colors.white, width: 1.5)
+                : null,
           ),
-          child: Text('$dayNum', style: TextStyle(fontSize: 11, color: count == 0 ? Colors.white.withValues(alpha: 0.45) : Colors.white)),
+          child: Text(
+            '$dayNum',
+            style: TextStyle(
+              fontSize: 11,
+              color: count == 0
+                  ? Colors.white.withValues(alpha: 0.45)
+                  : Colors.white,
+            ),
+          ),
         ),
       ),
     );
   }
 
   static String _monthName(int month) {
-    const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const names = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
     return names[month - 1];
   }
 }

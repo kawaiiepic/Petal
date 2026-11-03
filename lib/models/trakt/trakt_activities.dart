@@ -1,0 +1,9 @@
+export 'package:petal/models/trakt/activities/trakt_account_activities.dart';
+export 'package:petal/models/trakt/activities/trakt_comment_activities.dart';
+export 'package:petal/models/trakt/activities/trakt_episode_activities.dart';
+export 'package:petal/models/trakt/activities/trakt_last_activities.dart';
+export 'package:petal/models/trakt/activities/trakt_list_activities.dart';
+export 'package:petal/models/trakt/activities/trakt_movie_activities.dart';
+export 'package:petal/models/trakt/activities/trakt_season_activities.dart';
+export 'package:petal/models/trakt/activities/trakt_show_activities.dart';
+export 'package:petal/models/trakt/activities/trakt_timestamp_activity.dart';

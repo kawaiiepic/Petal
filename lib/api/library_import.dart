@@ -1,49 +1,19 @@
-
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/api/backend/library_api.dart';
+import 'package:petal/api/imports/import_file_parser.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
-import 'package:petal/api/trakt/backend_api.dart';
-import 'package:petal/api/trakt/backend_cache.dart';
-import 'package:petal/api/trakt/library_api.dart';
 import 'package:petal/api/user_library.dart';
-import 'package:petal/models/trakt/enum/media_type.dart';
-
-enum ImportSource { auto, trakt, letterboxd, simkl, generic }
-
-typedef ImportProgressCallback = void Function(
-  int processed,
-  int? total,
-);
-
-class LibraryImportReport {
-  int moviesWatched = 0;
-  int episodesWatched = 0;
-  int watchlisted = 0;
-  int rated = 0;
-  int skipped = 0;
-  int existing = 0;
-  String source = 'auto';
-
-  String get summary =>
-      '[$source] Added $moviesWatched movies, '
-      '$episodesWatched episodes, $watchlisted watchlist, '
-      '$rated ratings. Already present $existing. '
-      'Skipped $skipped.';
-}
-
-class _ImportFile {
-  const _ImportFile({
-    required this.name,
-    required this.bytes,
-    required this.count,
-  });
-
-  final String name;
-  final Uint8List bytes;
-  final int count;
-}
+import 'package:petal/models/imports/import_progress_callback.dart';
+import 'package:petal/models/imports/import_source.dart';
+import 'package:petal/models/imports/library_import_file.dart';
+import 'package:petal/models/imports/library_import_report.dart';
+import 'package:petal/models/library/title_rating.dart';
+import 'package:petal/models/media_type.dart';
 
 class LibraryImport {
   static const int _concurrency = 4;
@@ -106,9 +76,7 @@ class LibraryImport {
 
     final workers = total < _concurrency ? total : _concurrency;
 
-    await Future.wait(
-      List.generate(workers, (_) => worker()),
-    );
+    await Future.wait(List.generate(workers, (_) => worker()));
   }
 
   static Future<LibraryImportReport> importFile({
@@ -128,8 +96,9 @@ class LibraryImport {
     final report = LibraryImportReport();
     final lower = name.toLowerCase();
 
-    final detected =
-        source == ImportSource.auto ? _detect(lower, bytes) : source;
+    final detected = source == ImportSource.auto
+        ? ImportFileParser.detectSource(lower, bytes)
+        : source;
 
     report.source = detected.name;
 
@@ -138,34 +107,25 @@ class LibraryImport {
 
       final relevantFiles = archive.files.where((file) {
         if (!file.isFile) return false;
-        return !_shouldSkipFile(file.name.toLowerCase());
+        return !ImportFileParser.shouldSkipFile(file.name.toLowerCase());
       }).toList();
 
-      final files = <_ImportFile>[];
+      final files = <LibraryImportFile>[];
 
       // Count records first so progress stays cumulative across ZIP files.
       for (final file in relevantFiles) {
-        final fileBytes = Uint8List.fromList(
-          file.content as List<int>,
-        );
+        final fileBytes = Uint8List.fromList(file.content as List<int>);
 
         files.add(
-          _ImportFile(
+          LibraryImportFile(
             name: file.name,
             bytes: fileBytes,
-            count: _countItems(
-              file.name,
-              fileBytes,
-              detected,
-            ),
+            count: ImportFileParser.countItems(file.name, fileBytes, detected),
           ),
         );
       }
 
-      final total = files.fold<int>(
-        0,
-        (sum, file) => sum + file.count,
-      );
+      final total = files.fold<int>(0, (sum, file) => sum + file.count);
 
       var offset = 0;
       onProgress?.call(0, total);
@@ -185,123 +145,21 @@ class LibraryImport {
         onProgress?.call(offset, total);
       }
     } else {
-      final total = _countItems(name, bytes, detected);
+      final total = ImportFileParser.countItems(name, bytes, detected);
 
       onProgress?.call(0, total);
 
-      await _importNamed(
-        name,
-        bytes,
-        detected,
-        report,
-        onProgress: onProgress,
-      );
+      await _importNamed(name, bytes, detected, report, onProgress: onProgress);
     }
 
-    await BackendCache.fetchWatchHistory();
-    await BackendCache.fetchContinueWatching();
-    await UserLibrary.load();
+    await BackendCache.fetchWatchHistory(force: true);
+    await BackendCache.fetchContinueWatching(force: true);
+    await UserLibrary.load(force: true);
 
     // Refresh indexes for any later import in this process.
     _buildWatchedIndexes();
 
     return report;
-  }
-
-  static int _countItems(
-    String name,
-    Uint8List bytes,
-    ImportSource source,
-  ) {
-    final lower = name.toLowerCase();
-
-    if (_shouldSkipFile(lower)) return 0;
-
-    if (lower.endsWith('.csv') || source == ImportSource.letterboxd) {
-      final lines = const LineSplitter()
-          .convert(utf8.decode(bytes))
-          .where((line) => line.trim().isNotEmpty)
-          .toList();
-
-      return lines.isEmpty ? 0 : lines.length - 1;
-    }
-
-    final decoded = jsonDecode(utf8.decode(bytes));
-
-    if (source == ImportSource.simkl && decoded is Map) {
-      final movies = decoded['movies'] is List
-          ? decoded['movies'] as List
-          : const [];
-
-      final shows = decoded['shows'] is List
-          ? decoded['shows'] as List
-          : decoded['tv'] is List
-              ? decoded['tv'] as List
-              : const [];
-
-      return movies.length + shows.length;
-    }
-
-    if (decoded is List) return decoded.length;
-
-    if (decoded is Map && decoded['items'] is List) {
-      return (decoded['items'] as List).length;
-    }
-
-    if (decoded is Map) {
-      return [
-        ..._safeList(decoded['movies']),
-        ..._safeList(decoded['shows']),
-        ..._safeList(decoded['watchlist']),
-        ..._safeList(decoded['history']),
-        ..._safeList(decoded['ratings']),
-      ].length;
-    }
-
-    return 0;
-  }
-
-  static bool _shouldSkipFile(String lowerName) {
-    return lowerName.startsWith('user-') ||
-        lowerName.startsWith('hidden-') ||
-        lowerName.startsWith('network-') ||
-        lowerName.startsWith('likes-') ||
-        lowerName.startsWith('comments-') ||
-        lowerName.startsWith('notes-') ||
-        lowerName.contains('playback') ||
-        lowerName.contains('collaborations') ||
-        lowerName.contains('last-activities') ||
-        lowerName.contains('user-stats');
-  }
-
-  static ImportSource _detect(String name, Uint8List bytes) {
-    if (name.contains('letterboxd') || name.endsWith('.csv')) {
-      return ImportSource.letterboxd;
-    }
-
-    if (name.contains('simkl')) return ImportSource.simkl;
-
-    if (name.contains('trakt') ||
-        name.contains('history') ||
-        name.contains('watched') ||
-        name.contains('watchlist') ||
-        name.contains('rating')) {
-      return ImportSource.trakt;
-    }
-
-    final head = utf8
-        .decode(bytes.take(200).toList(), allowMalformed: true)
-        .toLowerCase();
-
-    if (head.contains('letterboxd') || head.contains('watched date')) {
-      return ImportSource.letterboxd;
-    }
-
-    if (head.contains('"simkl"') || head.contains('simkl_id')) {
-      return ImportSource.simkl;
-    }
-
-    return ImportSource.generic;
   }
 
   static Future<void> _importNamed(
@@ -313,7 +171,7 @@ class LibraryImport {
   }) async {
     final lower = name.toLowerCase();
 
-    if (_shouldSkipFile(lower)) return;
+    if (ImportFileParser.shouldSkipFile(lower)) return;
 
     if (lower.endsWith('.csv') || source == ImportSource.letterboxd) {
       await _importCsv(
@@ -328,46 +186,11 @@ class LibraryImport {
     final decoded = jsonDecode(utf8.decode(bytes));
 
     if (source == ImportSource.simkl) {
-      await _importSimkl(
-        decoded,
-        report,
-        onProgress: onProgress,
-      );
+      await _importSimkl(decoded, report, onProgress: onProgress);
       return;
     }
 
-    await _importJsonList(
-      name,
-      decoded,
-      report,
-      onProgress: onProgress,
-    );
-  }
-
-  static List _safeList(dynamic value) {
-    if (value is List) return value;
-    return const [];
-  }
-
-  static DateTime? _parseDate(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value;
-
-    if (value is int) {
-      if (value > 1000000000 && value < 2000000000) {
-        return DateTime.fromMillisecondsSinceEpoch(
-          value * 1000,
-          isUtc: true,
-        );
-      }
-      return null;
-    }
-
-    if (value is String && value.isNotEmpty) {
-      return DateTime.tryParse(value);
-    }
-
-    return null;
+    await _importJsonList(name, decoded, report, onProgress: onProgress);
   }
 
   static Future<void> _importJsonList(
@@ -379,16 +202,16 @@ class LibraryImport {
     final items = decoded is List
         ? decoded
         : decoded is Map && decoded['items'] is List
-            ? decoded['items'] as List
-            : decoded is Map
-                ? [
-                    ..._safeList(decoded['movies']),
-                    ..._safeList(decoded['shows']),
-                    ..._safeList(decoded['watchlist']),
-                    ..._safeList(decoded['history']),
-                    ..._safeList(decoded['ratings']),
-                  ]
-                : const [];
+        ? decoded['items'] as List
+        : decoded is Map
+        ? [
+            ...ImportFileParser.safeList(decoded['movies']),
+            ...ImportFileParser.safeList(decoded['shows']),
+            ...ImportFileParser.safeList(decoded['watchlist']),
+            ...ImportFileParser.safeList(decoded['history']),
+            ...ImportFileParser.safeList(decoded['ratings']),
+          ]
+        : const [];
 
     final hint = name.toLowerCase();
 
@@ -407,8 +230,7 @@ class LibraryImport {
             report,
             forceWatchlist: hint.contains('watchlist'),
             forceRating: hint.contains('rating'),
-            forceWatched:
-                hint.contains('history') || hint.contains('watched'),
+            forceWatched: hint.contains('history') || hint.contains('watched'),
           );
         } catch (_) {
           report.skipped++;
@@ -439,8 +261,8 @@ class LibraryImport {
     final shows = decoded['shows'] is List
         ? decoded['shows'] as List
         : decoded['tv'] is List
-            ? decoded['tv'] as List
-            : const [];
+        ? decoded['tv'] as List
+        : const [];
 
     final items = [...movies, ...shows];
 
@@ -457,19 +279,17 @@ class LibraryImport {
           final item = Map<String, dynamic>.from(raw);
 
           final status =
-              (item['status'] as String? ??
-                      item['list'] as String? ??
-                      '')
+              (item['status'] as String? ?? item['list'] as String? ?? '')
                   .toLowerCase();
 
           await _importMap(
             item,
             report,
-            forceWatchlist: status.contains('plantowatch') ||
-                status.contains('watchlist'),
-            forceRating:
-                item['user_rating'] != null || item['rating'] != null,
-            forceWatched: status.contains('complete') ||
+            forceWatchlist:
+                status.contains('plantowatch') || status.contains('watchlist'),
+            forceRating: item['user_rating'] != null || item['rating'] != null,
+            forceWatched:
+                status.contains('complete') ||
                 status.contains('watched') ||
                 item['last_watched'] != null,
           );
@@ -493,18 +313,17 @@ class LibraryImport {
 
     if (lines.isEmpty) return;
 
-    final headers = _splitCsv(lines.first)
+    final headers = ImportFileParser.splitCsvRow(lines.first)
         .map((header) => header.trim().toLowerCase())
         .toList();
 
     final hint = name.toLowerCase();
 
-    final watchlistFile = hint.contains('watchlist') ||
-        (headers.contains('listed date') &&
-            !headers.contains('watched date'));
+    final watchlistFile =
+        hint.contains('watchlist') ||
+        (headers.contains('listed date') && !headers.contains('watched date'));
 
-    final ratingFile =
-        hint.contains('rating') || headers.contains('rating');
+    final ratingFile = hint.contains('rating') || headers.contains('rating');
 
     final watchedFile =
         hint.contains('watched') || headers.contains('watched date');
@@ -516,48 +335,37 @@ class LibraryImport {
       onProgress: onProgress,
       process: (line) async {
         try {
-          final cols = _splitCsv(line);
+          final cols = ImportFileParser.splitCsvRow(line);
 
           if (cols.isEmpty) return;
 
           String cell(String key) {
             final index = headers.indexOf(key);
-            return index >= 0 && index < cols.length
-                ? cols[index].trim()
-                : '';
+            return index >= 0 && index < cols.length ? cols[index].trim() : '';
           }
 
-          final title =
-              cell('name').isNotEmpty ? cell('name') : cell('title');
+          final title = cell('name').isNotEmpty ? cell('name') : cell('title');
 
           final year = int.tryParse(cell('year'));
           final ratingRaw = cell('rating');
 
-          final tmdbCell =
-              cell('tmdb') + cell('tmdb id') + cell('tmdb_id');
+          final tmdbCell = cell('tmdb') + cell('tmdb id') + cell('tmdb_id');
 
           var tmdbId = int.tryParse(tmdbCell);
 
-          tmdbId ??= await _searchTitle(
-            title,
-            year: year,
-            movie: true,
-          );
+          tmdbId ??= await _searchTitle(title, year: year, movie: true);
 
           if (tmdbId == null) {
             report.skipped++;
             return;
           }
 
-          final watchedAt = _parseDate(
+          final watchedAt = ImportFileParser.parseDate(
             [
               cell('watched date'),
               cell('watched_at'),
               cell('date'),
-            ].firstWhere(
-              (value) => value.isNotEmpty,
-              orElse: () => '',
-            ),
+            ].firstWhere((value) => value.isNotEmpty, orElse: () => ''),
           );
 
           if (watchedFile || cell('watched date').isNotEmpty) {
@@ -570,26 +378,16 @@ class LibraryImport {
           }
 
           if (watchlistFile) {
-            await _markWatchlist(
-              tmdbId,
-              MediaType.movie,
-              report,
-            );
+            await _markWatchlist(tmdbId, MediaType.movie, report);
           }
 
           if (ratingFile && ratingRaw.isNotEmpty) {
             final value = double.tryParse(ratingRaw);
 
             if (value != null) {
-              final scaled =
-                  value <= 5 ? (value * 2).round() : value.round();
+              final scaled = value <= 5 ? (value * 2).round() : value.round();
 
-              await _markRating(
-                tmdbId,
-                MediaType.movie,
-                scaled,
-                report,
-              );
+              await _markRating(tmdbId, MediaType.movie, scaled, report);
             }
           }
         } catch (_) {
@@ -606,29 +404,35 @@ class LibraryImport {
     required bool forceRating,
     required bool forceWatched,
   }) async {
-    final type = (item['type'] as String?) ??
+    final type =
+        (item['type'] as String?) ??
         (item['movie'] != null
             ? 'movie'
             : item['episode'] != null
-                ? 'episode'
-                : item['show'] != null || item['tv'] != null
-                    ? 'show'
-                    : item['tmdb_id'] != null || item['tmdb'] != null
-                        ? (item['media_type'] as String? ?? 'movie')
-                        : '');
+            ? 'episode'
+            : item['show'] != null || item['tv'] != null
+            ? 'show'
+            : item['tmdb_id'] != null || item['tmdb'] != null
+            ? (item['media_type'] as String? ?? 'movie')
+            : '');
 
-    final movie = _asMap(item['movie']);
-    final show = _asMap(item['show']) ?? _asMap(item['tv']);
-    final episode = _asMap(item['episode']);
+    final movie = ImportFileParser.asMap(item['movie']);
+    final show =
+        ImportFileParser.asMap(item['show']) ??
+        ImportFileParser.asMap(item['tv']);
+    final episode = ImportFileParser.asMap(item['episode']);
 
-    final ratingValue = (item['rating'] as num?)?.toInt() ??
+    final ratingValue =
+        (item['rating'] as num?)?.toInt() ??
         (item['user_rating'] as num?)?.toInt();
 
-    final watchedAt =
-        _parseDate(item['watched_at'] ?? item['last_watched_at']);
+    final watchedAt = ImportFileParser.parseDate(
+      item['watched_at'] ?? item['last_watched_at'],
+    );
 
-    var movieTmdb = _tmdbId(movie) ?? _tmdbId(item);
-    var showTmdb = _tmdbId(show);
+    var movieTmdb =
+        ImportFileParser.tmdbId(movie) ?? ImportFileParser.tmdbId(item);
+    var showTmdb = ImportFileParser.tmdbId(show);
 
     if (type == 'movie' && movieTmdb == null) {
       movieTmdb = await _searchTitle(
@@ -646,13 +450,13 @@ class LibraryImport {
       );
     }
 
-    final treatWatched = forceWatched ||
+    final treatWatched =
+        forceWatched ||
         item.containsKey('watched_at') ||
         item.containsKey('last_watched_at') ||
         item.containsKey('plays');
 
-    final treatWatchlist =
-        forceWatchlist || item.containsKey('listed_at');
+    final treatWatchlist = forceWatchlist || item.containsKey('listed_at');
 
     final treatRating = forceRating || ratingValue != null;
 
@@ -674,20 +478,11 @@ class LibraryImport {
       }
 
       if (treatWatchlist) {
-        await _markWatchlist(
-          movieTmdb,
-          MediaType.movie,
-          report,
-        );
+        await _markWatchlist(movieTmdb, MediaType.movie, report);
       }
 
       if (treatRating && ratingValue != null) {
-        await _markRating(
-          movieTmdb,
-          MediaType.movie,
-          ratingValue,
-          report,
-        );
+        await _markRating(movieTmdb, MediaType.movie, ratingValue, report);
       }
 
       return;
@@ -703,21 +498,18 @@ class LibraryImport {
     }
 
     if (treatRating && ratingValue != null) {
-      await _markRating(
-        showTmdb,
-        MediaType.show,
-        ratingValue,
-        report,
-      );
+      await _markRating(showTmdb, MediaType.show, ratingValue, report);
     }
 
     if (!treatWatched) return;
 
     if (type == 'episode' && episode != null) {
-      final season = (episode['season'] as num?)?.toInt() ??
+      final season =
+          (episode['season'] as num?)?.toInt() ??
           (item['season'] as num?)?.toInt();
 
-      final number = (episode['number'] as num?)?.toInt() ??
+      final number =
+          (episode['number'] as num?)?.toInt() ??
           (item['number'] as num?)?.toInt();
 
       if (season == null || number == null) {
@@ -736,7 +528,7 @@ class LibraryImport {
       return;
     }
 
-    final seasons = _safeList(item['seasons']);
+    final seasons = ImportFileParser.safeList(item['seasons']);
 
     if (seasons.isEmpty) return;
 
@@ -748,17 +540,16 @@ class LibraryImport {
 
       if (seasonNumber == null || seasonNumber <= 0) continue;
 
-      for (final rawEpisode in _safeList(season['episodes'])) {
+      for (final rawEpisode in ImportFileParser.safeList(season['episodes'])) {
         if (rawEpisode is! Map) continue;
 
-        final episodeNumber =
-            (rawEpisode['number'] as num?)?.toInt();
+        final episodeNumber = (rawEpisode['number'] as num?)?.toInt();
 
         if (episodeNumber == null) continue;
 
-        final epWatchedAt = _parseDate(
-              rawEpisode['last_watched_at'] ??
-                  rawEpisode['watched_at'],
+        final epWatchedAt =
+            ImportFileParser.parseDate(
+              rawEpisode['last_watched_at'] ?? rawEpisode['watched_at'],
             ) ??
             watchedAt;
 
@@ -792,6 +583,7 @@ class LibraryImport {
         type,
         1.0,
         watchedAt: watchedAt,
+        refresh: false,
       );
 
       _watchedMovies.add(tmdbId);
@@ -825,6 +617,7 @@ class LibraryImport {
         season: season,
         episode: episode,
         watchedAt: watchedAt,
+        refresh: false,
       );
 
       _watchedEpisodes.add(key);
@@ -841,8 +634,7 @@ class LibraryImport {
   ) async {
     final key = 'watchlist:${type.name}:$tmdbId';
 
-    if (UserLibrary.isInWatchlist(tmdbId, type) ||
-        !_inFlight.add(key)) {
+    if (UserLibrary.isInWatchlist(tmdbId, type) || !_inFlight.add(key)) {
       report.existing++;
       return;
     }
@@ -901,40 +693,10 @@ class LibraryImport {
     }
   }
 
-  static bool _movieWatched(int tmdbId) =>
-      _watchedMovies.contains(tmdbId);
+  static bool _movieWatched(int tmdbId) => _watchedMovies.contains(tmdbId);
 
-  static bool _episodeWatched(
-    int tmdbId,
-    int season,
-    int episode,
-  ) =>
-      _watchedEpisodes.contains(
-        _episodeKey(tmdbId, season, episode),
-      );
-
-  static Map<String, dynamic>? _asMap(dynamic value) =>
-      value is Map ? Map<String, dynamic>.from(value) : null;
-
-  static int? _tmdbId(Map<String, dynamic>? media) {
-    if (media == null) return null;
-
-    final direct = media['tmdb_id'] ?? media['tmdb'];
-
-    if (direct is num) return direct.toInt();
-    if (direct is String) return int.tryParse(direct);
-
-    final ids = media['ids'];
-
-    if (ids is Map) {
-      final tmdb = ids['tmdb'] ?? ids['tmdb_id'];
-
-      if (tmdb is num) return tmdb.toInt();
-      if (tmdb is String) return int.tryParse(tmdb);
-    }
-
-    return null;
-  }
+  static bool _episodeWatched(int tmdbId, int season, int episode) =>
+      _watchedEpisodes.contains(_episodeKey(tmdbId, season, episode));
 
   static Future<int?> _searchTitle(
     String? title, {
@@ -947,9 +709,7 @@ class LibraryImport {
 
     final yearKey = year == null
         ? ''
-        : (movie
-            ? '&year=$year'
-            : '&first_air_date_year=$year');
+        : (movie ? '&year=$year' : '&first_air_date_year=$year');
 
     final response = await TMDB.tmdbApi(
       '/search/$kind?query=${Uri.encodeQueryComponent(title)}$yearKey',
@@ -960,32 +720,5 @@ class LibraryImport {
     if (results.isEmpty) return null;
 
     return (results.first['id'] as num?)?.toInt();
-  }
-
-  static List<String> _splitCsv(String line) {
-    final out = <String>[];
-    final buf = StringBuffer();
-    var quoted = false;
-
-    for (var i = 0; i < line.length; i++) {
-      final ch = line[i];
-
-      if (ch == '"') {
-        if (quoted && i + 1 < line.length && line[i + 1] == '"') {
-          buf.write('"');
-          i++;
-        } else {
-          quoted = !quoted;
-        }
-      } else if (ch == ',' && !quoted) {
-        out.add(buf.toString());
-        buf.clear();
-      } else {
-        buf.write(ch);
-      }
-    }
-
-    out.add(buf.toString());
-    return out;
   }
 }

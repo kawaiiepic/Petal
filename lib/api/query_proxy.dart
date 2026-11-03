@@ -32,7 +32,8 @@ class QueryProxy {
 
   static bool _alreadyProxied(String target) {
     final lower = target.toLowerCase();
-    return lower.contains('blossomvale.dev') || lower.contains('localhost:8787');
+    return lower.contains('blossomvale.dev') ||
+        lower.contains('localhost:8787');
   }
 
   static String wrap(String target) {

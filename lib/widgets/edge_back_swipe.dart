@@ -1,5 +1,6 @@
-import 'package:petal/main.dart';
-import 'package:petal/router/router.dart';
+import 'package:petal/app/petal_app.dart';
+import 'package:petal/router/app_router.dart';
+import 'package:petal/widgets/edge_drag_strip.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 /// iOS-style left-edge swipe that pops the current route.
@@ -19,7 +20,10 @@ class EdgeBackSwipe extends StatelessWidget {
   bool _blocked() {
     try {
       final path = AppRouter.appRouter.state.uri.path;
-      return path == '/' || path == '/login' || path == '/offline' || path == '/player';
+      return path == '/' ||
+          path == '/login' ||
+          path == '/offline' ||
+          path == '/player';
     } catch (_) {
       return true;
     }
@@ -48,7 +52,7 @@ class EdgeBackSwipe extends StatelessWidget {
           top: 0,
           bottom: 0,
           width: _edgeWidth + MediaQuery.paddingOf(context).left,
-          child: _EdgeDragStrip(
+          child: EdgeDragStrip(
             onBack: () {
               if (_blocked() || !_canPop()) return;
               _pop();
@@ -58,43 +62,6 @@ class EdgeBackSwipe extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _EdgeDragStrip extends StatefulWidget {
-  final VoidCallback onBack;
-  final double minVelocity;
-  final double minDistance;
-
-  const _EdgeDragStrip({
-    required this.onBack,
-    required this.minVelocity,
-    required this.minDistance,
-  });
-
-  @override
-  State<_EdgeDragStrip> createState() => _EdgeDragStripState();
-}
-
-class _EdgeDragStripState extends State<_EdgeDragStrip> {
-  double _dx = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onHorizontalDragStart: (_) => _dx = 0,
-      onHorizontalDragUpdate: (details) {
-        if (details.delta.dx > 0) _dx += details.delta.dx;
-      },
-      onHorizontalDragEnd: (details) {
-        final velocity = details.primaryVelocity ?? 0;
-        if (velocity >= widget.minVelocity || _dx >= widget.minDistance) {
-          widget.onBack();
-        }
-        _dx = 0;
-      },
     );
   }
 }

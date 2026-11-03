@@ -1,6 +1,9 @@
+import 'dart:async';
+
+import 'package:petal/api/playback_volume_store.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:petal/api/misc.dart';
 import 'package:petal/pages/player/overlay/control_button.dart';
+import 'package:petal/theme/app_typography.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class VolumeButton extends StatefulWidget {
@@ -14,14 +17,27 @@ class VolumeButton extends StatefulWidget {
 class _VolumeButtonState extends State<VolumeButton> {
   bool _hovered = false;
   double _volume = 100;
+  StreamSubscription<double>? _volumeSub;
 
   @override
   void initState() {
     super.initState();
     _volume = widget.player.state.volume;
-    widget.player.stream.volume.listen((v) {
+    _volumeSub = widget.player.stream.volume.listen((v) {
       if (mounted) setState(() => _volume = v);
     });
+  }
+
+  void _setVolume(double volume) {
+    setState(() => _volume = volume);
+    PlaybackVolumeStore.instance.save(volume).catchError((Object _) {});
+    widget.player.setVolume(volume);
+  }
+
+  @override
+  void dispose() {
+    _volumeSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -34,14 +50,16 @@ class _VolumeButtonState extends State<VolumeButton> {
         children: [
           ControlButton(
             icon: Icon(
-              size: Misc.normalIconSize,
+              size: AppTypography.normalIconSize,
               _volume == 0
                   ? LucideIcons.volumeX
                   : _volume < 50
-                      ? LucideIcons.volume1
-                      : LucideIcons.volume2,
+                  ? LucideIcons.volume1
+                  : LucideIcons.volume2,
             ),
-            onTap: () => widget.player.setVolume(_volume == 0 ? 100 : 0),
+            onTap: () => _setVolume(
+              _volume == 0 ? PlaybackVolumeStore.instance.audibleVolume : 0,
+            ),
           ),
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
@@ -58,8 +76,7 @@ class _VolumeButtonState extends State<VolumeButton> {
                         value: SliderValue.single(_volume / 100),
                         onChanged: (value) {
                           final v = value.value * 100;
-                          setState(() => _volume = v);
-                          widget.player.setVolume(v);
+                          _setVolume(v);
                         },
                       ),
                     ),

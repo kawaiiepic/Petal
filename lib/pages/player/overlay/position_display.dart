@@ -1,14 +1,19 @@
 import 'dart:async';
 
 import 'package:media_kit/media_kit.dart';
-import 'package:petal/api/misc.dart';
+import 'package:petal/theme/app_typography.dart';
+import 'package:petal/utils/media_formatting.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class PositionDisplay extends StatefulWidget {
   final Player player;
   final bool visible;
-  const PositionDisplay({super.key, required this.player, required this.visible});
+  const PositionDisplay({
+    super.key,
+    required this.player,
+    required this.visible,
+  });
 
   @override
   State<PositionDisplay> createState() => _PositionDisplayState();
@@ -21,7 +26,9 @@ class _PositionDisplayState extends State<PositionDisplay> {
   @override
   void initState() {
     super.initState();
-    _sub = widget.player.stream.position.throttleTime(const Duration(seconds: 1)).listen(_onPosition);
+    _sub = widget.player.stream.position
+        .throttleTime(const Duration(seconds: 1))
+        .listen(_onPosition);
   }
 
   void _onPosition(Duration position) {
@@ -47,13 +54,19 @@ class _PositionDisplayState extends State<PositionDisplay> {
 
   @override
   Widget build(BuildContext context) => RepaintBoundary(
-        child: Row(
-          spacing: 4,
-          children: [
-            Text(style: Misc.normalTextStyle, Misc.fmt(_position)),
-            Text(style: Misc.normalTextStyle, '/'),
-            Text(style: Misc.normalTextStyle, Misc.fmt(widget.player.state.duration)),
-          ],
+    child: Row(
+      spacing: 4,
+      children: [
+        Text(
+          style: AppTypography.normalTextStyle,
+          MediaFormatting.fmt(_position),
         ),
-      );
+        Text(style: AppTypography.normalTextStyle, '/'),
+        Text(
+          style: AppTypography.normalTextStyle,
+          MediaFormatting.fmt(widget.player.state.duration),
+        ),
+      ],
+    ),
+  );
 }

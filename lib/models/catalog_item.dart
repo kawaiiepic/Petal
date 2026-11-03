@@ -1,6 +1,6 @@
 import 'package:petal/models/stremio/stremio_episode.dart';
 import 'package:petal/models/stremio/stremio_season.dart';
-import 'trailer.dart';
+import 'package:petal/models/trailer.dart';
 
 class CatalogItem {
   // Core
@@ -94,9 +94,13 @@ class CatalogItem {
       description: json['description'] ?? '',
       year: yearInt,
       runtime: json['runtime'] ?? '',
-      imdbRating: json['imdbRating'] != null && json['imdbRating'] != "" ? double.parse(json['imdbRating']) : 0,
+      imdbRating: json['imdbRating'] != null && json['imdbRating'] != ""
+          ? double.parse(json['imdbRating'])
+          : 0,
       awards: json['awards'] ?? '',
-      country: (json['country'] is List) ? (json['country'] as List).join(', ') : (json['country'] ?? ''),
+      country: (json['country'] is List)
+          ? (json['country'] as List).join(', ')
+          : (json['country'] ?? ''),
       releaseInfo: json['releaseInfo'] ?? '',
 
       genres: List<String>.from(json['genres'] ?? []),
@@ -104,7 +108,9 @@ class CatalogItem {
       directors: List<String>.from(json['director'] ?? []),
       writers: List<String>.from(json['writer'] ?? []),
 
-      trailers: (json['trailerStreams'] as List<dynamic>? ?? []).map((t) => Trailer.fromJson(t)).toList(),
+      trailers: (json['trailerStreams'] as List<dynamic>? ?? [])
+          .map((t) => Trailer.fromJson(t))
+          .toList(),
 
       seasons: json['type'] == 'series' ? _buildSeasons(videos) : [],
     );

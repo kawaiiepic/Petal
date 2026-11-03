@@ -1,8 +1,8 @@
 import 'dart:convert';
 
+import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/query_proxy.dart';
-import 'package:petal/api/trakt/backend_api.dart';
-import 'package:petal/models/resource.dart';
+import 'package:petal/models/addon_resource.dart';
 
 class Addon {
   final String id;

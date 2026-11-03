@@ -11,10 +11,7 @@ class TraktImportPage extends StatelessWidget {
       headers: [
         AppBar(leading: [BackButton()], title: Text('Import library')),
       ],
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: LibraryImportCard(),
-      ),
+      child: Padding(padding: EdgeInsets.all(16), child: LibraryImportCard()),
     );
   }
 }

@@ -1,8 +1,11 @@
 import 'package:go_router/go_router.dart';
-import 'package:petal/api/misc.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
-import 'package:petal/api/tmdb/tmdb_models.dart';
+import 'package:petal/models/tmdb/season_summary.dart';
+import 'package:petal/models/tmdb/tmdb_episode.dart';
+import 'package:petal/models/tmdb/tmdb_season.dart';
+import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/pages/player/overlay/control_button.dart';
+import 'package:petal/theme/app_typography.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
@@ -10,7 +13,11 @@ class EpisodeDrawer extends StatefulWidget {
   final Future<(TmdbShow, TmdbEpisode)> showData;
   final int tmdbId;
 
-  const EpisodeDrawer({super.key, required this.showData, required this.tmdbId});
+  const EpisodeDrawer({
+    super.key,
+    required this.showData,
+    required this.tmdbId,
+  });
 
   @override
   State<EpisodeDrawer> createState() => _EpisodeDrawerState();
@@ -28,7 +35,9 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
 
   Future<void> initSeason() async {
     final data = await widget.showData;
-    _selectedSeason = data.$1.seasons.firstWhere((s) => s.seasonNumber == data.$2.seasonNumber);
+    _selectedSeason = data.$1.seasons.firstWhere(
+      (s) => s.seasonNumber == data.$2.seasonNumber,
+    );
   }
 
   @override
@@ -39,7 +48,10 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
         onTap: () {
           showOverlay(
             context,
-            DrawerConfiguration(anchor: LinkedAnchor(#outerDrawerButton), expands: true),
+            DrawerConfiguration(
+              anchor: LinkedAnchor(#outerDrawerButton),
+              expands: true,
+            ),
             builder: (context) {
               return Container(
                 padding: const EdgeInsets.all(12),
@@ -52,13 +64,22 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
                           child: OverlayAnchor(
                             anchor: #select,
                             child: Select<SeasonSummary>(
-                              overlayConfiguration: PopoverConfiguration(alignment: AlignmentGeometry.center, anchor: LinkedAnchor(#select)),
-                              itemBuilder: (context, item) => Text(style: Misc.normalTextStyle, _selectedSeason?.name ?? ''),
+                              overlayConfiguration: PopoverConfiguration(
+                                alignment: AlignmentGeometry.center,
+                                anchor: LinkedAnchor(#select),
+                              ),
+                              itemBuilder: (context, item) => Text(
+                                style: AppTypography.normalTextStyle,
+                                _selectedSeason?.name ?? '',
+                              ),
                               onChanged: (value) {
                                 setState(() => _selectedSeason = value);
                               },
                               value: _selectedSeason,
-                              placeholder: Text(style: Misc.normalTextStyle, 'Select a season'),
+                              placeholder: Text(
+                                style: AppTypography.normalTextStyle,
+                                'Select a season',
+                              ),
                               popup: SelectPopup(
                                 items: SelectItemList(
                                   children: snapshot.hasData
@@ -66,7 +87,11 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
                                             .map(
                                               (s) => SelectItemButton(
                                                 value: s,
-                                                child: Text(style: Misc.normalTextStyle, s.name),
+                                                child: Text(
+                                                  style: AppTypography
+                                                      .normalTextStyle,
+                                                  s.name,
+                                                ),
                                               ),
                                             )
                                             .toList()
@@ -81,7 +106,10 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
                     FutureBuilder(
                       future: _loadedSeasons.putIfAbsent(
                         _selectedSeason?.seasonNumber ?? 0,
-                        () => TMDB.tvSeason(widget.tmdbId, _selectedSeason?.seasonNumber ?? 0),
+                        () => TMDB.tvSeason(
+                          widget.tmdbId,
+                          _selectedSeason?.seasonNumber ?? 0,
+                        ),
                       ),
                       builder: (context, snapshot) {
                         return snapshot.hasData
@@ -91,17 +119,27 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
                                   children: snapshot.data!.episodes
                                       .map(
                                         (episode) => Padding(
-                                          padding: EdgeInsetsGeometry.fromLTRB(0, 4, 0, 4),
+                                          padding: EdgeInsetsGeometry.fromLTRB(
+                                            0,
+                                            4,
+                                            0,
+                                            4,
+                                          ),
                                           child: GhostButton(
                                             onPressed: () {
-                                              context.pushReplacement('/player?media=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}');
+                                              context.pushReplacement(
+                                                '/player?media=${widget.tmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
+                                              );
                                             },
                                             child: Row(
                                               spacing: 12,
                                               children: [
                                                 if (episode.stillPath != null)
                                                   ClipRRect(
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
                                                     child: Image.network(
                                                       'https://image.tmdb.org/t/p/w300${episode.stillPath}',
                                                       width: 120,
@@ -111,15 +149,29 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
                                                   ),
                                                 Expanded(
                                                   child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     spacing: 8,
                                                     children: [
-                                                      Text(style: Misc.normalTextStyle.copyWith(fontSize: 13.sp), '${episode.episodeNumber}. ${episode.name}'),
                                                       Text(
-                                                        style: Misc.normalTextStyle.copyWith(fontSize: 13.sp),
+                                                        style: AppTypography
+                                                            .normalTextStyle
+                                                            .copyWith(
+                                                              fontSize: 13.sp,
+                                                            ),
+                                                        '${episode.episodeNumber}. ${episode.name}',
+                                                      ),
+                                                      Text(
+                                                        style: AppTypography
+                                                            .normalTextStyle
+                                                            .copyWith(
+                                                              fontSize: 13.sp,
+                                                            ),
                                                         episode.overview,
                                                         maxLines: 2,
-                                                        overflow: TextOverflow.ellipsis,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
                                                       ),
                                                     ],
                                                   ),
@@ -141,7 +193,7 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
             },
           );
         },
-        icon: Icon(size: Misc.normalIconSize, LucideIcons.listOrdered),
+        icon: Icon(size: AppTypography.normalIconSize, LucideIcons.listOrdered),
       ),
     );
   }

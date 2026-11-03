@@ -6,7 +6,7 @@ class HomeSection extends StatefulWidget {
   final Widget child;
   final bool initiallyOpen;
   final Widget? trailing;
-  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? padding;
 
   const HomeSection({
     super.key,
@@ -14,7 +14,7 @@ class HomeSection extends StatefulWidget {
     required this.child,
     this.initiallyOpen = true,
     this.trailing,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    this.padding,
   });
 
   @override
@@ -26,14 +26,16 @@ class _HomeSectionState extends State<HomeSection> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     final style = TextStyle(
       fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp,
       fontWeight: FontWeight.w600,
     );
     return Padding(
-      padding: widget.padding,
+      padding: widget.padding ?? EdgeInsets.symmetric(
+        horizontal: compact ? 12 : 16, vertical: compact ? 4 : 8),
       child: Column(
-        spacing: 8,
+        spacing: compact ? 4 : 8,
         children: [
           Button(
             style: ButtonVariance.ghost,
