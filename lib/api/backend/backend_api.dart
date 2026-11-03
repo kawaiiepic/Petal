@@ -103,8 +103,14 @@ class BackendApi {
   }
 
   static Future<void> signOut() async {
-    await cookieJar.deleteAll();
-    authState.setLoggedIn(null);
+    try {
+      await dio.post('${Api.ServerUrl}/users/sessions/logout');
+    } catch (_) {
+      // Local sign-out must still work offline or against an older backend.
+    } finally {
+      await cookieJar.deleteAll();
+      authState.setLoggedIn(null);
+    }
   }
 
   static Future<void> uploadProfile(Uint8List imageData) async {

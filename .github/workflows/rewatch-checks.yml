@@ -5,6 +5,7 @@ on:
       - 'lib/utils/watch_counts.dart'
       - 'lib/widgets/overview/watch_activity_panel.dart'
       - 'lib/api/history_actions.dart'
+      - 'lib/api/backend/backend_api.dart'
       - 'lib/api/offline_progress_sync.dart'
       - 'lib/pages/*overview_page.dart'
       - 'lib/pages/episode_detail_page.dart'
@@ -15,6 +16,7 @@ permissions:
 jobs:
   counts-and-analysis:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
@@ -25,4 +27,4 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libx11-dev libxi-dev pkg-config
       - run: flutter pub get
       - run: flutter test test/watch_counts_test.dart
-      - run: dart analyze lib/utils/watch_counts.dart lib/widgets/overview/watch_activity_panel.dart lib/api/history_actions.dart lib/api/offline_progress_sync.dart lib/pages/movie_overview_page.dart lib/pages/show_overview_page.dart lib/pages/episode_detail_page.dart
+      - run: dart analyze lib/api/backend/backend_api.dart lib/utils/watch_counts.dart lib/widgets/overview/watch_activity_panel.dart lib/api/history_actions.dart lib/api/offline_progress_sync.dart lib/pages/movie_overview_page.dart lib/pages/show_overview_page.dart lib/pages/episode_detail_page.dart

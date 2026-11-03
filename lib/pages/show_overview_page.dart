@@ -113,7 +113,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
     }
   }
 
-  Future<void> _playShow(TmdbShow show) async {
+  Future<void> _playShow(TmdbShow show, {bool selectSource = false}) async {
     if (_startingPlayback) return;
     final profile = BackendApi.profileCacheKey;
     final target = episode;
@@ -122,7 +122,9 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
     try {
       if (restarting) await HistoryActions.startTitleRewatch(show.id, MediaType.show);
       if (!mounted || profile != BackendApi.profileCacheKey) return;
-      await context.push('/player?media=${show.id}&s=${target.seasonNumber}&e=${target.episodeNumber}');
+      await context.push(selectSource
+        ? '/streams?show=${show.id}&s=${target.seasonNumber}&e=${target.episodeNumber}'
+        : '/player?media=${show.id}&s=${target.seasonNumber}&e=${target.episodeNumber}');
     } catch (error) {
       if (mounted) AppNotifications.sendNotification(
         const Text('Could not start playback'), Text(HistoryActions.errorMessage(error)));
@@ -254,9 +256,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                               ),
                               onPressed: (_) {
                                 if (show != null && _playbackReady && _hasAiredEpisode) {
-                                  AppRouter.appRouter.push(
-                                    '/streams?show=${show.id}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                  );
+                                  _playShow(show, selectSource: true);
                                 }
                               },
                               child: const Text('Select Source'),
