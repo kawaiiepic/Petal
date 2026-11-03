@@ -1,3 +1,4 @@
+import 'package:petal/router/popup_page.dart';
 import 'package:petal/pages/watch_history_page.dart';
 import 'package:petal/pages/home_customization_page.dart';
 import 'package:go_router/go_router.dart';
@@ -78,17 +79,22 @@ class AppRouter {
       ),
       GoRoute(
         path: '/episode',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final tmdb =
               int.tryParse(state.uri.queryParameters['tmdb'] ?? '') ?? 0;
           final season =
               int.tryParse(state.uri.queryParameters['s'] ?? '') ?? 1;
           final episode =
               int.tryParse(state.uri.queryParameters['e'] ?? '') ?? 1;
-          return EpisodeDetailPage(
-            tmdbId: tmdb,
-            season: season,
-            episode: episode,
+          return PopupPage(
+            key: state.pageKey,
+            title: 'Episode overview',
+            child: EpisodeDetailPage(
+              tmdbId: tmdb,
+              season: season,
+              episode: episode,
+              popup: true,
+            ),
           );
         },
       ),
@@ -168,7 +174,12 @@ class AppRouter {
       ),
       GoRoute(
         path: '/home-layout',
-        builder: (_, _) => const HomeCustomizationPage(),
+        pageBuilder: (context, state) => PopupPage(
+          key: state.pageKey,
+          title: 'Customize Home',
+          maxWidth: 620,
+          child: const HomeCustomizationPage(popup: true),
+        ),
       ),
       GoRoute(path: '/addons', builder: (context, state) => AddonsPage()),
       GoRoute(path: '/offline', builder: (context, state) => OfflinePage()),

@@ -22,12 +22,14 @@ class EpisodeDetailPage extends StatefulWidget {
   final int tmdbId;
   final int season;
   final int episode;
+  final bool popup;
 
   const EpisodeDetailPage({
     super.key,
     required this.tmdbId,
     required this.season,
     required this.episode,
+    this.popup = false,
   });
 
   @override
@@ -171,7 +173,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                               ),
                             ),
                           ),
-                          AppBar(
+                          if (!widget.popup) AppBar(
                             leading: const [BackButton()],
                             surfaceBlur: 0,
                             surfaceOpacity: 0,

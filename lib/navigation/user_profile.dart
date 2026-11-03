@@ -60,6 +60,10 @@ class _UserProfileState extends State<UserProfile> {
                         MenuLabel(child: Text('My Account')),
                         MenuDivider(),
                         MenuButton(
+                          onPressed: (_) => buttonContext.push('/home-layout'),
+                          child: const Text('Customize Home'),
+                        ),
+                        MenuButton(
                           onPressed: (_) async => PetalApp
                               .rootNavigatorKey
                               .currentContext
