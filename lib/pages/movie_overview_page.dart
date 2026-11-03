@@ -14,7 +14,7 @@ import 'package:petal/models/tmdb/tmdb_movie.dart';
 import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/utils/media_formatting.dart';
-import 'package:petal/widgets/back_button.dart';
+import 'package:petal/widgets/overview/overview_back_button.dart';
 import 'package:petal/widgets/overview/cast_card.dart';
 import 'package:petal/widgets/overview/movie_recommendation_card.dart';
 import 'package:petal/widgets/overview/overview_hero_actions.dart';
@@ -135,20 +135,7 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                             : 'https://image.tmdb.org/t/p/original${movie!.backdropPath}',
                         isLoading: loading,
                       ),
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: SafeArea(
-                          bottom: false,
-                          child: AppBar(
-                            leading: [BackButton()],
-                            surfaceBlur: 0,
-                            surfaceOpacity: 0.5,
-                            alignment: Alignment.topLeft,
-                          ),
-                        ),
-                      ),
+                      const OverviewBackButton(),
                       Positioned(
                         bottom: 100,
                         left: 24,

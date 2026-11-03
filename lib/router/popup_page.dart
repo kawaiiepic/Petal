@@ -31,7 +31,7 @@ class PopupPage extends material.Page<void> {
             child: Focus(
               autofocus: true,
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 8 : 16),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: 900),

@@ -21,7 +21,7 @@ import 'package:petal/models/watch_history/watch_history_item.dart';
 import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/utils/media_formatting.dart';
-import 'package:petal/widgets/back_button.dart';
+import 'package:petal/widgets/overview/overview_back_button.dart';
 import 'package:petal/widgets/overview/cast_card.dart';
 import 'package:petal/widgets/overview/episode_thumbnail_fallback.dart';
 import 'package:petal/widgets/overview/overview_hero_actions.dart';
@@ -198,12 +198,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         imageUrl: show?.backdropUrl,
                         isLoading: loading,
                       ),
-                      AppBar(
-                        leading: [BackButton()],
-                        surfaceBlur: 0,
-                        surfaceOpacity: 0.5,
-                        alignment: Alignment.topLeft,
-                      ),
+                      const OverviewBackButton(),
                       Positioned(
                         bottom: 100,
                         left: 24,

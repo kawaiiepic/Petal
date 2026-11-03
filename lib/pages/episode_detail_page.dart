@@ -15,7 +15,7 @@ import 'package:petal/models/tmdb/tmdb_episode.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
-import 'package:petal/widgets/back_button.dart';
+import 'package:petal/widgets/overview/overview_back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
 
@@ -174,12 +174,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                               ),
                             ),
                           ),
-                          if (!widget.popup) AppBar(
-                            leading: const [BackButton()],
-                            surfaceBlur: 0,
-                            surfaceOpacity: 0,
-                            alignment: Alignment.topLeft,
-                          ),
+                          if (!widget.popup) const OverviewBackButton(),
                           if (snapshot.hasData)
                             Positioned(
                               left: 0,
@@ -245,7 +240,12 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                      padding: EdgeInsets.fromLTRB(
+                        MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+                        8,
+                        MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+                        MediaQuery.sizeOf(context).width < 600 ? 24 : 32,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 16,
@@ -268,6 +268,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                                       ),
                                     ),
                                 child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   spacing: 8,
                                   children: [
                                     Icon(LucideIcons.play),
@@ -289,6 +290,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                                       ),
                                     ),
                                 child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   spacing: 8,
                                   children: [
                                     Icon(LucideIcons.server),
@@ -310,6 +312,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                                       ),
                                     ),
                                 child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   spacing: 8,
                                   children: [
                                     Icon(LucideIcons.download),

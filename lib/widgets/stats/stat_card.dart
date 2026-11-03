@@ -18,7 +18,7 @@ class StatCard extends StatelessWidget {
       onTap: () => context.push('/stats'),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 4 : 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -35,7 +35,7 @@ class StatCard extends StatelessWidget {
               ),
               Text(
                 label,
-                maxLines: 1,
+                maxLines: MediaQuery.sizeOf(context).width < 600 ? 2 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
