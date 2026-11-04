@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:petal/api/collection_metadata.dart';
 import 'package:petal/models/library/collection_history_entry.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
@@ -22,6 +24,13 @@ Future<List<CollectionHistoryEntry>> loadCollectionHistory(
     metadata: CollectionMetadata.peek(item.tmdbId, item.mediaType),
   )).toList();
   onUpdate?.call(List.of(entries));
+  Timer? publishTimer;
+  void publish() {
+    publishTimer ??= Timer(const Duration(milliseconds: 50), () {
+      publishTimer = null;
+      if (isCurrent?.call() ?? true) onUpdate?.call(List.of(entries));
+    });
+  }
   var next = 0;
   Future<void> worker() async {
     while (next < items.length && (isCurrent?.call() ?? true)) {
@@ -34,10 +43,12 @@ Future<List<CollectionHistoryEntry>> loadCollectionHistory(
         // A failed metadata lookup still gets a visible, usable card.
         entries[index] = CollectionHistoryEntry(item: item);
       }
-      onUpdate?.call(List.of(entries));
+      publish();
     }
   }
 
   await Future.wait(List.generate(items.length.clamp(0, 6), (_) => worker()));
+  publishTimer?.cancel();
+  if (isCurrent?.call() ?? true) onUpdate?.call(List.of(entries));
   return entries;
 }
