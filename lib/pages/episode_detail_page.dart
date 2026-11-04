@@ -1,5 +1,5 @@
 import 'package:petal/api/user_library.dart';
-import 'package:petal/widgets/overview/watch_activity_panel.dart';
+import 'package:petal/widgets/overview/episode_action_menu.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/media/media_progress_bar.dart';
 import 'package:petal/models/media_card_target.dart';
@@ -46,6 +46,12 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
   ]);
 
   late Future<List<dynamic>> _future = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    BackendCache.fetchWatchHistory();
+  }
 
   bool get _watched => UserLibrary.pendingCompletion(widget.tmdbId, MediaType.show) != null
       ? UserLibrary.pendingCompletion(widget.tmdbId, MediaType.show)! >= 1
@@ -99,20 +105,6 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     final hours = minutes ~/ 60;
     final rest = minutes % 60;
     return rest == 0 ? '${hours}h' : '${hours}h ${rest}m';
-  }
-
-  double get _resumeProgress {
-    final completion =
-        WatchProgress.playbackCompletion(
-          tmdbId: widget.tmdbId,
-          type: MediaType.show,
-          season: widget.season,
-          episode: widget.episode,
-          history: BackendCache.watchHistory.value,
-          nextUp: BackendCache.continueWatching.value,
-        ) ??
-        0;
-    return WatchProgress.isPartial(completion) ? completion : 0;
   }
 
   @override
@@ -258,21 +250,16 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 16,
                         children: [
-                          if (snapshot.hasData)
-                            WatchActivityPanel(
-                              tmdbId: widget.tmdbId, mediaType: MediaType.show,
-                              season: widget.season, episode: widget.episode,
-                            ),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              Button(
-                                onPressed: snapshot.hasData
-                                    ? () => context.push(
-                                        '/player?media=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}&p=$_resumeProgress',
-                                      )
-                                    : null,
+                              EpisodeActionMenu(
+                                tmdbId: widget.tmdbId,
+                                season: widget.season,
+                                episode: widget.episode,
+                                builder: (context, watched, busy, play) => Button(
+                                onPressed: snapshot.hasData && !busy ? play : null,
                                 style: const ButtonStyle.primary()
                                     .withBorderRadius(
                                       borderRadius: BorderRadius.circular(16),
@@ -280,13 +267,14 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                                         16,
                                       ),
                                     ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   spacing: 8,
                                   children: [
-                                    Icon(LucideIcons.play),
-                                    Text('Play'),
+                                    const Icon(LucideIcons.play),
+                                    Text(busy ? 'Starting…' : watched ? 'Rewatch' : 'Play'),
                                   ],
+                                ),
                                 ),
                               ),
                               Button(

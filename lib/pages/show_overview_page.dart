@@ -1,3 +1,4 @@
+import 'package:petal/widgets/overview/episode_action_menu.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/overview/watch_activity_panel.dart';
@@ -557,43 +558,11 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                       const SizedBox(height: 8),
                                   itemBuilder: (context, i) {
                                     final episode = snapshot.data!.episodes[i];
-                                    return ContextMenu(
-                                      items: [
-                                        MenuButton(
-                                          leading: const Icon(LucideIcons.play),
-                                          onPressed: (_) {
-                                            AppRouter.appRouter.push(
-                                              '/player?media=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                            );
-                                          },
-                                          child: Text(
-                                            style: TextStyle(
-                                              fontSize: AppTypography.bodySize,
-                                            ),
-                                            'Play',
-                                          ),
-                                        ),
-                                        MenuButton(
-                                          trailing: const MenuShortcut(
-                                            activator: SingleActivator(
-                                              LogicalKeyboardKey.bracketLeft,
-                                              control: true,
-                                            ),
-                                          ),
-                                          onPressed: (context) {
-                                            AppRouter.appRouter.push(
-                                              '/streams?show=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                            );
-                                          },
-                                          child: Text(
-                                            style: TextStyle(
-                                              fontSize: AppTypography.bodySize,
-                                            ),
-                                            'Select Source',
-                                          ),
-                                        ),
-                                      ],
-                                      child: GhostButton(
+                                    return EpisodeActionMenu(
+                                      tmdbId: _resolvedTmdbId!,
+                                      season: episode.seasonNumber,
+                                      episode: episode.episodeNumber,
+                                      builder: (context, watched, busy, play) => GhostButton(
                                         onPressed: () {
                                           context.push(
                                             '/episode?tmdb=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
