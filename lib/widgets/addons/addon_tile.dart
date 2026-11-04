@@ -87,17 +87,16 @@ class _AddonTileState extends State<AddonTile> {
                   style: ButtonStyle.primary(density: ButtonDensity.dense),
                   onChanged: (selected) {
                     setState(() {
+                      // value is inverted: selected=true means show ON = resource disabled
                       if (selected) {
-                        print("Adding,,,");
-                        widget.addon.enabledResources.add(resource.name);
-                        BackendApi.addAddonResource(
+                        widget.addon.enabledResources.remove(resource.name);
+                        BackendApi.delAddonResource(
                           widget.addon.id,
                           resource.name,
                         );
                       } else {
-                        print("Removing...");
-                        widget.addon.enabledResources.remove(resource.name);
-                        BackendApi.delAddonResource(
+                        widget.addon.enabledResources.add(resource.name);
+                        BackendApi.addAddonResource(
                           widget.addon.id,
                           resource.name,
                         );
