@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
-import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/api/collection_metadata.dart';
 import 'package:petal/models/library/library_title.dart';
 import 'package:petal/models/library/title_rating.dart';
 import 'package:petal/models/media_type.dart';
@@ -9,17 +9,44 @@ import 'package:petal/widgets/media/media_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
 
-class LibraryPosterCard extends StatelessWidget {
+class LibraryPosterCard extends StatefulWidget {
   final LibraryTitle title;
   const LibraryPosterCard({super.key, required this.title});
+
+  @override
+  State<LibraryPosterCard> createState() => _LibraryPosterCardState();
+}
+
+class _LibraryPosterCardState extends State<LibraryPosterCard> {
+  late Future<Object> _metadata;
+  LibraryTitle get title => widget.title;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(LibraryPosterCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title.tmdbId != title.tmdbId ||
+        oldWidget.title.type != title.type) _load();
+  }
+
+  void _load() {
+    _metadata = CollectionMetadata.get(title.tmdbId, title.type);
+  }
 
   @override
   Widget build(BuildContext context) {
     final isShow = title.type == MediaType.show;
     return FutureBuilder(
-      future: isShow ? TMDB.tvShow(title.tmdbId) : TMDB.movie(title.tmdbId),
+      initialData: CollectionMetadata.peek(title.tmdbId, title.type),
+      future: _metadata,
       builder: (context, snapshot) {
-        final loading = snapshot.connectionState != ConnectionState.done;
+        final loading = !snapshot.hasData &&
+            snapshot.connectionState != ConnectionState.done;
         final data = snapshot.data as dynamic;
         final path = snapshot.hasData ? data.posterPath as String? : null;
         final name = snapshot.hasData
