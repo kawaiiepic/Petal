@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:petal/api/api.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
@@ -23,21 +25,35 @@ class CollectionHomePage extends StatefulWidget {
 
 class _CollectionHomePageState extends State<CollectionHomePage> {
   final Set<String> _open = {'watching', 'watchlist'};
-  late Future<List<CollectionHistoryEntry>> _entries;
+  List<CollectionHistoryEntry> _entries = [];
+  int _generation = 0;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _entries = loadCollectionHistory(BackendCache.watchHistory.value);
+    _reloadHistory();
     BackendCache.watchHistory.addListener(_reloadHistory);
   }
 
-  void _reloadHistory() => setState(() {
-    _entries = loadCollectionHistory(BackendCache.watchHistory.value);
-  });
+  void _reloadHistory() {
+    final generation = ++_generation;
+    unawaited(loadCollectionHistory(
+      BackendCache.watchHistory.value,
+      isCurrent: () => mounted && generation == _generation,
+      onUpdate: (entries) {
+        if (!mounted || generation != _generation) return;
+        setState(() {
+          _entries = entries;
+          _loading = false;
+        });
+      },
+    ));
+  }
 
   @override
   void dispose() {
+    _generation++;
     BackendCache.watchHistory.removeListener(_reloadHistory);
     super.dispose();
   }
@@ -54,14 +70,9 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<CollectionHistoryEntry>>(
-      future: _entries,
-      builder: (context, snapshot) {
-        final loading = snapshot.connectionState != ConnectionState.done;
-        final items = loading
-            ? <CollectionHistoryEntry>[]
-            : snapshot.data ?? <CollectionHistoryEntry>[];
-        return ValueListenableBuilder(
+    final loading = _loading;
+    final items = _entries;
+    return ValueListenableBuilder(
           valueListenable: UserLibrary.watchlist,
           builder: (context, _, __) {
             return ValueListenableBuilder(
@@ -131,8 +142,6 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
             );
           },
         );
-      },
-    );
   }
 
   Widget _section(

@@ -1,3 +1,4 @@
+import 'package:petal/widgets/home/home_shelf_skeleton.dart';
 import 'package:petal/api/social_api.dart';
 import 'package:petal/models/social/activity_item.dart';
 import 'package:petal/widgets/home_section.dart';
@@ -21,6 +22,10 @@ class _FriendActivityState extends State<FriendActivity> {
       future: _future,
       builder: (context, snapshot) {
         final items = snapshot.data ?? const <ActivityItem>[];
+        if (items.isEmpty && snapshot.connectionState != ConnectionState.done) {
+          return const HomeShelfSkeleton(
+            title: 'Friend activity', orientation: Orientation.landscape);
+        }
         if (items.isEmpty) return const SizedBox.shrink();
         return HomeSection(
           title: 'Friend activity',

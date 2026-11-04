@@ -1,3 +1,9 @@
+import 'dart:async';
+import 'package:petal/api/upcoming_releases.dart';
+import 'package:petal/api/backend/backend_api.dart';
+import 'package:petal/api/backend/backend_cache.dart';
+import 'package:petal/api/user_library.dart';
+import 'package:petal/widgets/home/home_shelf_skeleton.dart';
 import 'package:petal/api/home_layout.dart';
 import 'package:flutter/rendering.dart';
 import 'package:petal/api/api_cache.dart';
@@ -28,19 +34,93 @@ class HomePage extends StatefulWidget {
   State<StatefulWidget> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late Future<List<Catalog>> _catalogs;
+  late Future<void> _homeData;
+  String? _profileKey;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        unawaited(_revalidate());
+      }
+    });
     HomeLayout.instance.load();
     _catalogs = _loadCatalogs();
+    _profileKey = BackendApi.profileCacheKey;
+    _homeData = _loadHomeData();
+    BackendApi.authState.addListener(_onProfileChanged);
+  }
+
+  Future<void> _loadHomeData() async {
+    if (BackendApi.profileCacheKey == null) return;
+    await Future.wait([
+      BackendCache.fetchWatchHistory().catchError((Object _) {}),
+      BackendCache.fetchContinueWatching().catchError((Object _) {}),
+      UserLibrary.load(),
+    ]);
+  }
+
+  Future<void> _revalidate() async {
+    if (BackendApi.profileCacheKey == null) return;
+    try {
+      await Future.wait([
+        BackendCache.fetchWatchHistory(force: true),
+        BackendCache.fetchContinueWatching(force: true),
+        UserLibrary.load(force: true),
+      ]);
+      await UpcomingReleases.fetch();
+    } catch (_) {
+      // Retain visible snapshots while offline; retry on resume or the next tick.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_revalidate());
+  }
+
+  void _onProfileChanged() {
+    final key = BackendApi.profileCacheKey;
+    if (key == _profileKey) return;
+    setState(() {
+      _profileKey = key;
+      _homeData = _loadHomeData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    BackendApi.authState.removeListener(_onProfileChanged);
+    super.dispose();
+  }
+
+  Widget _placeholder(String id) {
+    final landscape = {'upcoming', 'deck', 'start', 'recent', 'friends'};
+    return HomeShelfSkeleton(
+      title: switch (id) {
+        'stats' => 'Stats',
+        'watchlist' => 'From your watchlist',
+        'deck' => 'On deck',
+        'rewatched' => 'Most rewatched',
+        _ => HomeLayout.labels[id]!,
+      },
+      orientation: landscape.contains(id) || id == 'stats'
+          ? Orientation.landscape : Orientation.portrait,
+      cardHeight: id == 'stats' ? 110 : 180,
+    );
   }
 
   void _reload() {
     setState(() {
       _catalogs = _loadCatalogs();
+      _homeData = _loadHomeData();
     });
   }
 
@@ -138,25 +218,33 @@ class _HomePageState extends State<HomePage> {
           'friends': const FriendActivity(),
           'calendar': const ReleaseCalendar(),
         };
-        return ListenableBuilder(
-          listenable: HomeLayout.instance,
-          builder: (context, _) => CustomScrollView(
-            scrollCacheExtent: ScrollCacheExtent.pixels(200),
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              for (final id in HomeLayout.instance.order.where(
-                (id) => !HomeLayout.instance.hidden.contains(id),
-              ))
-                if (id == 'catalogs')
-                  ...catalogSlivers
-                else
-                  SliverToBoxAdapter(
-                    key: ValueKey('home-$id'),
-                    child: sections[id]!,
-                  ),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
-            ],
-          ),
+        return FutureBuilder<void>(
+          future: _homeData,
+          builder: (context, data) {
+            final loadingRows = _profileKey != null &&
+                data.connectionState != ConnectionState.done;
+            return ListenableBuilder(
+              listenable: HomeLayout.instance,
+              builder: (context, _) => CustomScrollView(
+                scrollCacheExtent: ScrollCacheExtent.pixels(200),
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  for (final id in HomeLayout.instance.order.where(
+                    (id) => !HomeLayout.instance.hidden.contains(id),
+                  ))
+                    if (id == 'catalogs')
+                      ...catalogSlivers
+                    else
+                      SliverToBoxAdapter(
+                        key: ValueKey('home-$_profileKey-$id'),
+                        child: loadingRows && !{'surprise', 'downloads', 'calendar'}.contains(id)
+                            ? _placeholder(id) : sections[id]!,
+                      ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                ],
+              ),
+            );
+          },
         );
       },
     );

@@ -23,6 +23,7 @@ class _BecauseYouWatchedShelfState extends State<BecauseYouWatchedShelf> {
   }
 
   Future<List<ShelfItem>> _load() async {
+    await BackendCache.fetchWatchHistory();
     final history = [...BackendCache.watchHistory.value]
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     if (history.isEmpty) return const [];
@@ -52,7 +53,11 @@ class _BecauseYouWatchedShelfState extends State<BecauseYouWatchedShelf> {
     return FutureBuilder(
       future: _future,
       builder: (context, snapshot) =>
-          PosterShelf(title: _title, items: snapshot.data ?? const []),
+          PosterShelf(
+            title: _title,
+            items: snapshot.data ?? const [],
+            loading: snapshot.connectionState != ConnectionState.done,
+          ),
     );
   }
 }

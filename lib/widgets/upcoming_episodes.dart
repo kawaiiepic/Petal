@@ -1,3 +1,4 @@
+import 'package:petal/widgets/home/home_shelf_skeleton.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/upcoming_releases.dart';
@@ -18,18 +19,30 @@ class UpcomingEpisodes extends StatefulWidget {
 }
 
 class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
+  bool _loading = true;
+
+  Future<void> _fetch() async {
+    try {
+      await UpcomingReleases.fetch();
+    } catch (_) {
+      // Keep already loaded releases when a refresh fails.
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    UpcomingReleases.fetch();
-    UserLibrary.watchlist.addListener(UpcomingReleases.fetch);
-    BackendCache.watchHistory.addListener(UpcomingReleases.fetch);
+    _fetch();
+    UserLibrary.watchlist.addListener(_fetch);
+    BackendCache.watchHistory.addListener(_fetch);
   }
 
   @override
   void dispose() {
-    UserLibrary.watchlist.removeListener(UpcomingReleases.fetch);
-    BackendCache.watchHistory.removeListener(UpcomingReleases.fetch);
+    UserLibrary.watchlist.removeListener(_fetch);
+    BackendCache.watchHistory.removeListener(_fetch);
     super.dispose();
   }
 
@@ -58,6 +71,10 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
         for (final item in all) {
           if (!seen.add('${item.type.name}:${item.tmdbId}')) continue;
           items.add(item);
+        }
+        if (items.isEmpty && _loading) {
+          return const HomeShelfSkeleton(
+            title: 'Upcoming', orientation: Orientation.landscape);
         }
         if (items.isEmpty) return const SizedBox.shrink();
         return HomeSection(

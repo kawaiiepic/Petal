@@ -1,5 +1,6 @@
+import 'package:petal/widgets/overview/episode_action_menu.dart';
+import 'package:petal/api/user_library.dart';
 import 'package:petal/api/history_actions.dart';
-import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/utils/show_playback.dart';
 import 'package:petal/utils/app_notifications.dart';
@@ -20,7 +21,6 @@ import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/models/watch_history/episode_progress.dart';
 import 'package:petal/models/watch_history/show_item.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
-import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/utils/media_formatting.dart';
 import 'package:petal/widgets/overview/overview_back_button.dart';
@@ -301,13 +301,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (show != null) ...[
-                        WatchActivityPanel(
-                          tmdbId: show.id, mediaType: MediaType.show,
-                          show: show,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
                       Row(
                         spacing: 8,
                         children: [
@@ -556,43 +549,11 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                       const SizedBox(height: 8),
                                   itemBuilder: (context, i) {
                                     final episode = snapshot.data!.episodes[i];
-                                    return ContextMenu(
-                                      items: [
-                                        MenuButton(
-                                          leading: const Icon(LucideIcons.play),
-                                          onPressed: (_) {
-                                            AppRouter.appRouter.push(
-                                              '/player?media=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                            );
-                                          },
-                                          child: Text(
-                                            style: TextStyle(
-                                              fontSize: AppTypography.bodySize,
-                                            ),
-                                            'Play',
-                                          ),
-                                        ),
-                                        MenuButton(
-                                          trailing: const MenuShortcut(
-                                            activator: SingleActivator(
-                                              LogicalKeyboardKey.bracketLeft,
-                                              control: true,
-                                            ),
-                                          ),
-                                          onPressed: (context) {
-                                            AppRouter.appRouter.push(
-                                              '/streams?show=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                            );
-                                          },
-                                          child: Text(
-                                            style: TextStyle(
-                                              fontSize: AppTypography.bodySize,
-                                            ),
-                                            'Select Source',
-                                          ),
-                                        ),
-                                      ],
-                                      child: GhostButton(
+                                    return EpisodeActionMenu(
+                                      tmdbId: _resolvedTmdbId!,
+                                      season: episode.seasonNumber,
+                                      episode: episode.episodeNumber,
+                                      builder: (context, watched, busy, play) => GhostButton(
                                         onPressed: () {
                                           context.push(
                                             '/episode?tmdb=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
@@ -688,11 +649,13 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                                         return Container();
                                                       },
                                                     ),
-                                                    ValueListenableBuilder(
-                                                      valueListenable:
-                                                          BackendCache
-                                                              .watchHistory,
-                                                      builder: (context, history, child) {
+                                                    ListenableBuilder(
+                                                      listenable: Listenable.merge([
+                                                        BackendCache.watchHistory,
+                                                        UserLibrary.pendingWatched,
+                                                      ]),
+                                                      builder: (context, child) {
+                                                        final history = BackendCache.watchHistory.value;
                                                         final entry = history
                                                             .where(
                                                               (h) =>
@@ -730,9 +693,9 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                                               orElse: () =>
                                                                   null,
                                                             );
-                                                        final progress = entry
-                                                            ?.ep
-                                                            .completion;
+                                                        final pending = episode.airDate == null || !episode.airDate!.isAfter(DateTime.now())
+                                                          ? UserLibrary.pendingCompletion(show?.id ?? 0, MediaType.show) : null;
+                                                        final progress = pending ?? entry?.ep.completion;
                                                         if (progress == null ||
                                                             progress <= 0.0)
                                                           return const SizedBox.shrink();

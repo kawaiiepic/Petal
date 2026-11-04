@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:petal/api/retryable_write.dart';
 import 'dart:typed_data';
 
@@ -63,16 +64,82 @@ class BackendApi {
       storage: FileStorage("${directory.path}/.cookies/"),
     );
     dio.interceptors.add(CookieManager(cookieJar));
+    // Runs after CookieManager: inspect presence, never cookie/token contents.
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (_authPath(options.uri.path)) {
+          final cookie = options.headers.entries
+              .where((entry) => entry.key.toLowerCase() == 'cookie')
+              .map((entry) => entry.value.toString()).join(';');
+          authDebug('request ${options.method} ${options.uri.path} '
+              'scheme=${options.uri.scheme} host=${options.uri.host} '
+              'authCookieSent=${RegExp(r"(^|;\s*)auth=").hasMatch(cookie)}');
+        }
+        handler.next(options);
+      },
+      onResponse: (response, handler) {
+        if (_authPath(response.requestOptions.uri.path)) {
+          final cookies = response.headers['set-cookie'] ?? const <String>[];
+          authDebug('response ${response.requestOptions.uri.path} '
+              'status=${response.statusCode} '
+              'success=${response.data is Map ? response.data['success'] == true : false} '
+              'setCookieCount=${cookies.length} '
+              'setsAuthCookie=${cookies.any((value) => value.startsWith('auth='))}');
+        }
+        handler.next(response);
+      },
+      onError: (error, handler) {
+        if (_authPath(error.requestOptions.uri.path)) {
+          authDebug('request failed ${error.requestOptions.uri.path} '
+              'status=${error.response?.statusCode} type=${error.type.name} '
+              'reason=${_authReason(error.response?.data)}');
+        }
+        handler.next(error);
+      },
+    ));
+
+  }
+
+  static bool _authPath(String path) =>
+      path == '/users/login' || path == '/users/register' ||
+      path == '/users/verify' || path == '/profiles' || path == '/profiles/';
+
+  static void authDebug(String message) {
+    if (kDebugMode) debugPrint('[Petal auth] $message');
+  }
+
+  static String _authReason(dynamic data) {
+    final error = data is Map ? data['error'] : null;
+    // Only known public errors; arbitrary response bodies may contain secrets.
+    const known = {
+      'Unauthorized', 'Invalid token', 'Session expired or revoked',
+      'Authentication is not configured', 'User no longer exists',
+      'Backend maintenance',
+    };
+    return known.contains(error) ? error as String : 'unclassified';
+  }
+
+  static Future<void> debugAuthCookies(String stage) async {
+    if (!kDebugMode) return;
+    try {
+      final uri = Uri.parse('${Api.ServerUrl}/users/verify');
+      final cookies = await cookieJar.loadForRequest(uri);
+      final auth = cookies.where((cookie) => cookie.name == 'auth').toList();
+      authDebug('$stage cookieJar: matchingAuthCookies=${auth.length} '
+          'secure=${auth.any((cookie) => cookie.secure)} '
+          'expired=${auth.any((cookie) =>
+            cookie.expires?.isBefore(DateTime.now()) ?? false)}');
+    } catch (error) {
+      authDebug('$stage cookieJar read failed: ${error.runtimeType}');
+    }
   }
 
   static Future<bool> verifySession() async {
-    print("Verifying session");
+    authDebug("Starting verification");
+    var stage = "verify";
 
     try {
-
-
-
-
+      await debugAuthCookies("before verification");
       final response = await dio.get("${Api.ServerUrl}/users/verify");
 
       if (response.data["success"] == true) {
@@ -81,7 +148,10 @@ class BackendApi {
         authState.setLoggedIn(user);
         authState.setInitializing(false);
 
+        stage = 'profiles';
+        authDebug('Token verified; loading profiles');
         final profiles = await BackendApi.profiles();
+        authDebug('Profile load succeeded: count=${profiles.length}');
         if (profiles.isNotEmpty) {
           authState.setProfile(profiles.first);
         }
@@ -89,12 +159,10 @@ class BackendApi {
         return true;
       }
     } on DioException catch (e) {
-      print(
-        "Session verification failed: "
-        "${e.response?.statusCode ?? e.message}",
-      );
+      authDebug('$stage failed: status=${e.response?.statusCode} '
+          'type=${e.type.name} reason=${_authReason(e.response?.data)}');
     } catch (e) {
-      print("Error verifying session: $e");
+      authDebug('$stage failed: ${e.runtimeType}');
     }
 
     // Clear logged-in state here using your authState API.

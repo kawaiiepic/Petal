@@ -31,7 +31,10 @@ class UpcomingReleases {
   }
 
   static Future<void> _load(String profileKey) async {
-    await BackendCache.fetchWatchHistory();
+    await Future.wait([
+      BackendCache.fetchWatchHistory(),
+      UserLibrary.load(),
+    ]);
     if (profileKey != BackendApi.profileCacheKey) return;
     final ids = <int>{};
     for (final item in BackendCache.watchHistory.value) {

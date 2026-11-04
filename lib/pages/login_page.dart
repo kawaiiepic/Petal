@@ -29,35 +29,27 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final email = emailController.text;
       final password = passwordController.text;
-      print("Trying login with email: $email and password: $password");
+      BackendApi.authDebug('Starting login');
       final response = await BackendApi.dio.post(
         "${Api.ServerUrl}/users/login",
         data: {"email": email, "password": password},
       );
 
-      print("Status: ${response.statusCode}");
-      print("Headers: ${response.headers}");
-      print(
-        "Cookies: ${await BackendApi.cookieJar.loadForRequest(Uri.parse("${Api.ServerUrl}/users/verify"))}",
-      );
-
-      print(response.data);
+      await BackendApi.debugAuthCookies('after login');
       if (response.data["success"] != true) {
-        setState(() {
-          error = response.data["error"];
-        });
-        throw Exception("Invalid credentials");
+        if (mounted) setState(() => error = 'Invalid email or password.');
+        return;
       }
-      if (mounted) {
-        BackendApi.verifySession();
+      final verified = await BackendApi.verifySession();
+      if (!mounted) return;
+      if (verified) {
         context.go('/');
+      } else {
+        setState(() => error =
+            'Session verification failed. See [Petal auth] debug messages.');
       }
     } on DioException catch (e) {
-      print(e.response?.statusCode); // 400
-      print(e.response?.data); // validation message
-      print(e.requestOptions.headers);
-      print(e.requestOptions.data);
-
+      if (!mounted) return;
       setState(() {
         final d = e.response?.data;
         error = d is Map
@@ -66,9 +58,7 @@ class _LoginPageState extends State<LoginPage> {
             : e.message;
       });
     } finally {
-      setState(() {
-        loading = false;
-      });
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -93,25 +83,28 @@ class _LoginPageState extends State<LoginPage> {
         },
       );
 
-      print(response.data);
+      await BackendApi.debugAuthCookies('after registration');
 
       if (response.data["status"] == "already-exist")
         throw Exception("Account already exist");
       if (response.data["success"] != true) {
         throw Exception("Registration failed");
       }
-      if (mounted) {
-        BackendApi.verifySession();
+      final verified = await BackendApi.verifySession();
+      if (!mounted) return;
+      if (verified) {
         context.go('/');
+      } else {
+        setState(() => error =
+            'Session verification failed. See [Petal auth] debug messages.');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         error = e.toString();
       });
     } finally {
-      setState(() {
-        loading = false;
-      });
+      if (mounted) setState(() => loading = false);
     }
   }
 

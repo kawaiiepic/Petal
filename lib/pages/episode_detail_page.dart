@@ -1,4 +1,5 @@
-import 'package:petal/widgets/overview/watch_activity_panel.dart';
+import 'package:petal/api/user_library.dart';
+import 'package:petal/widgets/overview/episode_action_menu.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/media/media_progress_bar.dart';
 import 'package:petal/models/media_card_target.dart';
@@ -46,7 +47,15 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
 
   late Future<List<dynamic>> _future = _load();
 
-  bool get _watched => BackendCache.watchHistory.value
+  @override
+  void initState() {
+    super.initState();
+    BackendCache.fetchWatchHistory();
+  }
+
+  bool get _watched => UserLibrary.pendingCompletion(widget.tmdbId, MediaType.show) != null
+      ? UserLibrary.pendingCompletion(widget.tmdbId, MediaType.show)! >= 1
+      : BackendCache.watchHistory.value
       .where(
         (item) =>
             item.tmdbId == widget.tmdbId && item.mediaType == MediaType.show,
@@ -98,20 +107,6 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     return rest == 0 ? '${hours}h' : '${hours}h ${rest}m';
   }
 
-  double get _resumeProgress {
-    final completion =
-        WatchProgress.playbackCompletion(
-          tmdbId: widget.tmdbId,
-          type: MediaType.show,
-          season: widget.season,
-          episode: widget.episode,
-          history: BackendCache.watchHistory.value,
-          nextUp: BackendCache.continueWatching.value,
-        ) ??
-        0;
-    return WatchProgress.isPartial(completion) ? completion : 0;
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -135,13 +130,17 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
         final guest = episode?.guestStars.take(12).toList() ?? const [];
 
         return ListenableBuilder(
-          listenable: BackendCache.watchHistory,
+          listenable: Listenable.merge([
+            BackendCache.watchHistory, UserLibrary.pendingWatched,
+          ]),
           builder: (context, _) => ContextMenu(
             items: [
               MenuButton(
                 leading: const Icon(LucideIcons.check),
-                child: Text(_watched ? 'Mark as Unwatched' : 'Mark as Watched'),
-                onPressed: (_) => _toggleWatched(),
+                child: Text(UserLibrary.isChangingWatched(widget.tmdbId, MediaType.show)
+                  ? 'Saving show watch status…' : _watched ? 'Mark as Unwatched' : 'Mark as Watched'),
+                onPressed: UserLibrary.isChangingWatched(widget.tmdbId, MediaType.show)
+                  ? null : (_) => _toggleWatched(),
               ),
             ],
             child: Container(
@@ -251,21 +250,16 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 16,
                         children: [
-                          if (snapshot.hasData)
-                            WatchActivityPanel(
-                              tmdbId: widget.tmdbId, mediaType: MediaType.show,
-                              season: widget.season, episode: widget.episode,
-                            ),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              Button(
-                                onPressed: snapshot.hasData
-                                    ? () => context.push(
-                                        '/player?media=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}&p=$_resumeProgress',
-                                      )
-                                    : null,
+                              EpisodeActionMenu(
+                                tmdbId: widget.tmdbId,
+                                season: widget.season,
+                                episode: widget.episode,
+                                builder: (context, watched, busy, play) => Button(
+                                onPressed: snapshot.hasData && !busy ? play : null,
                                 style: const ButtonStyle.primary()
                                     .withBorderRadius(
                                       borderRadius: BorderRadius.circular(16),
@@ -273,13 +267,14 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                                         16,
                                       ),
                                     ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   spacing: 8,
                                   children: [
-                                    Icon(LucideIcons.play),
-                                    Text('Play'),
+                                    const Icon(LucideIcons.play),
+                                    Text(busy ? 'Starting…' : watched ? 'Rewatch' : 'Play'),
                                   ],
+                                ),
                                 ),
                               ),
                               Button(

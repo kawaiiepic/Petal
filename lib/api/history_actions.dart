@@ -16,6 +16,19 @@ abstract final class HistoryActions {
   static String? _profile;
   static bool _busy = false;
 
+  static Future<T> exclusive<T>(Future<T> Function() action) async {
+    if (_busy) throw StateError('A history update is already in progress.');
+    _busy = true;
+    OfflineProgressSync.instance.suspend();
+    try {
+      await OfflineProgressSync.instance.settle();
+      return await action();
+    } finally {
+      OfflineProgressSync.instance.resume();
+      _busy = false;
+    }
+  }
+
   static Future<void> setProgress(int id, MediaType type, double completion,
       {int? season, int? episode, bool refresh = true}) =>
       _edit(id, type, completion == 0 ? 'reset' : 'set',

@@ -1,3 +1,9 @@
+import 'dart:async';
+import 'package:petal/api/show_watch_writer.dart';
+import 'package:petal/api/offline_progress_sync.dart';
+import 'package:petal/api/download_manager.dart';
+import 'package:petal/utils/show_watch_plan.dart';
+import 'package:petal/utils/frame_safe_value_notifier.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:flutter/foundation.dart' show setEquals, mapEquals;
 import 'package:petal/api/backend/backend_api.dart';
@@ -17,6 +23,19 @@ class UserLibrary {
   static final ValueNotifier<Map<String, TitleRating>> ratings = ValueNotifier(
     <String, TitleRating>{},
   );
+  static final pendingWatched = FrameSafeValueNotifier<Map<String, bool>>({});
+  static final _watchWrites = <String, Future<void>>{};
+  static final _knownPlans = <int, ({DateTime at, List<ShowEpisodeTarget> episodes})>{};
+
+  static String _watchKey(int id, MediaType type) =>
+      '${BackendApi.profileCacheKey}|${type.name}:$id';
+  static bool isChangingWatched(int id, MediaType type) =>
+      pendingWatched.value.containsKey(_watchKey(id, type));
+  static double? pendingCompletion(int id, MediaType type) {
+    final value = pendingWatched.value[_watchKey(id, type)];
+    return value == null ? null : value ? 1.0 : 0.0;
+  }
+
   static bool _listening = false;
   static String? _profileKey;
   static int _revision = 0;
@@ -59,6 +78,7 @@ class UserLibrary {
   static Future<void> load({bool force = false}) async {
     if (!_listening) {
       _listening = true;
+      LibraryApi.updated.addListener(() => load());
       BackendApi.authState.addListener(() {
         load();
       });
@@ -110,15 +130,24 @@ class UserLibrary {
   static TitleRating ratingFor(int tmdbId, MediaType type) =>
       ratings.value[_id(tmdbId, type)] ?? TitleRating.none;
 
-  static bool isWatched(int tmdbId, MediaType type) {
+  static bool isWatched(int tmdbId, MediaType type, {int? totalEpisodes}) {
+    final pending = pendingCompletion(tmdbId, type);
+    if (pending != null) return pending >= 1;
     for (final item in BackendCache.watchHistory.value) {
       if (item.tmdbId != tmdbId) continue;
       if (type == MediaType.movie && item.mediaType == MediaType.movie) {
         return WatchProgress.isWatched(item.completion);
       }
       if (type == MediaType.show && item.mediaType == MediaType.show) {
-        return item.episodes.isNotEmpty &&
-            item.episodes.every((e) => WatchProgress.isWatched(e.completion));
+        final plan = _knownPlans[tmdbId];
+        if (plan != null && DateTime.now().difference(plan.at) < const Duration(minutes: 5)) {
+          return plan.episodes.isNotEmpty &&
+              ShowWatchPlan.missing(plan.episodes, item.episodes, 1).isEmpty;
+        }
+        final regular = item.episodes.where((e) => e.season > 0).toList();
+        return totalEpisodes != null && totalEpisodes > 0 &&
+            regular.map((e) => '${e.season}:${e.episode}').toSet().length >= totalEpisodes &&
+            regular.every((e) => WatchProgress.isWatched(e.completion));
       }
     }
     return false;
@@ -186,70 +215,80 @@ class UserLibrary {
   }
 
   static Future<void> toggleWatched(
-    int tmdbId,
-    MediaType type, {
-    TmdbShow? show,
-  }) async {
+    int tmdbId, MediaType type, {TmdbShow? show, bool? watched}
+  ) {
     final profile = BackendApi.profileCacheKey;
-    if (profile == null) return;
-    final watched = isWatched(tmdbId, type);
-    final target = watched ? 0.0 : 1.0;
+    final profileId = BackendApi.authState.selectedProfile?.id;
+    if (profile == null || profileId == null) return Future.value();
+    final key = _watchKey(tmdbId, type);
+    return _watchWrites.putIfAbsent(key, () =>
+      _changeWatched(tmdbId, type, profile, profileId, key, show, watched)
+        .whenComplete(() => _watchWrites.remove(key)));
+  }
 
-    if (type == MediaType.movie) {
-      await HistoryActions.setProgress(
-        tmdbId,
-        MediaType.movie,
-        target,
-        refresh: false,
-      );
-    } else {
-      final resolved = show ?? await TMDB.tvShow(tmdbId);
-      if (profile != BackendApi.profileCacheKey) return;
-      final seasons = resolved.mainSeasons.isNotEmpty
-          ? resolved.mainSeasons
-          : resolved.seasons.where((s) => s.seasonNumber > 0).toList();
-      final jobs = <Future<void> Function()>[];
-      for (final season in seasons) {
-        final count = season.episodeCount <= 0 ? 1 : season.episodeCount;
-        for (var episode = 1; episode <= count; episode++) {
-          jobs.add(
-            () => BackendApi.setProgress(
-              tmdbId,
-              MediaType.show,
-              target,
-              season: season.seasonNumber,
-              episode: episode,
-              refresh: false,
-            ),
-          );
-        }
-      }
-      if (jobs.isEmpty) {
-        await BackendApi.setProgress(
-          tmdbId,
-          MediaType.show,
-          target,
-          season: 1,
-          episode: 1,
-          refresh: false,
-        );
+  static Future<void> _changeWatched(int id, MediaType type, String profile,
+      String profileId, String key, TmdbShow? show, bool? watched) async {
+    final target = (watched ?? isWatched(id, type, totalEpisodes: show?.numberOfEpisodes)) ? 0.0 : 1.0;
+    pendingWatched.value = {...pendingWatched.value, key: target >= 1};
+    final before = BackendCache.watchHistory.value
+        .where((h) => h.tmdbId == id && h.mediaType == MediaType.show)
+        .firstOrNull;
+    var optimistic = false;
+    try {
+      if (type == MediaType.movie) {
+        await HistoryActions.setProgress(id, type, target, refresh: false);
       } else {
-        for (var i = 0; i < jobs.length; i += 2) {
-          if (profile != BackendApi.profileCacheKey) return;
-          await Future.wait(
-            jobs.sublist(i, i + 2 > jobs.length ? jobs.length : i + 2)
-                .map((job) => job()),
-          );
-        }
+        await HistoryActions.exclusive(() async {
+          final resolved = show ?? await TMDB.tvShow(id);
+          if (profile != BackendApi.profileCacheKey) throw StateError('Profile changed.');
+          final plan = await ShowWatchPlan.load(resolved,
+            loadSeason: (number) => TMDB.tvSeason(id, number));
+          if (plan.isEmpty) throw StateError('No available episodes were found.');
+          if (profile != BackendApi.profileCacheKey) throw StateError('Profile changed.');
+          _knownPlans[id] = (at: DateTime.now(), episodes: plan);
+          BackendCache.invalidateProgress(profileKey: profile);
+          BackendCache.optimisticShow(profile, ShowWatchPlan.optimistic(
+            id, BackendCache.watchHistory.value, plan, target, DateTime.now()));
+          optimistic = true;
+          await ShowWatchWriter.save(profile: profile, profileId: profileId,
+            id: id, targets: plan, completion: target);
+          await OfflineProgressSync.instance.discardTitle(
+            profileKey: profile, mediaId: id, isShow: true);
+          await DownloadManager.load();
+          if (profile != BackendApi.profileCacheKey) throw StateError('Profile changed.');
+          final planned = plan.toSet();
+          for (final download in DownloadManager.items.value.where((d) =>
+              d.tmdbId == id && d.isShow &&
+              planned.contains((season: d.season!, episode: d.episode!)))) {
+            await DownloadManager.setPlaybackProgress(download.id, target, sync: false);
+          }
+        });
       }
+      BackendCache.invalidateProgress(profileKey: profile);
+      BackendCache.finishOptimisticShow(profile, id);
+      optimistic = false;
+      if (profile == BackendApi.profileCacheKey) {
+        // The checked state stays visible while canonical counts/dates refresh.
+        unawaited(Future.wait([
+          BackendCache.fetchWatchHistory(force: true),
+          BackendCache.fetchContinueWatching(force: true),
+        ]).then<void>((_) {}).catchError((Object _) {}));
+        AppNotifications.sendNotification(const Text('Library'),
+          Text(target >= 1 ? 'Marked as watched.' : 'Marked as unwatched.'));
+      }
+    } catch (error) {
+      if (optimistic) BackendCache.finishOptimisticShow(profile, id,
+        restore: before, rollback: true);
+      BackendCache.invalidateProgress(profileKey: profile);
+      if (profile == BackendApi.profileCacheKey) {
+        AppNotifications.sendNotification(const Text('Watch status could not be saved'),
+          Text(error is StateError ? error.message.toString()
+            : 'Some episodes may not have saved. Please retry.'));
+        unawaited(BackendCache.fetchWatchHistory(force: true).catchError((Object _) {}));
+      }
+    } finally {
+      final next = {...pendingWatched.value}..remove(key);
+      pendingWatched.value = next;
     }
-
-    if (profile != BackendApi.profileCacheKey) return;
-    await BackendCache.fetchWatchHistory(force: true);
-    await BackendCache.fetchContinueWatching(force: true);
-    AppNotifications.sendNotification(
-      const Text('Library'),
-      Text(target >= 1 ? 'Marked as watched.' : 'Marked as unwatched.'),
-    );
   }
 }
