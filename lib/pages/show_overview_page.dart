@@ -1,7 +1,6 @@
 import 'package:petal/widgets/overview/episode_action_menu.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/api/history_actions.dart';
-import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/utils/show_playback.dart';
 import 'package:petal/utils/app_notifications.dart';
@@ -303,13 +302,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (show != null) ...[
-                        WatchActivityPanel(
-                          tmdbId: show.id, mediaType: MediaType.show,
-                          show: show,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
                       Row(
                         spacing: 8,
                         children: [
