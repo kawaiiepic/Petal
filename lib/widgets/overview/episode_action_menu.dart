@@ -1,3 +1,5 @@
+import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/utils/show_playback.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/backend/backend_cache.dart';
@@ -61,6 +63,34 @@ class _EpisodeActionMenuState extends State<EpisodeActionMenu> {
     }
   }
 
+  Future<void> _startShowRewatch() async {
+    final profile = BackendApi.profileCacheKey;
+    final id = widget.tmdbId;
+    if (_busy || profile == null) return;
+    setState(() => _busy = true);
+    try {
+      final show = await TMDB.tvShow(id);
+      final target = await ShowPlayback.resolve(
+        show: show, history: const [], nextUp: const [],
+        loadSeason: (season) => TMDB.tvSeason(id, season),
+      );
+      final first = target.episode;
+      if (first == null) throw StateError('No aired episodes are available.');
+      if (!mounted || profile != BackendApi.profileCacheKey ||
+          widget.tmdbId != id) return;
+      await HistoryActions.startTitleRewatch(id, MediaType.show);
+      if (!mounted || profile != BackendApi.profileCacheKey ||
+          widget.tmdbId != id) return;
+      await context.push('/player?media=$id&s=${first.seasonNumber}&e=${first.episodeNumber}&p=0');
+    } catch (error) {
+      if (mounted) AppNotifications.sendNotification(
+        const Text('Could not start show rewatch'),
+        Text(HistoryActions.errorMessage(error)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([
@@ -81,7 +111,7 @@ class _EpisodeActionMenuState extends State<EpisodeActionMenu> {
           ),
           MenuButton(
             leading: const Icon(LucideIcons.rotateCcw),
-            onPressed: disabled ? null : (_) => _run(play: true, rewatch: true),
+            onPressed: disabled ? null : (_) => _startShowRewatch(),
             child: const Text('Start rewatch'),
           ),
           MenuButton(
