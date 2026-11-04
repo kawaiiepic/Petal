@@ -2,6 +2,8 @@ name: Home loading checks
 on:
   pull_request:
     paths:
+      - 'lib/pages/login_page.dart'
+      - 'lib/api/backend/backend_api.dart'
       - 'lib/widgets/overview/episode_action_menu.dart'
       - 'lib/api/collection_metadata.dart'
       - 'lib/api/collection_history.dart'
@@ -53,4 +55,4 @@ jobs:
       - run: flutter pub get
       - run: dart --enable-asserts --packages=.dart_tool/package_config.json test/versioned_dataset_checks.dart
       - run: dart --enable-asserts --packages=.dart_tool/package_config.json test/show_watch_plan_checks.dart
-      - run: dart analyze lib/widgets/overview/episode_action_menu.dart lib/api/collection_metadata.dart lib/api/collection_history.dart lib/pages/collection_home_page.dart lib/widgets/collection/library_poster_card.dart lib/pages/episode_detail_page.dart lib/utils/show_watch_plan.dart lib/api/show_watch_writer.dart lib/api/history_actions.dart lib/widgets/overview/library_actions.dart lib/widgets/overview/library_action_button.dart lib/widgets/media/media_card.dart lib/pages/show_overview_page.dart lib/api/backend/cache_versions.dart lib/api/backend/backend_datasets.dart lib/api/cache/versioned_dataset.dart lib/api/backend/library_api.dart lib/api/user_library.dart lib/api/backend/backend_cache.dart lib/api/upcoming_releases.dart lib/pages/home_page.dart lib/widgets/home/home_shelf_skeleton.dart lib/widgets/home/because_you_watched_shelf.dart lib/widgets/poster_shelf.dart lib/widgets/upcoming_episodes.dart lib/widgets/friend_activity.dart lib/widgets/downloads/downloads_shelf.dart
+      - run: dart analyze lib/pages/login_page.dart lib/api/backend/backend_api.dart lib/widgets/overview/episode_action_menu.dart lib/api/collection_metadata.dart lib/api/collection_history.dart lib/pages/collection_home_page.dart lib/widgets/collection/library_poster_card.dart lib/pages/episode_detail_page.dart lib/utils/show_watch_plan.dart lib/api/show_watch_writer.dart lib/api/history_actions.dart lib/widgets/overview/library_actions.dart lib/widgets/overview/library_action_button.dart lib/widgets/media/media_card.dart lib/pages/show_overview_page.dart lib/api/backend/cache_versions.dart lib/api/backend/backend_datasets.dart lib/api/cache/versioned_dataset.dart lib/api/backend/library_api.dart lib/api/user_library.dart lib/api/backend/backend_cache.dart lib/api/upcoming_releases.dart lib/pages/home_page.dart lib/widgets/home/home_shelf_skeleton.dart lib/widgets/home/because_you_watched_shelf.dart lib/widgets/poster_shelf.dart lib/widgets/upcoming_episodes.dart lib/widgets/friend_activity.dart lib/widgets/downloads/downloads_shelf.dart
