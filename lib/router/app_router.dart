@@ -1,4 +1,7 @@
+import 'package:flutter/cupertino.dart' show CupertinoPage;
+import 'package:petal/navigation/ios_navigation_dock.dart';
 import 'package:petal/router/popup_page.dart';
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart' show Page, ShadcnPage, Widget;
 import 'package:petal/pages/watch_history_page.dart';
 import 'package:petal/pages/home_customization_page.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +30,11 @@ import 'package:petal/pages/stats_page.dart';
 import 'package:petal/pages/streams_page.dart';
 import 'package:petal/pages/trakt_import_page.dart';
 
+Page<void> _navigationPage(GoRouterState state, Widget child) =>
+    usesPetalIosNavigation
+        ? CupertinoPage<void>(key: state.pageKey, child: child)
+        : ShadcnPage<void>(key: state.pageKey, child: child);
+
 class AppRouter {
   static final appRouter = GoRouter(
     navigatorKey: PetalApp.rootNavigatorKey,
@@ -49,7 +57,8 @@ class AppRouter {
     routes: [
       GoRoute(
         path: '/history',
-        builder: (context, state) => const WatchHistoryPage(),
+        pageBuilder: (context, state) =>
+            _navigationPage(state, const WatchHistoryPage()),
       ),
       ShellRoute(
         navigatorKey: PetalApp.shellNavigatorKey,
@@ -61,19 +70,22 @@ class AppRouter {
       ),
       GoRoute(
         path: '/search',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final q = state.uri.queryParameters['q'] ?? '';
-          return SearchResultsPage(query: q);
+          return _navigationPage(state, SearchResultsPage(query: q));
         },
       ),
       GoRoute(
         path: '/series',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final tmdbId = state.uri.queryParameters['tmdb'];
           final imdbId = state.uri.queryParameters['imdb'];
-          return ShowOverviewPage(
-            tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
-            imdbId: imdbId,
+          return _navigationPage(
+            state,
+            ShowOverviewPage(
+              tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
+              imdbId: imdbId,
+            ),
           );
         },
       ),
@@ -100,18 +112,21 @@ class AppRouter {
       ),
       GoRoute(
         path: '/movie',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final imdbId = state.uri.queryParameters['imdb'];
           final tmdbId = state.uri.queryParameters['tmdb'];
-          return MovieOverviewPage(
-            tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
-            imdbId: imdbId,
+          return _navigationPage(
+            state,
+            MovieOverviewPage(
+              tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
+              imdbId: imdbId,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/collection',
-        builder: (context, state) => CollectionPage(),
+        pageBuilder: (context, state) => _navigationPage(state, CollectionPage()),
       ),
       GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
       GoRoute(
@@ -158,9 +173,13 @@ class AppRouter {
       ),
       GoRoute(
         path: '/downloads',
-        builder: (context, state) => const DownloadsPage(),
+        pageBuilder: (context, state) =>
+            _navigationPage(state, const DownloadsPage()),
       ),
-      GoRoute(path: '/settings', builder: (context, state) => SettingsPage()),
+      GoRoute(
+        path: '/settings',
+        pageBuilder: (context, state) => _navigationPage(state, SettingsPage()),
+      ),
       GoRoute(
         path: '/trakt-import',
         builder: (context, state) => const TraktImportPage(),

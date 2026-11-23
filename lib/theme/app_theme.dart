@@ -4,6 +4,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppTheme {
   static final ValueNotifier<ThemeMode> mode = ValueNotifier(ThemeMode.system);
 
+  static final darkScheme = ColorSchemes.darkGray.pink.copyWith(
+    background: () => const Color(0xFF100C15),
+    card: () => const Color(0xFF1B1423),
+    popover: () => const Color(0xFF22192B),
+    secondary: () => const Color(0xFF291D35),
+    muted: () => const Color(0xFF251D2D),
+    accent: () => const Color(0xFF362545),
+    border: () => const Color(0xFF3C3046),
+    input: () => const Color(0xFF3C3046),
+  );
+
   static const _prefsKey = 'theme_mode';
 
   static Future<void> load() async {

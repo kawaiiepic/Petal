@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart' show CupertinoSearchTextField;
 import 'package:go_router/go_router.dart';
+import 'package:petal/navigation/ios_navigation_dock.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class SearchField extends StatefulWidget {
@@ -20,9 +22,20 @@ class _SearchFieldState extends State<SearchField> {
 
   @override
   Widget build(BuildContext context) {
+    if (usesPetalIosNavigation) {
+      final scheme = Theme.of(context).colorScheme;
+      return CupertinoSearchTextField(
+        controller: _textController,
+        placeholder: 'Search shows and movies',
+        backgroundColor: scheme.muted,
+        itemColor: scheme.mutedForeground,
+        style: TextStyle(color: scheme.foreground),
+        onSubmitted: (_) => _openResults(),
+      );
+    }
     return TextField(
       controller: _textController,
-      placeholder: const Text('SearchField TV Shows, Movies & more...'),
+      placeholder: const Text('Search shows and movies'),
       onSubmitted: (_) => _openResults(),
       features: [
         const InputFeature.clear(

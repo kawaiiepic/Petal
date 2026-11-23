@@ -27,6 +27,8 @@ import 'package:petal/widgets/release_calendar.dart';
 import 'package:petal/widgets/upcoming_episodes.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
+import 'package:petal/navigation/ios_navigation_dock.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -226,6 +228,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             return ListenableBuilder(
               listenable: HomeLayout.instance,
               builder: (context, _) => CustomScrollView(
+                primary: usesPetalIosNavigation ? true : null,
                 scrollCacheExtent: ScrollCacheExtent.pixels(200),
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
@@ -240,7 +243,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         child: loadingRows && !{'surprise', 'downloads', 'calendar'}.contains(id)
                             ? _placeholder(id) : sections[id]!,
                       ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: usesPetalIosNavigation
+                          ? IosNavigationDock.clearance +
+                              MediaQuery.viewPaddingOf(context).bottom
+                          : 32,
+                    ),
+                  ),
                 ],
               ),
             );

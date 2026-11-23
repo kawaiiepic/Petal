@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/router/app_router.dart';
@@ -42,7 +43,7 @@ class _PetalAppState extends State<PetalApp> {
             debugShowCheckedModeBanner: false,
             themeMode: mode,
             theme: _theme(ColorSchemes.lightGray.pink),
-            darkTheme: _theme(ColorSchemes.darkGray.pink),
+            darkTheme: _theme(AppTheme.darkScheme),
           );
         },
       ),
@@ -56,5 +57,5 @@ ThemeData _theme(ColorScheme scheme) {
     radius: 0.75,
     surfaceOpacity: 1,
     surfaceBlur: 0,
-  ).copyWith(platform: () => TargetPlatform.linux);
+  ).copyWith(platform: () => defaultTargetPlatform);
 }

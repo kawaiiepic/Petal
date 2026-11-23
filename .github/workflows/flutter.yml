@@ -55,7 +55,28 @@ jobs:
   ios-build:
     runs-on: macos-latest
     timeout-minutes: 60
+    env:
+      UPLOAD_TESTFLIGHT: ${{ (github.event_name == 'workflow_dispatch' && inputs.upload_testflight) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[testflight]')) }}
     steps:
+      - name: Check TestFlight credentials
+        if: ${{ env.UPLOAD_TESTFLIGHT == 'true' }}
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          failed=0
+          for name in APPSTORE_ISSUER_ID APPSTORE_API_KEY_ID APPSTORE_API_PRIVATE_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing GitHub Actions secret: $name"
+              failed=1
+            fi
+          done
+          if [[ -n "$APPSTORE_API_PRIVATE_KEY" && "$APPSTORE_API_PRIVATE_KEY" != *'-----BEGIN PRIVATE KEY-----'* ]]; then
+            echo '::error::APPSTORE_API_PRIVATE_KEY must contain the contents of the Apple .p8 file, not its filename or a base64 encoding.'
+            failed=1
+          fi
+          exit "$failed"
       - name: Clone repository
         uses: actions/checkout@v6
 
@@ -152,9 +173,11 @@ jobs:
           archive: false
 
       - name: Upload to TestFlight
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.upload_testflight) || contains(github.event.head_commit.message, '[testflight]') }}
-        uses: apple-actions/upload-testflight-build@v5
+        if: ${{ env.UPLOAD_TESTFLIGHT == 'true' }}
+        uses: apple-actions/upload-testflight-build@v5.9.0
         with:
+          backend: appstore-api
+          app-type: ios
           app-path: ${{ env.IPA_PATH }}
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
