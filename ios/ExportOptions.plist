@@ -11,7 +11,7 @@
   <key>provisioningProfiles</key>
   <dict>
     <key>dev.blossomvale.petal</key>
-    <string>Petal</string>
+    <string>Petal App Store CI</string>
   </dict>
 </dict>
 </plist>
