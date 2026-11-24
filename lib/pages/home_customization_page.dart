@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/home_layout.dart';
 import 'package:petal/widgets/back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -57,13 +58,13 @@ class _HomeCustomizationPageState extends State<HomeCustomizationPage> {
                         ? null
                         : () => _save(layout.move(id, 1)),
                   ),
-                  Switch(
+                  PetalSwitch(
                     value: !layout.hidden.contains(id),
                     onChanged: (v) => _save(layout.setVisible(id, v)),
                   ),
                 ],
               ),
-            Button.outline(
+            PetalButton.outline(
               onPressed: () => _save(layout.reset()),
               child: const Text('Restore defaults'),
             ),

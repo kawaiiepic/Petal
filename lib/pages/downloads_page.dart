@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/widgets/downloads/download_storage_card.dart';
 import 'package:petal/api/download_manager.dart';
 import 'package:petal/widgets/back_button.dart';
@@ -34,7 +35,7 @@ class _DownloadsPageState extends State<DownloadsPage> {
                 const Expanded(child: Text('Download on Wi-Fi only')),
                 ValueListenableBuilder(
                   valueListenable: DownloadManager.wifiOnly,
-                  builder: (context, value, _) => Switch(
+                  builder: (context, value, _) => PetalSwitch(
                     value: value,
                     onChanged: DownloadManager.setWifiOnly,
                   ),

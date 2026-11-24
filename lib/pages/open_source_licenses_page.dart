@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:flutter/foundation.dart';
 import 'package:petal/models/package_license.dart';
 import 'package:petal/widgets/back_button.dart';
@@ -55,7 +56,7 @@ class _OpenSourceLicensesPageState extends State<OpenSourceLicensesPage> {
             return const Center(child: Text("Couldn't load licenses"));
           }
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: PetalActivityIndicator());
           }
 
           final packages = snapshot.data!;

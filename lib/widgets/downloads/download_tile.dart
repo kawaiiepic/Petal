@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/utils/byte_format.dart';
 import 'package:petal/api/download_manager.dart';
 import 'package:petal/models/downloads/download_entry.dart';
@@ -44,11 +45,11 @@ class DownloadTile extends StatelessWidget {
                 Wrap(
                   spacing: 8,
                   children: [
-                    Button.outline(
+                    PetalButton.outline(
                       onPressed: () => DownloadManager.retry(entry.id),
                       child: const Text('Retry download'),
                     ),
-                    Button.ghost(
+                    PetalButton.ghost(
                       onPressed: () =>
                           DownloadManager.retry(entry.id, newSource: true),
                       child: const Text('Find new source'),
@@ -60,19 +61,19 @@ class DownloadTile extends StatelessWidget {
                 Wrap(
                   spacing: 8,
                   children: [
-                    Button.outline(
+                    PetalButton.outline(
                       onPressed: () => DownloadManager.pause(entry.id),
                       child: const Text('Pause'),
                     ),
                     if (entry.status == DownloadStatus.queued)
-                      Button.ghost(
+                      PetalButton.ghost(
                         onPressed: () => DownloadManager.moveEarlier(entry.id),
                         child: const Text('Move earlier'),
                       ),
                   ],
                 ),
               if (entry.status == DownloadStatus.paused)
-                Button.outline(
+                PetalButton.outline(
                   onPressed: () => DownloadManager.resume(entry.id),
                   child: const Text('Resume download'),
                 ),
@@ -85,7 +86,7 @@ class DownloadTile extends StatelessWidget {
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
               ),
               if (entry.status == DownloadStatus.done && entry.path != null)
-                Button.primary(
+                PetalButton.primary(
                   onPressed: () => DownloadContextMenu.play(context, entry),
                   child: const Text('Play'),
                 ),

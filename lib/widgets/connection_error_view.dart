@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class ConnectionErrorView extends StatelessWidget {
@@ -63,7 +64,7 @@ class ConnectionErrorView extends StatelessWidget {
               ),
               if (onRetry != null) ...[
                 const SizedBox(height: 20),
-                Button.primary(
+                PetalButton.primary(
                   onPressed: onRetry,
                   leading: const Icon(LucideIcons.refreshCw),
                   child: const Text('Try again'),

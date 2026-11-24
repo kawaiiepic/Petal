@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/social_api.dart';
 import 'package:petal/api/stream_api.dart';
@@ -89,7 +90,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
           }
 
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: PetalActivityIndicator());
           }
 
           final items = snapshot.data ?? [];

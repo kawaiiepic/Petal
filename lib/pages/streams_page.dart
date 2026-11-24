@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/stream_api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/episode.dart';
@@ -86,7 +87,7 @@ class _StreamsPageState extends State<StreamsPage> {
               future: _streamsFuture,
               builder: (context, snapshot) {
                 if (!snapshot.hasData)
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: PetalActivityIndicator());
                 final streams = snapshot.data!;
                 if (streams.isEmpty) {
                   return Center(
@@ -147,7 +148,7 @@ class _StreamsPageState extends State<StreamsPage> {
             future: _streamsFuture,
             builder: (context, snapshot) {
               if (!snapshot.hasData)
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: PetalActivityIndicator());
               final streams = snapshot.data!;
               if (streams.isEmpty) {
                 return Center(

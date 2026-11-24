@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
@@ -63,7 +64,7 @@ class _AppNavigationState extends State<AppNavigation> {
                   const Expanded(child: SearchField()),
                   const SizedBox(width: 8),
                   if (!ios)
-                    Button.text(
+                    PetalButton.text(
                       child: Icon(
                         BootstrapIcons.collectionFill,
                         size: iconSize,

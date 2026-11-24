@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/social_api.dart';
 import 'package:petal/models/social/title_comment.dart';
@@ -83,7 +84,7 @@ class _TitleCommentsState extends State<TitleComments> {
         if (_loading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: PetalActivityIndicator()),
           )
         else if (_comments.isEmpty)
           const Padding(
@@ -94,7 +95,7 @@ class _TitleCommentsState extends State<TitleComments> {
           for (final comment in _comments.take(20))
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Button.ghost(
+              child: PetalButton.ghost(
                 alignment: Alignment.centerLeft,
                 onPressed: () => context.push('/profile/${comment.profileId}'),
                 child: Column(
@@ -112,13 +113,13 @@ class _TitleCommentsState extends State<TitleComments> {
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: PetalTextField(
                 controller: _controller,
                 placeholder: const Text('Write a comment'),
               ),
             ),
             const SizedBox(width: 8),
-            Button.primary(
+            PetalButton.primary(
               onPressed: _posting ? null : _post,
               child: const Text('Post'),
             ),

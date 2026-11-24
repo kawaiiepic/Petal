@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class LibraryActionButton extends StatelessWidget {
@@ -15,18 +16,12 @@ class LibraryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Button(
-      onPressed: busy ? null : onTap,
-      style:
-          (active ? const ButtonStyle.primary() : const ButtonStyle.outline())
-              .withBorderRadius(
-                borderRadius: BorderRadius.circular(16),
-                hoverBorderRadius: BorderRadius.circular(16),
-              ),
-      child: Row(mainAxisSize: MainAxisSize.min, spacing: 6, children: [
+    final content = Row(mainAxisSize: MainAxisSize.min, spacing: 6, children: [
         Icon(icon, size: 18),
-        if (busy) const CircularProgressIndicator(size: 14),
-      ]),
-    );
+        if (busy) const PetalActivityIndicator(size: 14),
+      ]);
+    return active
+        ? PetalButton.primary(onPressed: busy ? null : onTap, child: content)
+        : PetalButton.outline(onPressed: busy ? null : onTap, child: content);
   }
 }

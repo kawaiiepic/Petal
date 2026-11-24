@@ -1,3 +1,6 @@
+// ignore: deprecated_member_use
+import 'package:flutter/cupertino.dart' as ios;
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'dart:async';
 
 import 'package:media_kit/media_kit.dart';
@@ -41,8 +44,8 @@ class _PlayPauseButtonState extends State<PlayPauseButton> {
     return ControlButton(
       onTap: () => widget.player.playOrPause(),
       icon: _buffering
-          ? const CircularProgressIndicator(size: 50)
-          : Icon(_playing ? LucideIcons.pause : LucideIcons.play, size: 50),
+          ? const PetalActivityIndicator(size: 50, color: Colors.white)
+          : Icon(_playing ? ios.CupertinoIcons.pause_fill : ios.CupertinoIcons.play_fill, size: 50),
     );
   }
 }

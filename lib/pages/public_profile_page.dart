@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/social_api.dart';
@@ -82,7 +83,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         ),
       ],
       child: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: PetalActivityIndicator())
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
@@ -100,7 +101,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       ),
                     ),
                     if (me != widget.profileId)
-                      Button.primary(
+                      PetalButton.primary(
                         onPressed: _busy ? null : _toggleFollow,
                         child: Text(
                           _profile?.following == true ? 'Following' : 'Follow',

@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'dart:math';
 
 import 'package:go_router/go_router.dart';
@@ -17,7 +18,7 @@ class SurpriseWatchlistButton extends StatelessWidget {
         if (titles.isEmpty) return const SizedBox.shrink();
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Button.secondary(
+          child: PetalButton.secondary(
             onPressed: () {
               final pick = titles[Random().nextInt(titles.length)];
               context.push(

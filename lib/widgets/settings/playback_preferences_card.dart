@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/playback_preferences.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -124,37 +125,37 @@ class _PlaybackPreferencesCardState extends State<PlaybackPreferencesCard> {
           const Text(
             'Language codes such as en, ja, fr. Changes apply to internal playback, including downloads.',
           ),
-          TextField(
+          PetalTextField(
             controller: _audio,
             placeholder: const Text('Preferred audio language'),
           ),
-          TextField(
+          PetalTextField(
             controller: _subtitle,
             placeholder: const Text('Preferred subtitle language'),
           ),
           Row(
             children: [
               const Expanded(child: Text('Subtitles enabled')),
-              Switch(
+              PetalSwitch(
                 value: _enabled,
                 onChanged: (v) => setState(() => _enabled = v),
               ),
             ],
           ),
           const Text('Playback speed (0.25–3×)'),
-          TextField(controller: _rate),
+          PetalTextField(controller: _rate),
           const Text('Subtitle delay in seconds (positive = later)'),
-          TextField(controller: _delay),
+          PetalTextField(controller: _delay),
           const Text('Subtitle size (12–64)'),
-          TextField(controller: _size, onChanged: (_) => setState(() {})),
+          PetalTextField(controller: _size, onChanged: (_) => setState(() {})),
           const Text('Subtitle outline (0–6)'),
-          TextField(controller: _outline, onChanged: (_) => setState(() {})),
+          PetalTextField(controller: _outline, onChanged: (_) => setState(() {})),
           const Text('Subtitle bottom offset (0–240)'),
-          TextField(controller: _bottom),
+          PetalTextField(controller: _bottom),
           Row(
             children: [
               const Expanded(child: Text('Subtitle background')),
-              Switch(
+              PetalSwitch(
                 value: _background,
                 onChanged: (v) => setState(() => _background = v),
               ),
@@ -184,7 +185,7 @@ class _PlaybackPreferencesCardState extends State<PlaybackPreferencesCard> {
                   : const Color(0x00000000),
             ),
           ),
-          Button.primary(
+          PetalButton.primary(
             onPressed: _ready ? _save : null,
             child: const Text('Save playback preferences'),
           ),

@@ -1,3 +1,5 @@
+// ignore: deprecated_member_use
+import 'package:flutter/cupertino.dart' as ios;
 import 'dart:async';
 
 import 'package:petal/api/playback_volume_store.dart';
@@ -72,12 +74,10 @@ class _VolumeButtonState extends State<VolumeButton> {
                     width: _hovered ? 100 : 0,
                     child: Opacity(
                       opacity: _hovered ? 1.0 : 0.0,
-                      child: Slider(
-                        value: SliderValue.single(_volume / 100),
-                        onChanged: (value) {
-                          final v = value.value * 100;
-                          _setVolume(v);
-                        },
+                      child: !_hovered ? const SizedBox.shrink() : ios.CupertinoSlider(
+                        value: (_volume / 100).clamp(0.0, 1.0).toDouble(),
+                        activeColor: Colors.white,
+                        onChanged: (value) => _setVolume(value * 100),
                       ),
                     ),
                   ),

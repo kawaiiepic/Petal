@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/widgets/overview/episode_action_menu.dart';
 import 'package:petal/api/user_library.dart';
 import 'package:petal/api/history_actions.dart';
@@ -497,7 +498,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                             children: [
                               if (snapshot.hasData &&
                                   snapshot.data!.episodes.isNotEmpty)
-                                Button.outline(
+                                PetalButton.outline(
                                   onPressed: () async {
                                     try {
                                       await DownloadManager.enqueueSeason(

@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/history_actions.dart';
@@ -54,7 +55,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
               Wrap(
                 spacing: 8,
                 children: [
-                  Button.outline(
+                  PetalButton.outline(
                     onPressed: _busy
                         ? null
                         : () => _run(
@@ -64,7 +65,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                   ),
                   ValueListenableBuilder(
                     valueListenable: HistoryActions.canUndo,
-                    builder: (context, canUndo, _) => Button.outline(
+                    builder: (context, canUndo, _) => PetalButton.outline(
                       onPressed: !canUndo || _busy
                           ? null
                           : () => _run(HistoryActions.undo),
@@ -112,7 +113,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Button.ghost(
+                                      PetalButton.ghost(
                                         onPressed: () => context.push(
                                           '/episode?tmdb=${item.tmdbId}&s=${episode.season}&e=${episode.episode}',
                                         ),
@@ -158,7 +159,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
       Text('${(completion * 100).round()}% · $plays plays'),
-      Button.outline(
+      PetalButton.outline(
         onPressed: _busy || (completion == 0 && watches.isEmpty && plays == 0)
             ? null
             : () => _run(
@@ -172,7 +173,7 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
               ),
         child: const Text('Reset progress'),
       ),
-      Button.ghost(
+      PetalButton.ghost(
         onPressed: _busy
             ? null
             : () => _run(
@@ -186,13 +187,13 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
               ),
         child: Text(completion >= .9 ? 'Mark unwatched' : 'Mark watched'),
       ),
-      Button.outline(
+      PetalButton.outline(
         onPressed: _busy ? null : () => _run(() => HistoryActions.remove(
           id, type, season: season, episode: episode)),
         child: const Text('Remove from history'),
       ),
       for (var index = 0; index < watches.length; index++)
-        Button.ghost(
+        PetalButton.ghost(
           onPressed: _busy ? null : () => _run(() => HistoryActions.deleteWatch(
             id, type, index, watches[index], season: season, episode: episode)),
           child: Text('Remove play ${index + 1} · ${watches[index].toLocal().toString().split('.').first}'),

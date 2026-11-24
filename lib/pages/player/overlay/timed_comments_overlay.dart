@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'dart:async';
 
 import 'package:media_kit/media_kit.dart';
@@ -254,7 +255,7 @@ class _TimedCommentComposerState extends State<_TimedCommentComposer> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Button.ghost(
+          PetalButton.ghost(
             onPressed: () {
               setState(() => _enabled = !_enabled);
               widget.onToggle(_enabled);
@@ -262,7 +263,7 @@ class _TimedCommentComposerState extends State<_TimedCommentComposer> {
             child: Text(_enabled ? 'Hide timed comments' : 'Show timed comments'),
           ),
           const SizedBox(height: 12),
-          TextField(
+          PetalTextField(
             controller: _text,
             placeholder: const Text('React to this moment'),
           ),
@@ -275,11 +276,11 @@ class _TimedCommentComposerState extends State<_TimedCommentComposer> {
       ),
     ),
     actions: [
-      Button.ghost(
+      PetalButton.ghost(
         onPressed: _posting ? null : () => closeOverlay(context),
         child: const Text('Close'),
       ),
-      Button.primary(
+      PetalButton.primary(
         onPressed: _posting ? null : _post,
         child: Text(_posting ? 'Posting…' : 'Post'),
       ),

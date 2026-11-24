@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/offline_progress_sync.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -44,7 +45,7 @@ class _OfflineSyncCardState extends State<OfflineSyncCard> {
               Row(
                 children: [
                   const Expanded(child: Text('Sync offline watch progress')),
-                  Switch(
+                  PetalSwitch(
                     value: sync.enabled,
                     onChanged: _busy
                         ? null
@@ -58,7 +59,7 @@ class _OfflineSyncCardState extends State<OfflineSyncCard> {
               Text('${sync.pending} pending updates'),
               if (sync.lastError != null) Text(sync.lastError!),
               if (sync.enabled)
-                Button.outline(
+                PetalButton.outline(
                   onPressed: _busy ? null : () => _run(sync.sync),
                   child: Text(_busy ? 'Syncing…' : 'Sync now'),
                 ),

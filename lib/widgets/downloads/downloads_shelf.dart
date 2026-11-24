@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/widgets/media/media_artwork_placeholder.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/download_manager.dart';
@@ -59,7 +60,7 @@ class _DownloadsShelfState extends State<DownloadsShelf> {
         if (items.isEmpty) return const SizedBox.shrink();
         return HomeSection(
           title: 'Downloads',
-          trailing: Button.ghost(
+          trailing: PetalButton.ghost(
             onPressed: () => context.push('/downloads'),
             child: const Text('See all'),
           ),
@@ -68,7 +69,7 @@ class _DownloadsShelfState extends State<DownloadsShelf> {
               for (final entry in items.take(4))
                 DownloadContextMenu(
                   entry: entry,
-                  child: Button.ghost(
+                  child: PetalButton.ghost(
                     alignment: Alignment.centerLeft,
                     onPressed: () => entry.status == DownloadStatus.done
                         ? DownloadContextMenu.play(context, entry)

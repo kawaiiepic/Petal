@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -65,7 +66,7 @@ class _ProfileCardState extends State<ProfileCard> {
               title: Text('Create New Profile'),
               content: SizedBox(
                 width: 320,
-                child: TextField(
+                child: PetalTextField(
                   controller: usernameController,
                   autofocus: true,
                   placeholder: Text('Enter a username'),

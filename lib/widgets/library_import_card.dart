@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:petal/api/library_import.dart';
 import 'package:petal/models/imports/import_source.dart';
@@ -101,7 +102,7 @@ class _LibraryImportCardState extends State<LibraryImportCard> {
                       if (value != null) setState(() => _source = value);
                     },
             ),
-            Button.primary(
+            PetalButton.primary(
               onPressed: _busy ? null : _pick,
               child: Text(_busy ? 'Importing…' : 'Choose export file'),
             ),

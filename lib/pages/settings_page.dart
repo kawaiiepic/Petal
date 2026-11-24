@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/widgets/settings/offline_sync_card.dart';
 import 'package:petal/widgets/settings/playback_preferences_card.dart';
 
@@ -112,17 +113,17 @@ class _SettingsPageState extends State<SettingsPage> {
           spacing: 12,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Button.outline(
+            PetalButton.outline(
               onPressed: () => context.push('/history'),
               child: const Text('Manage playback history'),
             ),
             const PlaybackPreferencesCard(),
             const OfflineSyncCard(),
-            Button.outline(
+            PetalButton.outline(
               onPressed: () => context.push('/home-layout'),
               child: const Text('Customize Home'),
             ),
-            Button.card(
+            PetalButton.card(
               leading: const Icon(LucideIcons.info),
               child: FutureBuilder<PackageInfo>(
                 future: _packageInfo,
@@ -175,7 +176,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 final List<Widget>
                                 contributorChips = contributorsJson
                                     .map(
-                                      (entry) => Button.link(
+                                      (entry) => PetalButton.link(
                                         onPressed: () => _launchUrl(
                                           "https://github.com/kawaiiepic/Petal/commits?author=${entry["login"]}",
                                         ),
@@ -237,7 +238,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 final bool isUpToDate =
                                     latestSha == GitStamp.latestCommit?.hash;
 
-                                return Button.link(
+                                return PetalButton.link(
                                   leading: Icon(LucideIcons.link2),
                                   onPressed: () => _launchUrl(
                                     "https://github.com/kawaiiepic/Petal/commit/$latestSha",
@@ -365,7 +366,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: const Text(
                         "Send catalog, search, and addon requests through your backend",
                       ),
-                      trailing: Switch(
+                      trailing: PetalSwitch(
                         value: proxyOn,
                         onChanged: (value) => QueryProxy.setEnabled(value),
                       ),
@@ -397,7 +398,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
             Divider(),
 
-            Button.card(
+            PetalButton.card(
               leading: const Icon(LucideIcons.newspaper),
               trailing: Icon(LucideIcons.link2),
               onPressed: () =>
@@ -411,7 +412,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
 
-            Button.card(
+            PetalButton.card(
               leading: const Icon(LucideIcons.bug),
               trailing: Icon(LucideIcons.link2),
               onPressed: () =>
@@ -425,7 +426,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
 
-            Button.card(
+            PetalButton.card(
               leading: const Icon(LucideIcons.refreshCcwDot),
               trailing: Icon(LucideIcons.bug),
               onPressed: _clearImageCache,
@@ -438,7 +439,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
 
-            Button.card(
+            PetalButton.card(
               leading: const Icon(LucideIcons.badgeInfo),
               trailing: Icon(LucideIcons.link2),
               onPressed: () async {
@@ -492,7 +493,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 leadingAlignment: Alignment.center,
                 title: const Text("Donate"),
                 subtitle: const Text("Support development of the app"),
-                trailing: Button.ghost(
+                trailing: PetalButton.ghost(
                   onPressed: () =>
                       _launchUrl("https://github.com/sponsors/kawaiiepic"),
                   child: const Text("Donate"),

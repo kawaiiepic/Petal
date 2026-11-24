@@ -1,3 +1,5 @@
+// ignore: deprecated_member_use
+import 'package:flutter/cupertino.dart' as ios;
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class OverviewIconButton extends StatelessWidget {
@@ -6,11 +8,13 @@ class OverviewIconButton extends StatelessWidget {
   const OverviewIconButton({required this.icon, required this.onTap});
   @override
   Widget build(BuildContext context) {
-    return IconButton.ghost(
+    return ios.CupertinoButton(
       onPressed: onTap,
-      shape: ButtonShape.circle,
-      density: ButtonDensity.icon,
-      icon: Icon(icon, color: Colors.pink),
+      padding: EdgeInsets.zero,
+      minimumSize: const Size(40, 40),
+      borderRadius: BorderRadius.circular(100),
+      color: Theme.of(context).colorScheme.secondary,
+      child: Icon(icon, color: Theme.of(context).colorScheme.primary),
     );
   }
 }

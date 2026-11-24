@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
@@ -109,6 +110,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
+  void dispose() {
+    usernameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    registrationTokenController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       child: Center(
@@ -128,7 +138,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 24),
                 if (register) ...[
-                  TextField(
+                  PetalTextField(
                     controller: usernameController,
                     placeholder: Text('Username'),
                     onSubmitted: (value) => loading
@@ -138,41 +148,34 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                TextField(
+                PetalTextField(
                   controller: emailController,
                   placeholder: Text('Email'),
+                  keyboardType: TextInputType.emailAddress,
                   onSubmitted: (value) => loading
                       ? null
                       : (register ? handleRegister() : handleLogin()),
                   // decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                PetalTextField(
                   controller: passwordController,
                   obscureText: true,
                   placeholder: Text('Password'),
                   onSubmitted: (value) => loading
                       ? null
                       : (register ? handleRegister() : handleLogin()),
-                  features: [
-                    InputFeature.clear(
-                      visibility: InputFeatureVisibility.textNotEmpty,
-                    ),
-                    InputFeature.passwordToggle(mode: PasswordPeekMode.hold),
-                  ],
                   // decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
                 ),
                 if (register) ...[
                   const SizedBox(height: 16),
-                  TextField(
+                  PetalTextField(
                     controller: registrationTokenController,
                     placeholder: Text('Registration Token'),
+                    obscureText: true,
                     onSubmitted: (value) => loading
                         ? null
                         : (register ? handleRegister() : handleLogin()),
-                    features: [
-                      InputFeature.passwordToggle(mode: PasswordPeekMode.hold),
-                    ],
                     // decoration: const InputDecoration(labelText: "Registration Token", border: OutlineInputBorder()),
                   ),
                 ],
@@ -182,13 +185,13 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: Button.primary(
+                  child: PetalButton.primary(
                     onPressed: loading
                         ? null
                         : (register ? handleRegister : handleLogin),
                     child: loading
                         ? const Center(
-                            child: CircularProgressIndicator(
+                            child: PetalActivityIndicator(
                               strokeWidth: 2,
                               color: Colors.white,
                             ),
@@ -199,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: TextButton(
+                  child: PetalButton.text(
                     onPressed: loading
                         ? null
                         : () {

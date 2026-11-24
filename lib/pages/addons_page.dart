@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/models/addon.dart';
@@ -41,7 +42,7 @@ class _AddonsPageState extends State<AddonsPage> {
     future: _addonsFuture,
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
+        return const Center(child: PetalActivityIndicator());
       } else if (snapshot.hasError) {
         return Center(child: Text('Error: ${snapshot.error}'));
       } else {

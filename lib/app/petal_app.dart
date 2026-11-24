@@ -1,3 +1,5 @@
+// ignore: deprecated_member_use
+import 'package:flutter/cupertino.dart' as ios;
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
@@ -39,7 +41,19 @@ class _PetalAppState extends State<PetalApp> {
           return ShadcnApp.router(
             key: ValueKey(screenWidth),
             routerConfig: AppRouter.appRouter,
-            builder: (context, child) => DrawerOverlay(child: child!),
+            builder: (context, child) {
+              final scheme = Theme.of(context).colorScheme;
+              return ios.CupertinoTheme(
+                data: ios.CupertinoThemeData(
+                  brightness: scheme.brightness,
+                  primaryColor: scheme.primary,
+                  primaryContrastingColor: scheme.primaryForeground,
+                  scaffoldBackgroundColor: scheme.background,
+                  barBackgroundColor: scheme.card,
+                ),
+                child: DrawerOverlay(child: child!),
+              );
+            },
             debugShowCheckedModeBanner: false,
             themeMode: mode,
             theme: _theme(ColorSchemes.lightGray.pink),
@@ -54,7 +68,7 @@ class _PetalAppState extends State<PetalApp> {
 ThemeData _theme(ColorScheme scheme) {
   return ThemeData(
     colorScheme: scheme,
-    radius: 0.75,
+    radius: 1.0,
     surfaceOpacity: 1,
     surfaceBlur: 0,
   ).copyWith(platform: () => defaultTargetPlatform);
