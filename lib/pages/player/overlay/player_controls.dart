@@ -26,6 +26,7 @@ import 'package:petal/pages/player/overlay/player_settings_menu_button.dart';
 import 'package:petal/pages/player/overlay/position_display.dart';
 import 'package:petal/pages/player/overlay/seek_indicator.dart';
 import 'package:petal/pages/player/overlay/seek_slider.dart';
+import 'package:petal/pages/player/overlay/timed_comments_overlay.dart';
 import 'package:petal/pages/player/overlay/subtitle_audio_menu_button.dart';
 import 'package:petal/pages/player/overlay/volume_button.dart';
 import 'package:petal/pages/splash_screen.dart';
@@ -49,6 +50,7 @@ class PlayerControls extends StatefulWidget {
 class _PlayerControlsState extends State<PlayerControls> {
   bool _showControls = true;
   bool _showDebug = false;
+  final _timedCommentsKey = GlobalKey<TimedCommentsOverlayState>();
   bool _fullscreen = false;
   bool _openingNext = false;
   late bool _isShow;
@@ -420,6 +422,22 @@ class _PlayerControlsState extends State<PlayerControls> {
                       child: _buildControlsBar(),
                     ),
                   ),
+                  if (!_offline && mediaId > 0)
+                    Positioned(
+                      top: _showControls ? 68 : 16,
+                      left: 16,
+                      right: 16,
+                      child: SafeArea(
+                        bottom: false,
+                        child: TimedCommentsOverlay(
+                          key: _timedCommentsKey,
+                          player: player,
+                          mediaId: mediaId,
+                          season: _isShow ? episode.seasonNumber : null,
+                          episode: _isShow ? episode.episodeNumber : null,
+                        ),
+                      ),
+                    ),
                   if (_showDebug)
                     Positioned.fill(
                       child: SafeArea(
@@ -555,7 +573,18 @@ class _PlayerControlsState extends State<PlayerControls> {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: Tooltip(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!_offline && mediaId > 0)
+                        Tooltip(
+                          tooltip: (_) => const Text('Timed comments'),
+                          child: ControlButton(
+                            onTap: () => _timedCommentsKey.currentState?.openComposer(),
+                            icon: Icon(LucideIcons.messageCircle, size: AppTypography.normalIconSize),
+                          ),
+                        ),
+                      Tooltip(
                     tooltip: (_) => Text(
                       _showDebug
                           ? 'Hide playback diagnostics'
@@ -573,6 +602,8 @@ class _PlayerControlsState extends State<PlayerControls> {
                         ),
                       ),
                     ),
+                      ),
+                    ],
                   ),
                 ),
               ),
