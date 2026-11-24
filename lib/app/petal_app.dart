@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 // ignore: deprecated_member_use
 import 'package:flutter/cupertino.dart' as ios;
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
@@ -51,7 +52,10 @@ class _PetalAppState extends State<PetalApp> {
                   scaffoldBackgroundColor: scheme.background,
                   barBackgroundColor: scheme.card,
                 ),
-                child: DrawerOverlay(child: child!),
+                child: glass.GlassTheme(
+                  data: const glass.GlassThemeData.ios27().copyWith(brightness: scheme.brightness),
+                  child: DrawerOverlay(child: child!),
+                ),
               );
             },
             debugShowCheckedModeBanner: false,

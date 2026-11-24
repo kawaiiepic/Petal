@@ -1,6 +1,7 @@
-// Cupertino controls with Petal's existing adaptive colors.
+// Liquid Glass controls with Petal's existing adaptive colors.
 // ignore: deprecated_member_use
 import 'package:flutter/cupertino.dart' as ios;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart' as sh;
 
 enum _Variant { primary, outline, ghost, card, destructive, secondary }
@@ -46,13 +47,6 @@ class PetalButton extends ios.StatelessWidget {
         ? colors.destructiveForeground
         : filled ? colors.primaryForeground
         : _variant == _Variant.ghost ? colors.primary : colors.foreground;
-    final background = switch (_variant) {
-      _Variant.primary => colors.primary,
-      _Variant.destructive => colors.destructive,
-      _Variant.card => colors.card,
-      _Variant.secondary || _Variant.outline => colors.secondary,
-      _Variant.ghost => null,
-    };
     final content = leading == null && trailing == null ? child : ios.Row(
       mainAxisSize: ios.MainAxisSize.min,
       children: [
@@ -61,23 +55,29 @@ class PetalButton extends ios.StatelessWidget {
         if (trailing != null) ...[const ios.SizedBox(width: 10), trailing!],
       ],
     );
-    final radius = ios.BorderRadius.circular(_variant == _Variant.card ? 16 : 12);
-    return ios.CupertinoButton(
-      onPressed: onPressed,
-      color: background,
-      disabledColor: colors.muted,
-      borderRadius: radius,
-      padding: const ios.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      // Explicitly retain a compact minimum while still allowing larger content.
-      minimumSize: const ios.Size(0, 40),
+    final radius = _variant == _Variant.card ? 16.0 : 20.0;
+    return glass.GlassButton.custom(
+      onTap: onPressed ?? () {},
+      enabled: onPressed != null,
+      useOwnLayer: true,
+      shape: glass.LiquidRoundedRectangle(borderRadius: radius),
+      style: filled ? glass.GlassButtonStyle.prominent
+          : _variant == _Variant.ghost ? glass.GlassButtonStyle.transparent
+          : glass.GlassButtonStyle.filled,
+      tintColor: _variant == _Variant.destructive ? colors.destructive
+          : filled ? colors.primary : null,
       alignment: alignment,
-      child: ios.DefaultTextStyle.merge(
+      stretch: 0.15,
+      child: ios.Padding(
+        padding: const ios.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: ios.DefaultTextStyle.merge(
         style: ios.TextStyle(color: onPressed == null && _variant != _Variant.card ? colors.mutedForeground : foreground,
           fontSize: 15, fontWeight: ios.FontWeight.w500),
         child: ios.IconTheme.merge(
           data: ios.IconThemeData(color: onPressed == null ? colors.mutedForeground : foreground),
           child: content,
         ),
+      ),
       ),
     );
   }
@@ -122,32 +122,36 @@ class _PetalTextFieldState extends ios.State<PetalTextField> {
   ios.Widget build(ios.BuildContext context) {
     final colors = sh.Theme.of(context).colorScheme;
     final hint = widget.placeholder is ios.Text ? (widget.placeholder as ios.Text).data : null;
-    return ios.CupertinoTextField(
+    return glass.GlassTextField(
       controller: widget.controller, placeholder: hint,
-      onChanged: widget.onChanged, onSubmitted: widget.onSubmitted,
-      onEditingComplete: widget.onEditingComplete, obscureText: widget.obscureText && !_revealed,
-      autofocus: widget.autofocus, enabled: widget.enabled, maxLines: widget.maxLines,
-      maxLength: widget.maxLength, keyboardType: widget.keyboardType, focusNode: widget.focusNode,
-      textInputAction: widget.textInputAction,
+      onChanged: widget.onChanged,
+      onSubmitted: (value) {
+        widget.onEditingComplete?.call();
+        widget.onSubmitted?.call(value);
+      },
+      obscureText: widget.obscureText && !_revealed,
       autocorrect: !widget.obscureText,
       enableSuggestions: !widget.obscureText,
-      clearButtonMode: widget.obscureText ? ios.OverlayVisibilityMode.never : ios.OverlayVisibilityMode.editing,
-      suffix: widget.obscureText ? ios.Semantics(
-        label: _revealed ? 'Hide password' : 'Show password',
-        child: ios.CupertinoButton(
-          padding: const ios.EdgeInsets.symmetric(horizontal: 8),
-          minimumSize: const ios.Size(36, 36),
-          onPressed: widget.enabled ? () => setState(() => _revealed = !_revealed) : null,
-          child: ios.Icon(_revealed ? ios.CupertinoIcons.eye_slash : ios.CupertinoIcons.eye,
-            color: colors.mutedForeground, size: 18),
-        ),
-      ) : null,
+      autofocus: widget.autofocus, enabled: widget.enabled,
+      maxLines: widget.maxLines ?? 1, maxLength: widget.maxLength,
+      keyboardType: widget.keyboardType, focusNode: widget.focusNode,
+      textInputAction: widget.textInputAction,
+      useOwnLayer: true,
+      shape: const glass.LiquidRoundedRectangle(borderRadius: 14),
+      suffixIcon: widget.obscureText
+          ? ios.Icon(_revealed ? ios.CupertinoIcons.eye_slash : ios.CupertinoIcons.eye,
+              color: colors.mutedForeground, size: 18)
+          : widget.controller != null ? ios.Icon(ios.CupertinoIcons.clear_circled, color: colors.mutedForeground, size: 18) : null,
+      suffixSemanticLabel: widget.obscureText ? (_revealed ? 'Hide password' : 'Show password') : 'Clear text',
+      onSuffixTap: !widget.enabled ? null : widget.obscureText
+          ? () => setState(() => _revealed = !_revealed)
+          : widget.controller != null ? () {
+              widget.controller!.clear();
+              widget.onChanged?.call('');
+            } : null,
       padding: const ios.EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      style: widget.style ?? ios.TextStyle(color: colors.foreground, fontSize: 15),
+      textStyle: widget.style ?? ios.TextStyle(color: colors.foreground, fontSize: 15),
       placeholderStyle: ios.TextStyle(color: colors.mutedForeground, fontSize: 15),
-      decoration: ios.BoxDecoration(
-        color: colors.muted, borderRadius: ios.BorderRadius.circular(12),
-      ),
     );
   }
 }
@@ -157,9 +161,16 @@ class PetalSwitch extends ios.StatelessWidget {
   final ios.ValueChanged<bool>? onChanged;
   const PetalSwitch({super.key, required this.value, required this.onChanged});
   @override
-  ios.Widget build(ios.BuildContext context) => ios.CupertinoSwitch(
-    value: value, onChanged: onChanged,
-    activeTrackColor: sh.Theme.of(context).colorScheme.primary,
+  ios.Widget build(ios.BuildContext context) => ios.Opacity(
+    opacity: onChanged == null ? .5 : 1,
+    child: ios.IgnorePointer(
+      ignoring: onChanged == null,
+      child: glass.GlassSwitch(
+        value: value, onChanged: onChanged ?? (_) {},
+        useOwnLayer: true,
+        activeColor: sh.Theme.of(context).colorScheme.primary,
+      ),
+    ),
   );
 }
 
@@ -169,7 +180,7 @@ class PetalActivityIndicator extends ios.StatelessWidget {
   final double? strokeWidth;
   const PetalActivityIndicator({super.key, this.size = 20, this.color, this.strokeWidth});
   @override
-  ios.Widget build(ios.BuildContext context) => ios.CupertinoActivityIndicator(
-    radius: size / 2, color: color ?? sh.Theme.of(context).colorScheme.mutedForeground,
+  ios.Widget build(ios.BuildContext context) => glass.GlassProgressIndicator.circular(
+    size: size, strokeWidth: strokeWidth ?? 2.5, useOwnLayer: true, color: color ?? sh.Theme.of(context).colorScheme.mutedForeground,
   );
 }

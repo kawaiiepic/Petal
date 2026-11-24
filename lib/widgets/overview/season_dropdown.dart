@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 // ignore: deprecated_member_use
 import 'package:flutter/cupertino.dart' as ios;
 import 'package:petal/models/tmdb/season_summary.dart';
@@ -21,32 +22,29 @@ class SeasonDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final seasons = tvShow?.seasons ?? const <SeasonSummary>[];
     final scheme = Theme.of(context).colorScheme;
-    return ios.CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      color: scheme.secondary,
-      borderRadius: BorderRadius.circular(12),
-      onPressed: seasons.isEmpty ? null : () async {
-        final selected = await ios.showCupertinoModalPopup<SeasonSummary>(
+    return glass.GlassButton.custom(
+      useOwnLayer: true,
+      shape: const glass.LiquidRoundedRectangle(borderRadius: 14),
+      enabled: seasons.isNotEmpty,
+      onTap: () async {
+        SeasonSummary? selected;
+        await glass.showGlassActionSheet<void>(
           context: context,
-          builder: (sheetContext) => ios.CupertinoActionSheet(
-            title: const Text('Select a season'),
-            actions: [
-              for (final season in seasons)
-                ios.CupertinoActionSheetAction(
-                  isDefaultAction: season == selectedSeason,
-                  onPressed: () => Navigator.of(sheetContext).pop(season),
-                  child: Text(season.name),
-                ),
-            ],
-            cancelButton: ios.CupertinoActionSheetAction(
-              onPressed: () => Navigator.of(sheetContext).pop(),
-              child: const Text('Cancel'),
-            ),
-          ),
+          title: 'Select a season',
+          actions: [
+            for (final season in seasons)
+              glass.GlassActionSheetAction(
+                label: season.name,
+                icon: season == selectedSeason ? const Icon(ios.CupertinoIcons.check_mark) : null,
+                onPressed: () => selected = season,
+              ),
+          ],
         );
-        if (selected != null && context.mounted) onSeasonChanged(selected);
+        if (selected != null && context.mounted) onSeasonChanged(selected!);
       },
-      child: Row(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(child: Text(selectedSeason?.name ?? 'Select a season',
@@ -54,6 +52,7 @@ class SeasonDropdown extends StatelessWidget {
           const SizedBox(width: 8),
           Icon(ios.CupertinoIcons.chevron_down, color: scheme.foreground, size: 14),
         ],
+      ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petal/navigation/ios_navigation_dock.dart';
 import 'package:petal/theme/app_theme.dart';
@@ -14,7 +15,9 @@ void main() {
     final pressed = <String>[];
 
     await tester.pumpWidget(
-      ShadcnApp(
+      glass.LiquidGlassWidgets.wrap(
+        theme: glass.GlassThemeData.simple(quality: glass.GlassQuality.minimal),
+        child: ShadcnApp(
         themeMode: ThemeMode.dark,
         darkTheme: ThemeData(colorScheme: AppTheme.darkScheme),
         home: Center(
@@ -28,7 +31,7 @@ void main() {
             ),
           ),
         ),
-      ),
+      )),
     );
     await tester.pumpAndSettle();
 

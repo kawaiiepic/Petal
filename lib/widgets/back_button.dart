@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 // ignore: deprecated_member_use
 import 'package:flutter/cupertino.dart' as ios;
 import 'package:petal/app/petal_app.dart';
@@ -9,12 +10,9 @@ class BackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return ios.CupertinoButton(
-      padding: EdgeInsets.zero,
-      minimumSize: const Size(40, 40),
-      color: colors.card,
-      borderRadius: BorderRadius.circular(100),
-      onPressed: () {
+    return glass.GlassButton.custom(
+      width: 40, height: 40, useOwnLayer: true,
+      onTap: () {
         final ctx = PetalApp.rootNavigatorKey.currentContext ?? context;
         final nav = Navigator.of(ctx);
         if (nav.canPop()) nav.pop();

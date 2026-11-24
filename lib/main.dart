@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:petal/api/offline_progress_sync.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +14,7 @@ import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await LiquidGlassWidgets.initialize(enablePerformanceMonitor: false);
   await AppTheme.load();
   await QueryProxy.load();
   await UserLibrary.load();
@@ -26,7 +28,11 @@ void main() async {
   Discord.init();
 
   GoRouter.optionURLReflectsImperativeAPIs = true;
-  runApp(PetalApp());
+  runApp(LiquidGlassWidgets.wrap(
+    child: const PetalApp(),
+    adaptiveQuality: true,
+    theme: const GlassThemeData.ios27(),
+  ));
 
   WindowManager.instance.getCurrent()!.titleBarStyle = TitleBarStyle.hidden;
 }

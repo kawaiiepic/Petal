@@ -1,15 +1,16 @@
-// ignore: deprecated_member_use
-import 'package:flutter/cupertino.dart' as ios;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 void main() {
-  testWidgets('shared controls render Cupertino widgets and forward events', (tester) async {
+  testWidgets('shared controls render Liquid Glass widgets and forward events', (tester) async {
     var switched = false;
     var pressed = false;
     final controller = TextEditingController();
-    await tester.pumpWidget(ShadcnApp(
+    await tester.pumpWidget(glass.LiquidGlassWidgets.wrap(
+      theme: glass.GlassThemeData.simple(quality: glass.GlassQuality.minimal),
+      child: ShadcnApp(
       home: Scaffold(
         child: Column(
           children: [
@@ -20,14 +21,14 @@ void main() {
           ],
         ),
       ),
-    ));
-    expect(find.byType(ios.CupertinoButton), findsOneWidget);
-    expect(find.byType(ios.CupertinoTextField), findsOneWidget);
-    expect(find.byType(ios.CupertinoSwitch), findsOneWidget);
-    expect(find.byType(ios.CupertinoActivityIndicator), findsOneWidget);
+    )));
+    expect(find.byType(glass.GlassButton), findsOneWidget);
+    expect(find.byType(glass.GlassTextField), findsOneWidget);
+    expect(find.byType(glass.GlassSwitch), findsOneWidget);
+    expect(find.byType(glass.GlassProgressIndicator), findsOneWidget);
     await tester.tap(find.text('Play'));
-    await tester.tap(find.byType(ios.CupertinoSwitch));
-    await tester.enterText(find.byType(ios.CupertinoTextField), 'Petal');
+    await tester.tap(find.byType(glass.GlassSwitch));
+    await tester.enterText(find.byType(EditableText), 'Petal');
     expect(pressed, isTrue);
     expect(switched, isTrue);
     expect(controller.text, 'Petal');

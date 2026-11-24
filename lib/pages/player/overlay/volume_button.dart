@@ -1,5 +1,4 @@
-// ignore: deprecated_member_use
-import 'package:flutter/cupertino.dart' as ios;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'dart:async';
 
 import 'package:petal/api/playback_volume_store.dart';
@@ -74,7 +73,8 @@ class _VolumeButtonState extends State<VolumeButton> {
                     width: _hovered ? 100 : 0,
                     child: Opacity(
                       opacity: _hovered ? 1.0 : 0.0,
-                      child: !_hovered ? const SizedBox.shrink() : ios.CupertinoSlider(
+                      child: !_hovered ? const SizedBox.shrink() : glass.GlassSlider(
+                        useOwnLayer: true,
                         value: (_volume / 100).clamp(0.0, 1.0).toDouble(),
                         activeColor: Colors.white,
                         onChanged: (value) => _setVolume(value * 100),

@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart' show CupertinoSearchTextField;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -22,12 +22,13 @@ class _SearchFieldState extends State<SearchField> {
   @override
   Widget build(BuildContext context) {
       final scheme = Theme.of(context).colorScheme;
-      return CupertinoSearchTextField(
+      return glass.GlassSearchBar(
+        useOwnLayer: true,
         controller: _textController,
         placeholder: 'Search shows and movies',
-        backgroundColor: scheme.muted,
-        itemColor: scheme.mutedForeground,
-        style: TextStyle(color: scheme.foreground),
+        searchIconColor: scheme.mutedForeground,
+        clearIconColor: scheme.mutedForeground,
+        textStyle: TextStyle(color: scheme.foreground),
         onSubmitted: (_) => _openResults(),
       );
   }

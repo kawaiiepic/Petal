@@ -1,5 +1,4 @@
-// ignore: deprecated_member_use
-import 'package:flutter/cupertino.dart' as ios;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class ControlButton extends StatelessWidget {
@@ -9,16 +8,15 @@ class ControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      ios.CupertinoButton(
-        padding: const EdgeInsets.all(8),
-        minimumSize: const Size(32, 32),
-        onPressed: onTap,
-        child: IconTheme.merge(
+      glass.GlassButton.custom(
+        onTap: onTap ?? () {}, enabled: onTap != null,
+        useOwnLayer: true, style: glass.GlassButtonStyle.transparent,
+        child: Padding(padding: const EdgeInsets.all(8), child: IconTheme.merge(
           data: const IconThemeData(color: Colors.white),
           child: DefaultTextStyle.merge(
             style: const TextStyle(color: Colors.white),
             child: icon,
           ),
-        ),
+        )),
       );
 }
