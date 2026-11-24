@@ -143,7 +143,7 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
             _updateVisible(widget.player.state.position);
           },
         ),
-      );
+      ).future;
     } finally {
       _opening = false;
     }
@@ -223,7 +223,7 @@ class _TimedCommentComposerState extends State<_TimedCommentComposer> {
   Future<void> _post() async {
     final body = _text.text.trim();
     if (_posting) return;
-    if (body.isEmpty || body.runes.length > 500) {
+    if (body.isEmpty || body.length > 500) {
       setState(() => _error = 'Enter a comment of 1–500 characters.');
       return;
     }
