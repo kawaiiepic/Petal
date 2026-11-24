@@ -54,7 +54,7 @@ jobs:
 
   ios-build:
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     env:
       UPLOAD_TESTFLIGHT: ${{ (github.event_name == 'workflow_dispatch' && inputs.upload_testflight) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[testflight]')) }}
     steps:
@@ -182,7 +182,7 @@ jobs:
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
-          wait-for-processing: false
+          wait-for-processing: true
 
   linux-build:
     runs-on: ubuntu-latest
