@@ -284,25 +284,26 @@ class _CommentMarkers extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: theme.density.baseGap * theme.scaling * .5),
       child: LayoutBuilder(builder: (context, constraints) {
-        final diameter = 4.0 * theme.scaling;
+        final markerWidth = 3.0 * theme.scaling;
+        final markerHeight = 8.0 * theme.scaling;
         final width = constraints.maxWidth;
-        if (width <= diameter) return const SizedBox.shrink();
+        if (width <= markerWidth) return const SizedBox.shrink();
         final positions = <int>{};
         for (final marker in markers) {
           if (marker < Duration.zero || marker > duration) continue;
-          final x = marker.inMicroseconds / duration.inMicroseconds * (width - diameter);
-          positions.add((x / diameter).round());
+          final x = marker.inMicroseconds / duration.inMicroseconds * (width - markerWidth);
+          positions.add((x / markerWidth).round());
         }
         return Stack(children: [
           for (final position in positions)
             Positioned(
-              left: (position * diameter).clamp(0.0, width - diameter).toDouble(),
-              top: (constraints.maxHeight - diameter) / 2,
-              child: Container(width: diameter, height: diameter,
+              left: (position * markerWidth).clamp(0.0, width - markerWidth).toDouble(),
+              top: (constraints.maxHeight - markerHeight) / 2,
+              child: Container(width: markerWidth, height: markerHeight,
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFB86B),
                   border: Border.all(color: Colors.black.withValues(alpha: .6), width: .5),
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(.5),
                 )),
             ),
         ]);
