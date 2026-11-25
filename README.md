@@ -12,7 +12,7 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/kawaiiepic/Petal/flutter.yml?style=flat-square&label=build)](https://github.com/kawaiiepic/Petal/actions)
 [![Release](https://img.shields.io/github/v/release/kawaiiepic/Petal?include_prereleases&style=flat-square&color=%23FFC0CB)](https://github.com/kawaiiepic/Petal/releases)
 
-[**Download**](#-download) · [**Features**](#-features) · [**Screenshots**](#-screenshots) · [**Building**](#-building-from-source)
+[**Join iOS TestFlight**](https://testflight.apple.com/join/fPpArZG7) · [**Download**](#-download) · [**Features**](#-features) · [**Screenshots**](#-screenshots) · [**Building**](#-building-from-source)
 
 </div>
 
@@ -31,12 +31,16 @@
 
 ## 📦 Download
 
-Grab the latest build from [**Releases**](https://github.com/kawaiiepic/Petal/releases).
+Grab the latest desktop and Android builds from [**Releases**](https://github.com/kawaiiepic/Petal/releases).
+
+[![Join TestFlight](https://img.shields.io/badge/iOS-Join%20TestFlight-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://testflight.apple.com/join/fPpArZG7)
+
+Install Apple's [TestFlight app](https://apps.apple.com/app/testflight/id899247664), then open the invitation link to join the Petal beta. Availability depends on beta approval and tester capacity.
 
 | Platform | Download |
 |----------|----------|
 | 🤖 Android | `app-release.apk` |
-| 🍎 iOS | `bookadapt_unsigned.ipa` *(unsigned — sideload required)* |
+| 🍎 iOS | [Join the TestFlight beta](https://testflight.apple.com/join/fPpArZG7) |
 | 🐧 Linux | `release-linux.zip` |
 | 🪟 Windows | `release-windows.zip` |
 
@@ -46,7 +50,19 @@ Grab the latest build from [**Releases**](https://github.com/kawaiiepic/Petal/re
 
 ## 🖼️ Screenshots
 
-*Coming soon*
+<div align="center">
+
+### Dashboard
+
+<img src="assets/screenshots/dashboard.png" alt="Petal dashboard" width="900" />
+
+### Video player
+
+<img src="assets/screenshots/player.png" alt="Petal video player" width="900" />
+
+</div>
+
+*Existing development screenshots; the latest interface may differ.*
 
 ---
 
