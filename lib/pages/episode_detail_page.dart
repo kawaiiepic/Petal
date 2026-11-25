@@ -99,6 +99,29 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     }
   }
 
+  void _openShowPage() {
+    final router = GoRouter.of(context);
+    final route = '/series?tmdb=${widget.tmdbId}';
+    // A root-navigator sheet must be removed before pushing a shell route.
+    // Pushing directly from it can create a second copy of the navigation shell.
+    if (widget.popup && router.canPop()) {
+      router.pop();
+    }
+    final current = router.state.uri;
+    if (current.path == '/series' &&
+        current.queryParameters['tmdb'] == widget.tmdbId.toString()) {
+      return;
+    }
+    const shellPaths = {'/', '/collection', '/history', '/downloads',
+      '/search', '/series', '/movie'};
+    if (shellPaths.contains(current.path)) {
+      router.push(route);
+    } else {
+      // A standalone episode deep link has no browsing shell underneath.
+      router.go(route);
+    }
+  }
+
   String _date(DateTime? date) {
     if (date == null) return '';
     return '${date.month}/${date.day}/${date.year}';
@@ -293,9 +316,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                                 child: const Text('Download'),
                               ),
                               PetalButton.ghost(
-                                onPressed: () => context.push(
-                                  '/series?tmdb=${widget.tmdbId}',
-                                ),
+                                onPressed: _openShowPage,
                                 child: const Text('Show page'),
                               ),
                             ],
