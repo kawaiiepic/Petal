@@ -226,7 +226,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     Expanded(child: error),
                   ],
                 )
-              : error;
+              : Padding(padding: const EdgeInsets.only(left: tvDesktopSidebarWidth), child: error);
         }
 
         final catalogs = snapshot.data ?? const <Catalog>[];
@@ -313,51 +313,56 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             (catalogs.isNotEmpty && featured.connectionState != ConnectionState.done));
                         return compact
                             ? IosFeaturedHero(items: items, loading: heroLoading)
-                            : DesktopFeaturedHero(items: items, loading: heroLoading);
+                            : DesktopFeaturedHero(items: items, loading: heroLoading, leadingInset: tvDesktopSidebarWidth);
                       },
                     ),
                   ),
-                  SliverToBoxAdapter(
-                    child: HomeQuickActions(
-                      showSurprise: !HomeLayout.instance.hidden.contains(
-                        'surprise',
-                      ),
-                    ),
-                  ),
-                  if (!HomeLayout.instance.hidden.contains('deck'))
-                    SliverToBoxAdapter(
-                      key: ValueKey('home-$_profileKey-deck'),
-                      child: loadingRows ? _placeholder('deck') : const OnDeckShelf(),
-                    ),
-                  if (!HomeLayout.instance.hidden.contains('catalogs'))
-                    for (final catalog in promoted.values)
+                  SliverPadding(
+                    padding: EdgeInsets.only(left: compact ? 0 : tvDesktopSidebarWidth),
+                    sliver: SliverMainAxisGroup(slivers: [
                       SliverToBoxAdapter(
-                        key: ValueKey(catalog.url),
-                        child: CatalogSection(catalog: catalog),
+                        child: HomeQuickActions(
+                          showSurprise: !HomeLayout.instance.hidden.contains(
+                            'surprise',
+                          ),
+                        ),
                       ),
-                  for (final id in HomeLayout.instance.order.where(
-                    (id) =>
-                        id != 'surprise' && id != 'deck' &&
-                        !HomeLayout.instance.hidden.contains(id),
-                  ))
-                    if (id == 'catalogs')
-                      ...catalogSlivers
-                    else
+                      if (!HomeLayout.instance.hidden.contains('deck'))
+                        SliverToBoxAdapter(
+                          key: ValueKey('home-$_profileKey-deck'),
+                          child: loadingRows ? _placeholder('deck') : const OnDeckShelf(),
+                        ),
+                      if (!HomeLayout.instance.hidden.contains('catalogs'))
+                        for (final catalog in promoted.values)
+                          SliverToBoxAdapter(
+                            key: ValueKey(catalog.url),
+                            child: CatalogSection(catalog: catalog),
+                          ),
+                      for (final id in HomeLayout.instance.order.where(
+                        (id) =>
+                            id != 'surprise' && id != 'deck' &&
+                            !HomeLayout.instance.hidden.contains(id),
+                      ))
+                        if (id == 'catalogs')
+                          ...catalogSlivers
+                        else
+                          SliverToBoxAdapter(
+                            key: ValueKey('home-$_profileKey-$id'),
+                            child:
+                                loadingRows &&
+                                    !{'downloads', 'calendar'}.contains(id)
+                                ? _placeholder(id)
+                                : sections[id]!,
+                          ),
                       SliverToBoxAdapter(
-                        key: ValueKey('home-$_profileKey-$id'),
-                        child:
-                            loadingRows &&
-                                !{'downloads', 'calendar'}.contains(id)
-                            ? _placeholder(id)
-                            : sections[id]!,
+                        child: SizedBox(
+                          height: compact
+                              ? IosNavigationDock.clearance +
+                                    MediaQuery.viewPaddingOf(context).bottom
+                              : 32,
+                        ),
                       ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: compact
-                          ? IosNavigationDock.clearance +
-                                MediaQuery.viewPaddingOf(context).bottom
-                          : 32,
-                    ),
+                    ]),
                   ),
                 ],
               ),

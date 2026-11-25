@@ -10,12 +10,13 @@ import 'package:petal/widgets/home/featured_pagination.dart';
 import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-/// Featured artwork flush with the edges of the desktop content area.
+/// Full-bleed featured artwork with controls inset past the desktop sidebar.
 class DesktopFeaturedHero extends StatefulWidget {
-  const DesktopFeaturedHero({super.key, required this.items, this.loading = false});
+  const DesktopFeaturedHero({super.key, required this.items, this.loading = false, this.leadingInset = 0});
 
   final List<CatalogItem> items;
   final bool loading;
+  final double leadingInset;
 
   @override
   State<DesktopFeaturedHero> createState() => _DesktopFeaturedHeroState();
@@ -74,7 +75,7 @@ class _DesktopFeaturedHeroState extends State<DesktopFeaturedHero> {
     final height = math.max(320.0, MediaQuery.sizeOf(context).height * .55);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth;
+        final width = math.max(1.0, constraints.maxWidth - widget.leadingInset);
         return SizedBox(
           height: height,
           child: Stack(
@@ -82,7 +83,7 @@ class _DesktopFeaturedHeroState extends State<DesktopFeaturedHero> {
             children: [
               const ColoredBox(color: Color(0xFF17181A)),
               Positioned.fill(
-                left: hasBackdrop ? 0 : width * .45,
+                left: hasBackdrop ? 0 : widget.leadingInset + width * .45,
                 child: AnimatedSwitcher(
                   duration: MediaQuery.disableAnimationsOf(context)
                       ? Duration.zero
@@ -117,7 +118,7 @@ class _DesktopFeaturedHeroState extends State<DesktopFeaturedHero> {
                 ),
               ),
               Positioned(
-                left: hasMultiple ? 68 : 32,
+                left: widget.leadingInset + (hasMultiple ? 68 : 32),
                 right: hasMultiple ? 68 : 32,
                 bottom: hasMultiple ? 49 : 22,
                 child: Column(
@@ -177,7 +178,7 @@ class _DesktopFeaturedHeroState extends State<DesktopFeaturedHero> {
               ),
               if (hasMultiple) ...[
                 Positioned(
-                  left: 8,
+                  left: widget.leadingInset + 8,
                   top: 0,
                   bottom: 0,
                   child: Center(
@@ -202,7 +203,7 @@ class _DesktopFeaturedHeroState extends State<DesktopFeaturedHero> {
                 ),
                 Positioned(
                   bottom: 4,
-                  left: 0,
+                  left: widget.leadingInset,
                   right: 0,
                   child: Center(
                     child: FeaturedPagination(

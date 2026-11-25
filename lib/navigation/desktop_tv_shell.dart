@@ -27,6 +27,7 @@ class DesktopTvShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final dark = colors.brightness == Brightness.dark;
+    final home = Uri.parse(location).path == '/';
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -42,7 +43,7 @@ class DesktopTvShell extends StatelessWidget {
             ),
           ),
         ),
-        Positioned.fill(left: tvDesktopSidebarWidth, child: child),
+        Positioned.fill(left: home ? 0 : tvDesktopSidebarWidth, child: child),
         Positioned(
           top: 0,
           bottom: 0,
