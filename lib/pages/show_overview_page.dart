@@ -531,7 +531,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
-                        height: 150,
+                        height: 118,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: cast != null ? cast.length : 3,
@@ -543,7 +543,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         ),
                       ),
                       if (_resolvedTmdbId != null) ...[
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 8),
                         CollapsibleTitleComments(
                           mediaType: 'show',
                           tmdbId: _resolvedTmdbId!,
