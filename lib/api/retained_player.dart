@@ -13,8 +13,11 @@ class RetainedMedia {
   final bool finished;
   final double? lastWritten;
   final String? profileKey;
+  final Duration position;
+  final Duration duration;
   const RetainedMedia({required this.item, required this.source,
-    this.finished = false, this.lastWritten, this.profileKey});
+    this.finished = false, this.lastWritten, this.profileKey,
+    this.position = Duration.zero, this.duration = Duration.zero});
 }
 
 /// Owns a single lazy native player for the app. Route leases prevent stale

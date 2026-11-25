@@ -1,3 +1,4 @@
+import 'package:petal/utils/media_formatting.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/api/retained_player.dart';
@@ -71,8 +72,12 @@ class _RetainedPlayerButtonState extends State<RetainedPlayerButton> {
     final episode = widget.media.item.episode;
     return FutureBuilder(future: _metadata, builder: (context, snapshot) {
       final title = snapshot.data?.title ?? 'Resume playback';
-      final subtitle = episode == null ? 'Paused' :
-        'S${episode.seasonNumber} · E${episode.episodeNumber} · Paused';
+      final media = widget.media;
+      final elapsed = MediaFormatting.fmt(media.position < Duration.zero ? Duration.zero : media.position);
+      final timestamp = media.duration > Duration.zero
+          ? '$elapsed / ${MediaFormatting.fmt(media.duration)}' : elapsed;
+      final subtitle = episode == null ? timestamp :
+        'S${episode.seasonNumber} · E${episode.episodeNumber} · $timestamp';
       Widget artwork(double width, double height) => ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(width: width, height: height,
@@ -82,7 +87,12 @@ class _RetainedPlayerButtonState extends State<RetainedPlayerButton> {
         mainAxisSize: MainAxisSize.min, children: [
           Text(title, maxLines: lines, overflow: TextOverflow.ellipsis,
             style: TextStyle(color: colors.foreground, fontSize: 13, fontWeight: FontWeight.w600)),
-          Text(subtitle, maxLines: widget.mobile ? 1 : 2, overflow: TextOverflow.ellipsis,
+          if (!widget.mobile && episode != null)
+            Text('S${episode.seasonNumber} · E${episode.episodeNumber}', maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: colors.mutedForeground, fontSize: 11)),
+          Text(widget.mobile ? (widget.collapsed ? timestamp : subtitle) : timestamp,
+            maxLines: 1, overflow: TextOverflow.ellipsis,
             style: TextStyle(color: colors.mutedForeground, fontSize: 11)),
         ]);
       final play = _action(LucideIcons.play, 'Resume playback', _open);

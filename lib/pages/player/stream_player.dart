@@ -670,7 +670,8 @@ class StreamPlayerState extends State<StreamPlayer> {
           loaded != null && identical(loaded.item, _item);
       _retained.release(_lease, keep ? RetainedMedia(item: _item,
         source: loaded!.source, finished: _finishedThisSession,
-        lastWritten: _lastWrittenProgress, profileKey: _profileKey) : null);
+        lastWritten: _lastWrittenProgress, profileKey: _profileKey,
+        position: player.state.position, duration: player.state.duration) : null);
     }
     PlaybackPreferences.instance.removeListener(_preferencesChanged);
     if (_syncSuspended) OfflineProgressSync.instance.resume();
