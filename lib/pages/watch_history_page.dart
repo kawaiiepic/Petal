@@ -1,3 +1,4 @@
+import 'package:petal/widgets/library/library_page_frame.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/utils/history_timeline.dart';
@@ -40,14 +41,12 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    headers: const [
-      LibraryPageHeader(
+  Widget build(BuildContext context) => LibraryPageFrame(
+    header: const LibraryPageHeader(
         title: 'Playback history',
         description: 'Revisit what you watched and manage your progress.',
         icon: LucideIcons.history,
       ),
-    ],
     child: Column(
       children: [
         Padding(

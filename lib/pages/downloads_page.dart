@@ -1,3 +1,4 @@
+import 'package:petal/widgets/library/library_page_frame.dart';
 import 'package:petal/api/download_manager.dart';
 import 'package:petal/models/downloads/download_entry.dart';
 import 'package:petal/models/downloads/download_status.dart';
@@ -23,16 +24,14 @@ class _DownloadsPageState extends State<DownloadsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    headers: const [
-      LibraryPageHeader(
+  Widget build(BuildContext context) => LibraryPageFrame(
+    header: const LibraryPageHeader(
         title: 'Downloads',
         description:
             'Manage offline playback and see what’s saved on this device.',
         icon: LucideIcons.download,
         showAccount: true,
       ),
-    ],
     child: ValueListenableBuilder(
       valueListenable: DownloadManager.items,
       builder: (context, items, _) {

@@ -1,4 +1,4 @@
-import 'package:petal/navigation/tv_layout.dart';
+import 'package:petal/widgets/library/library_page_frame.dart';
 import 'package:petal/models/library/collection_section.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/pages/collection_home_page.dart';
@@ -30,13 +30,6 @@ class _CollectionPageState extends State<CollectionPage> {
           showAccount: true,
         );
     final content = CollectionHomePage(key: ValueKey(widget.section), section: widget.section);
-    if (!TvLayout.isCompact(context)) {
-      // Let the desktop shell's shared gradient show through the whole page.
-      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        header,
-        Expanded(child: content),
-      ]);
-    }
-    return Scaffold(headers: [header], child: content);
+    return LibraryPageFrame(header: header, child: content);
   }
 }
