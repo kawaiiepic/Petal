@@ -1,3 +1,4 @@
+import 'package:petal/models/library/collection_section.dart';
 import 'package:petal/navigation/desktop_media_tabs.dart';
 import 'package:petal/api/retained_player.dart';
 import 'package:petal/navigation/retained_player_button.dart';
@@ -115,6 +116,16 @@ class DesktopTvShell extends StatelessWidget {
                               'Collection',
                               LucideIcons.library,
                             ),
+                            for (final section in CollectionSection.values)
+                              Padding(padding: const EdgeInsets.only(left: 12),
+                                child: _destination(context, section.route, section.label,
+                                  switch (section) {
+                                    CollectionSection.watching => LucideIcons.play,
+                                    CollectionSection.watchlist => LucideIcons.bookmark,
+                                    CollectionSection.liked => LucideIcons.heart,
+                                    CollectionSection.watched => LucideIcons.check,
+                                    CollectionSection.planned => LucideIcons.clock,
+                                  })),
                             _destination(
                               context,
                               '/history',
@@ -152,7 +163,10 @@ class DesktopTvShell extends StatelessWidget {
     String label,
     IconData icon,
   ) {
-    final selected = Uri.parse(location).path == path;
+    final current = Uri.parse(location);
+    final destination = Uri.parse(path);
+    final selected = current.path == destination.path &&
+      current.queryParameters['section'] == destination.queryParameters['section'];
     final colors = Theme.of(context).colorScheme;
     final foreground = selected ? Colors.white : colors.foreground;
     return Padding(

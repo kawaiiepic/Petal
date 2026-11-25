@@ -1,3 +1,4 @@
+import 'package:petal/models/library/collection_section.dart';
 import 'package:petal/api/retained_player.dart';
 import 'package:petal/router/popup_page.dart';
 import 'package:petal/router/episode_sheet_page.dart';
@@ -37,7 +38,9 @@ Page<void> _navigationPage(GoRouterState state, Widget child) =>
 List<GoRoute> _libraryRoutes() => [
   GoRoute(
     path: '/collection',
-    pageBuilder: (context, state) => _navigationPage(state, CollectionPage()),
+    pageBuilder: (context, state) => _navigationPage(state, CollectionPage(
+      section: CollectionSection.parse(state.uri.queryParameters['section']),
+    )),
   ),
   GoRoute(
     path: '/history',

@@ -1,10 +1,14 @@
+import 'package:go_router/go_router.dart';
+import 'package:petal/models/library/collection_section.dart';
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/pages/collection_home_page.dart';
 import 'package:petal/widgets/library/library_page_header.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class CollectionPage extends StatefulWidget {
-  const CollectionPage({super.key});
+  final CollectionSection? section;
+  const CollectionPage({super.key, this.section});
 
   @override
   State<CollectionPage> createState() => _CollectionPageState();
@@ -22,14 +26,16 @@ class _CollectionPageState extends State<CollectionPage> {
     return Scaffold(
       headers: [
         LibraryPageHeader(
-          title: 'Collection',
-          description:
+          title: widget.section?.label ?? 'Collection',
+          description: widget.section?.description ??
               'Pick up where you left off or find something you saved.',
           icon: LucideIcons.library,
+          action: widget.section == null ? null : PetalButton.ghost(
+            onPressed: () => context.go('/collection'), child: const Text('All collections')),
           showAccount: true,
         ),
       ],
-      child: const CollectionHomePage(),
+      child: CollectionHomePage(key: ValueKey(widget.section), section: widget.section),
     );
   }
 }

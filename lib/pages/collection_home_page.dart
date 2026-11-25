@@ -1,3 +1,7 @@
+import 'dart:math' as math;
+import 'package:go_router/go_router.dart';
+import 'package:petal/models/library/collection_section.dart';
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'dart:async';
 
 import 'package:petal/api/backend/backend_cache.dart';
@@ -14,7 +18,8 @@ import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class CollectionHomePage extends StatefulWidget {
-  const CollectionHomePage({super.key});
+  final CollectionSection? section;
+  const CollectionHomePage({super.key, this.section});
 
   @override
   State<CollectionHomePage> createState() => _CollectionHomePageState();
@@ -62,38 +67,33 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
     builder: (context, _) {
       final watchlist = UserLibrary.watchlistTitles();
       final liked = UserLibrary.ratedTitles();
+      final watching = _entries.where((e) =>
+        isWatching(e.item, tmdbEpisodeCount: e.episodeCount)).toList();
+      final watched = _entries.where((e) =>
+        isFinished(e.item, tmdbEpisodeCount: e.episodeCount)).toList();
+      final planned = _entries.where((e) => isPlanned(e.item)).toList();
+      final section = widget.section;
       return ListView(
+        key: PageStorageKey('collection:${section?.name ?? 'all'}'),
         padding: const EdgeInsets.only(bottom: 32),
         children: [
-          _historyShelf(
-            'Watching',
-            _entries
-                .where(
-                  (e) => isWatching(e.item, tmdbEpisodeCount: e.episodeCount),
-                )
-                .toList(),
-          ),
-          _libraryShelf('Watchlist', watchlist),
-          _libraryShelf('Liked', liked),
-          _historyShelf(
-            'Watched',
-            _entries
-                .where(
-                  (e) => isFinished(e.item, tmdbEpisodeCount: e.episodeCount),
-                )
-                .toList(),
-          ),
-          _historyShelf(
-            'Planned',
-            _entries.where((e) => isPlanned(e.item)).toList(),
-          ),
+          if (section == null || section == CollectionSection.watching)
+            _historyShelf(CollectionSection.watching, watching),
+          if (section == null || section == CollectionSection.watchlist)
+            _libraryShelf(CollectionSection.watchlist, watchlist),
+          if (section == null || section == CollectionSection.liked)
+            _libraryShelf(CollectionSection.liked, liked),
+          if (section == null || section == CollectionSection.watched)
+            _historyShelf(CollectionSection.watched, watched),
+          if (section == null || section == CollectionSection.planned)
+            _historyShelf(CollectionSection.planned, planned),
         ],
       );
     },
   );
 
   Widget _shelf(
-    String title,
+    CollectionSection section,
     int? count, {
     required int itemCount,
     required IndexedWidgetBuilder itemBuilder,
@@ -107,11 +107,14 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
           spacing: 8,
           children: [
             Expanded(
-              child: Text(title, style: const TextStyle(
+              child: Text(section.label, style: const TextStyle(
                 fontSize: 21, fontWeight: FontWeight.w700,
               )),
             ),
             if (count != null) SecondaryBadge(child: Text('$count')),
+            if (widget.section == null && count != null && count > 6)
+              PetalButton.ghost(onPressed: () => context.push(section.route),
+                child: const Text('Show more')),
           ],
         ),
       ),
@@ -126,13 +129,30 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
             final width = landscape ? available : 118.0;
             final artworkHeight = landscape ? width * 9 / 16 : width * 4 / 3;
             final captionHeight = MediaQuery.textScalerOf(context).scale(32) + 6;
+            if (widget.section != null) {
+              final gap = 12.0;
+              final contentWidth = math.max(1.0, constraints.maxWidth - 40);
+              final targetWidth = landscape ? 220.0 : 145.0;
+              final columns = math.max(1, ((contentWidth + gap) / (targetWidth + gap)).floor());
+              final cellWidth = (contentWidth - gap * (columns - 1)) / columns;
+              final cellHeight = (landscape ? cellWidth * 9 / 16 : cellWidth * 4 / 3) + captionHeight;
+              return GridView.builder(
+                primary: false, shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns, mainAxisExtent: cellHeight,
+                  crossAxisSpacing: gap, mainAxisSpacing: gap),
+                itemCount: itemCount, itemBuilder: itemBuilder,
+              );
+            }
             return MediaShelf(
               orientation: landscape ? Orientation.landscape : Orientation.portrait,
               cardHeight: artworkHeight + captionHeight,
               cardWidth: width,
               spacing: 8,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: itemCount,
+              itemCount: math.min(itemCount, 6),
               itemBuilder: itemBuilder,
             );
           },
@@ -141,14 +161,14 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
     ],
   );
 
-  Widget _libraryShelf(String title, List<LibraryTitle> titles) => _shelf(
+  Widget _libraryShelf(CollectionSection title, List<LibraryTitle> titles) => _shelf(
     title,
     titles.length,
     itemCount: titles.length,
     itemBuilder: (_, index) => LibraryPosterCard(title: titles[index]),
   );
 
-  Widget _historyShelf(String title, List<CollectionHistoryEntry> entries) =>
+  Widget _historyShelf(CollectionSection title, List<CollectionHistoryEntry> entries) =>
       _shelf(
         title,
         _loading ? null : entries.length,
