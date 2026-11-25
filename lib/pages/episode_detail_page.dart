@@ -153,7 +153,8 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
               child: CustomScrollView(
                 controller: widget.scrollController,
                 primary: false,
-                physics: const AlwaysScrollableScrollPhysics(),
+                shrinkWrap: widget.popup,
+                physics: const ClampingScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
                     child: SizedBox(
