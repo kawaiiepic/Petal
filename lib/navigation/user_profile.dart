@@ -70,7 +70,7 @@ class _UserProfileState extends State<UserProfile> {
             placeholder: (_, _) => fallback,
             errorWidget: (_, _, _) => fallback,
             imageBuilder: (context, imageProvider) => widget.avatarOnly
-                ? ClipOval(child: Image(image: imageProvider, width: 44, height: 44, fit: BoxFit.cover))
+                ? ClipOval(child: Image(image: imageProvider, width: avatarSize, height: avatarSize, fit: BoxFit.cover))
                 : Avatar(
               initials: '',
               provider: imageProvider,
