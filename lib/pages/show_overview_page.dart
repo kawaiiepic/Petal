@@ -547,7 +547,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                 MediaShelf(
                                   orientation: Orientation.landscape,
                                   cardWidth: 208,
-                                  cardHeight: 170,
+                                  cardHeight: 117,
                                   spacing: 10,
                                   padding: EdgeInsets.zero,
                                   itemCount: snapshot.data!.episodes.length,
