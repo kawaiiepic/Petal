@@ -1,7 +1,8 @@
-import 'package:flutter/services.dart' show LogicalKeyboardKey, KeyDownEvent, KeyEventResult;
+import 'package:flutter/services.dart' show LogicalKeyboardKey, KeyDownEvent;
 import 'dart:async';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:go_router/go_router.dart';
+import 'package:flutter/widgets.dart' show KeyEventResult;
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class SearchField extends StatefulWidget {
@@ -11,12 +12,14 @@ class SearchField extends StatefulWidget {
     this.initialQuery = '',
     this.replaceResults = false,
     this.onQueryChanged,
+    this.onSubmitted,
   });
 
   final String placeholder;
   final String initialQuery;
   final bool replaceResults;
   final ValueChanged<String>? onQueryChanged;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   State<SearchField> createState() => _SearchFieldState();
@@ -55,8 +58,9 @@ class _SearchFieldState extends State<SearchField> {
     _debounce?.cancel();
     final q = _textController.text.trim();
     FocusManager.instance.primaryFocus?.unfocus();
-    if (widget.onQueryChanged != null) {
-      widget.onQueryChanged!(q);
+    final submit = widget.onSubmitted ?? widget.onQueryChanged;
+    if (submit != null) {
+      submit(q);
       return;
     }
     if (q.isEmpty) return;

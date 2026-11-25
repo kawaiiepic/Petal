@@ -13,7 +13,9 @@ import 'package:sizer/sizer.dart';
 
 /// Browse the titles available from the user's addons before entering a query.
 class SearchDiscovery extends StatefulWidget {
-  const SearchDiscovery({super.key});
+  const SearchDiscovery({super.key, this.onSearch});
+
+  final ValueChanged<String>? onSearch;
 
   @override
   State<SearchDiscovery> createState() => _SearchDiscoveryState();
@@ -103,23 +105,24 @@ class _SearchDiscoveryState extends State<SearchDiscovery> {
           primary: false,
           controller: _scroll,
           slivers: [
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, 12, 20, 22),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 14,
                     children: [
-                      Text(
+                      const Text(
                         'Search',
                         style: TextStyle(
                           fontSize: 34,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      SearchField(placeholder: 'Shows, Movies, and More'),
+                      SearchField(placeholder: 'Shows, Movies, Actors, and More',
+                        onSubmitted: widget.onSearch),
                     ],
                   ),
                 ),

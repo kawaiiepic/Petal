@@ -314,7 +314,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   @override
   Widget build(BuildContext context) {
     final compact = TvLayout.isCompact(context);
-    if (_query.trim().isEmpty) return const SearchDiscovery();
+    if (_query.trim().isEmpty) return SearchDiscovery(onSearch: _changeQuery);
     final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SafeArea(bottom: false, child: Padding(
