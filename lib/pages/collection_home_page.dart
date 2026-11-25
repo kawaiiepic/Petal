@@ -111,19 +111,30 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       if (widget.section == null) Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
+        padding: const EdgeInsets.fromLTRB(8, 0, 20, 0),
         child: Row(
           spacing: 8,
           children: [
-            Expanded(
-              child: Text(section.label, style: const TextStyle(
-                fontSize: 21, fontWeight: FontWeight.w700,
-              )),
+            Flexible(
+              child: PetalButton.ghost(
+                alignment: Alignment.centerLeft,
+                onPressed: () => context.push(section.route),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 6,
+                  children: [
+                    Flexible(child: Text(section.label, style: TextStyle(
+                      color: Theme.of(context).colorScheme.foreground,
+                      fontSize: 21, fontWeight: FontWeight.w700,
+                    ))),
+                    Icon(LucideIcons.chevronRight, size: 16,
+                      color: Theme.of(context).colorScheme.mutedForeground),
+                  ],
+                ),
+              ),
             ),
+            const Spacer(),
             if (count != null) SecondaryBadge(child: Text('$count')),
-            if (widget.section == null && count != null && count > 6)
-              PetalButton.ghost(onPressed: () => context.push(section.route),
-                child: const Text('Show more')),
           ],
         ),
       ),
