@@ -25,7 +25,6 @@ import 'package:petal/pages/player/overlay/next_up_card.dart';
 import 'package:petal/pages/player/overlay/play_pause_button.dart';
 import 'package:petal/pages/player/overlay/player_settings_menu_button.dart';
 import 'package:petal/pages/player/overlay/position_display.dart';
-import 'package:petal/pages/player/overlay/seek_indicator.dart';
 import 'package:petal/pages/player/overlay/seek_slider.dart';
 import 'package:petal/pages/player/overlay/timed_comments_overlay.dart';
 import 'package:petal/pages/player/overlay/subtitle_audio_menu_button.dart';
@@ -58,6 +57,7 @@ class _PlayerControlsState extends State<PlayerControls> {
   late Future<TmdbMovie> _movie;
   Timer? _hideTimer;
 
+  double _doubleTapX = 0;
   int _leftSeekSeconds = 0;
   int _rightSeekSeconds = 0;
   bool _showLeftSeek = false;
@@ -82,10 +82,12 @@ class _PlayerControlsState extends State<PlayerControls> {
     player.seek(newPosition < Duration.zero ? Duration.zero : newPosition);
 
     setState(() {
+      _showControls = true;
       _leftSeekSeconds += 10;
       _showLeftSeek = true;
     });
 
+    _startHideTimer();
     _leftSeekTimer?.cancel();
     _leftSeekTimer = Timer(const Duration(milliseconds: 700), () {
       if (mounted) {
@@ -103,10 +105,12 @@ class _PlayerControlsState extends State<PlayerControls> {
     player.seek(newPosition > duration ? duration : newPosition);
 
     setState(() {
+      _showControls = true;
       _rightSeekSeconds += 10;
       _showRightSeek = true;
     });
 
+    _startHideTimer();
     _rightSeekTimer?.cancel();
     _rightSeekTimer = Timer(const Duration(milliseconds: 700), () {
       if (mounted) {
@@ -390,10 +394,13 @@ class _PlayerControlsState extends State<PlayerControls> {
       child: GestureDetector(
         behavior: HitTestBehavior.deferToChild,
         onDoubleTapDown: (details) {
+          _doubleTapX = details.localPosition.dx;
+        },
+        onDoubleTap: () {
           if (_showDebug) return;
           final width =
               context.size?.width ?? MediaQuery.of(context).size.width;
-          final tapX = details.localPosition.dx;
+          final tapX = _doubleTapX;
 
           if (tapX < width / 2) {
             _seekBackward();
@@ -401,9 +408,7 @@ class _PlayerControlsState extends State<PlayerControls> {
             _seekForward();
           }
         },
-        onTapDown: (details) {
-          _onMouseMove(toggle: true);
-        },
+        onTap: () => _onMouseMove(toggle: true),
         child: MouseRegion(
           onHover: (event) => _onMouseMove(),
           onEnter: (_) => setState(() => _showControls = true),
@@ -467,16 +472,6 @@ class _PlayerControlsState extends State<PlayerControls> {
                         ),
                       ),
                     ),
-                  SeekIndicator(
-                    visible: _showLeftSeek,
-                    seconds: _leftSeekSeconds,
-                    isLeft: true,
-                  ),
-                  SeekIndicator(
-                    visible: _showRightSeek,
-                    seconds: _rightSeekSeconds,
-                    isLeft: false,
-                  ),
                   if (_isShow && !_offline)
                     AnimatedPositioned(
                       duration: const Duration(milliseconds: 200),
@@ -536,6 +531,28 @@ class _PlayerControlsState extends State<PlayerControls> {
     child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), child: child),
   );
 
+  Widget _seekButton({required bool backward}) {
+    final active = backward ? _showLeftSeek : _showRightSeek;
+    final seconds = backward ? _leftSeekSeconds : _rightSeekSeconds;
+    return AnimatedScale(
+      scale: active ? .88 : 1,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOut,
+      child: ControlButton(
+        filled: true,
+        onTap: backward ? _seekBackward : _seekForward,
+        icon: SizedBox.square(
+          dimension: 27,
+          child: active
+              ? Center(child: Text('${backward ? '−' : '+'}$seconds',
+                  style: const TextStyle(color: Colors.white, fontSize: 13,
+                    fontWeight: FontWeight.w600)))
+              : Icon(backward ? LucideIcons.rotateCcw : LucideIcons.rotateCw, size: 27),
+        ),
+      ),
+    );
+  }
+
   Widget _buildControlsBar() {
     return Stack(
       fit: StackFit.expand,
@@ -575,13 +592,11 @@ class _PlayerControlsState extends State<PlayerControls> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ControlButton(filled: true, onTap: _seekBackward,
-                      icon: const Icon(LucideIcons.rotateCcw, size: 27)),
+                    _seekButton(backward: true),
                     const SizedBox(width: 18),
                     PlayPauseButton(player: player),
                     const SizedBox(width: 18),
-                    ControlButton(filled: true, onTap: _seekForward,
-                      icon: const Icon(LucideIcons.rotateCw, size: 27)),
+                    _seekButton(backward: false),
                   ],
                 ),
                 Column(
