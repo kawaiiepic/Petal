@@ -96,7 +96,7 @@ void closePlayerPanel(BuildContext context, [Object? result]) {
 Future<T?> showPlayerGlassPanel<T>(BuildContext context, {
   required String title, required WidgetBuilder builder, double maxWidth = 440,
   Offset? anchor,
-}) {
+}) async {
   final compact = TvLayout.isCompact(context);
   if (!compact) {
     T? result;
