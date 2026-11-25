@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
-import 'package:flutter/services.dart' show LogicalKeyboardKey, SystemMouseCursors;
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
+import 'package:flutter/rendering.dart' show SystemMouseCursors;
 import 'package:petal/models/library/collection_section.dart';
 import 'package:petal/navigation/desktop_media_tabs.dart';
 import 'package:petal/api/retained_player.dart';
@@ -162,47 +163,14 @@ class DesktopTvShell extends StatelessWidget {
 
   // Use a normal hit-testable navigation row for collection links. Glass is
   // decorative here, rather than owning the pointer interaction.
-  Widget _collectionDestination(BuildContext context, CollectionSection section, IconData icon) {
-    final selected = Uri.parse(location).path == section.route;
-    final colors = Theme.of(context).colorScheme;
-    final foreground = selected ? Colors.white : colors.foreground;
-    void open() => GoRouter.of(context).go(section.route);
-    return Semantics(
-      button: true, selected: selected, label: section.label,
-      child: FocusableActionDetector(
-        mouseCursor: SystemMouseCursors.click,
-        shortcuts: const {
-          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-        },
-        actions: {
-          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
-            open();
-            return null;
-          }),
-        },
-        child: GestureDetector(
-          key: ValueKey('collection-nav:${section.name}'),
-          behavior: HitTestBehavior.opaque,
-          onTap: open,
-          child: Container(
-            height: 36,
-            margin: const EdgeInsets.only(bottom: 3),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: selected ? const Color(0xFF0069D9) : Colors.transparent,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Row(spacing: 9, children: [
-              Icon(icon, size: 16, color: foreground),
-              Expanded(child: Text(section.label, style: TextStyle(
-                color: foreground, fontSize: 14, fontWeight: FontWeight.w500))),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _collectionDestination(BuildContext context, CollectionSection section, IconData icon) =>
+      _CollectionNavigationRow(
+        key: ValueKey(section),
+        section: section,
+        icon: icon,
+        selected: Uri.parse(location).path == section.route,
+        onTap: () => GoRouter.of(context).go(section.route),
+      );
 
   Widget _destination(
     BuildContext context,
@@ -246,6 +214,75 @@ class DesktopTvShell extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionNavigationRow extends StatefulWidget {
+  const _CollectionNavigationRow({super.key, required this.section,
+    required this.icon, required this.selected, required this.onTap});
+  final CollectionSection section;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_CollectionNavigationRow> createState() => _CollectionNavigationRowState();
+}
+
+class _CollectionNavigationRowState extends State<_CollectionNavigationRow> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = widget.selected ? Colors.white : colors.foreground;
+    final highlighted = _hovered || _focused;
+    final background = widget.selected
+        ? (highlighted ? const Color(0xFF167BE7) : const Color(0xFF0069D9))
+        : highlighted ? colors.foreground.withValues(alpha: .09) : Colors.transparent;
+    return Semantics(
+      button: true, selected: widget.selected, label: widget.section.label,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: FocusableActionDetector(
+          onShowFocusHighlight: (value) => setState(() => _focused = value),
+          shortcuts: const {
+            SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+            SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+          },
+          actions: {
+            ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+              widget.onTap();
+              return null;
+            }),
+          },
+          child: GestureDetector(
+            key: ValueKey('collection-nav:${widget.section.name}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOut,
+              height: 36,
+              margin: const EdgeInsets.only(bottom: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Row(spacing: 9, children: [
+                Icon(widget.icon, size: 16, color: foreground),
+                Expanded(child: Text(widget.section.label, style: TextStyle(
+                  color: foreground, fontSize: 14, fontWeight: FontWeight.w500))),
+              ]),
+            ),
           ),
         ),
       ),
