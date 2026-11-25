@@ -434,7 +434,7 @@ class _PlayerControlsState extends State<PlayerControls> {
                   ),
                   if (!_offline && mediaId > 0)
                     Positioned(
-                      top: _showControls ? 84 : 32,
+                      top: 32,
                       left: 16,
                       right: 16,
                       child: SafeArea(
