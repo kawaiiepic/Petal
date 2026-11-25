@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
+import 'package:flutter/rendering.dart' show SystemMouseCursors;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/backend/backend_api.dart';
@@ -55,14 +57,17 @@ class MediaTabPinButton extends StatelessWidget {
     return ValueListenableBuilder(valueListenable: DesktopMediaTabs.pinned,
       builder: (context, _, _) {
         final pinned = DesktopMediaTabs.contains(tab);
-        return glass.GlassButton.custom(
+        return _HoverlessPin(
           label: pinned ? 'Unpin media tab' : 'Pin media tab',
-          width: 40, height: 40, useOwnLayer: true,
-          shape: const glass.LiquidOval(),
-          style: pinned ? glass.GlassButtonStyle.prominent : glass.GlassButtonStyle.filled,
+          width: 40, height: 40,
           onTap: () => DesktopMediaTabs.toggle(tab),
-          child: Center(child: Icon(LucideIcons.pin, size: 18,
-            color: pinned ? Theme.of(context).colorScheme.primaryForeground : Colors.white)),
+          child: Stack(fit: StackFit.expand, children: [
+            IgnorePointer(child: glass.GlassContainer(
+              useOwnLayer: true, shape: const glass.LiquidOval(),
+            )),
+            Center(child: Icon(LucideIcons.pin, size: 18,
+              color: pinned ? Theme.of(context).colorScheme.primary : Colors.white)),
+          ]),
         );
       });
   }
@@ -160,16 +165,49 @@ class _DesktopMediaTabsViewState extends State<DesktopMediaTabsView> {
                 style: TextStyle(fontSize: 13, color: foreground))),
             ])),
         )),
-        glass.GlassButton.custom(
+        _HoverlessPin(
           label: pinned ? 'Unpin ${tab.title}' : 'Pin ${tab.title}',
-          width: 28, height: 32, useOwnLayer: true,
-          shape: const glass.LiquidRoundedRectangle(borderRadius: 8),
-          style: glass.GlassButtonStyle.transparent,
+          width: 28, height: 32,
           onTap: () => DesktopMediaTabs.toggle(tab),
-          child: Center(child: Icon(LucideIcons.pin, size: 14,
-            color: pinned ? colors.primary : colors.mutedForeground)),
+          child: Icon(LucideIcons.pin, size: 14,
+            color: pinned ? colors.primary : colors.mutedForeground),
         ),
       ])),
     );
   }
+}
+
+class _HoverlessPin extends StatelessWidget {
+  const _HoverlessPin({required this.label, required this.width,
+    required this.height, required this.onTap, required this.child});
+  final String label;
+  final double width;
+  final double height;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true, label: label,
+    child: FocusableActionDetector(
+      mouseCursor: SystemMouseCursors.click,
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+          onTap();
+          return null;
+        }),
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(width: width, height: height, child: Center(
+          child: SizedBox(width: width, height: height, child: Center(child: child)),
+        )),
+      ),
+    ),
+  );
 }
