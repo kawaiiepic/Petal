@@ -1,3 +1,5 @@
+import 'package:petal/navigation/ios_navigation_dock.dart';
+import 'package:petal/navigation/tv_layout.dart';
 import 'package:petal/widgets/overview/overview_platform_badge.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/widgets/ios/ios_context_menu.dart';
@@ -349,7 +351,12 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  padding: EdgeInsets.fromLTRB(
+                    16, 16, 16,
+                    32 + (TvLayout.isCompact(context) && MediaQuery.viewInsetsOf(context).bottom == 0
+                        ? MediaQuery.viewPaddingOf(context).bottom + IosNavigationDock.clearance
+                        : 0),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

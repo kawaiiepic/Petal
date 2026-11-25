@@ -1,3 +1,5 @@
+import 'package:petal/navigation/ios_navigation_dock.dart';
+import 'package:petal/navigation/tv_layout.dart';
 import 'package:petal/widgets/overview/overview_platform_badge.dart';
 import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/backend/backend_cache.dart';
@@ -217,7 +219,12 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  padding: EdgeInsets.fromLTRB(
+                    16, 16, 16,
+                    32 + (TvLayout.isCompact(context) && MediaQuery.viewInsetsOf(context).bottom == 0
+                        ? MediaQuery.viewPaddingOf(context).bottom + IosNavigationDock.clearance
+                        : 0),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

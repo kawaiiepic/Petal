@@ -33,6 +33,7 @@ class _AppNavigationState extends State<AppNavigation> {
     final location = widget.state.uri.path;
     final home = location == '/';
     final search = location == '/search';
+    final overview = location == '/series' || location == '/movie';
     final selectedDestination = DockDestination.values.firstWhere(
       (destination) => destination.path == location,
       orElse: () => _lastDestination,
@@ -96,7 +97,7 @@ class _AppNavigationState extends State<AppNavigation> {
                         : Padding(
                             // Search already reserves space in its scroll view.
                             padding: EdgeInsets.only(
-                              bottom: !search && dockVisible
+                              bottom: !search && !overview && dockVisible
                                   ? bottomInset + IosNavigationDock.clearance
                                   : 0,
                             ),
