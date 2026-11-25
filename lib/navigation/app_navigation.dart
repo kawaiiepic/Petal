@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:petal/api/retained_player.dart';
 import 'package:petal/navigation/retained_player_button.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +23,49 @@ class AppNavigation extends StatefulWidget {
 class _AppNavigationState extends State<AppNavigation> {
   final _homeScroll = ScrollController();
   DockDestination _lastDestination = DockDestination.home;
+  bool _miniCollapsed = false;
+  double _scrollTravel = 0;
+  ScrollDirection _scrollDirection = ScrollDirection.idle;
+
+  bool _onMiniScroll(ScrollNotification notification) {
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical ||
+        RetainedPlayer.instance.available.value == null) return false;
+    if (notification is ScrollEndNotification) {
+      _scrollTravel = 0;
+      _scrollDirection = ScrollDirection.idle;
+      return false;
+    }
+    if (notification is! ScrollUpdateNotification) return false;
+    final delta = notification.scrollDelta ?? 0;
+    if (delta == 0 || notification.metrics.outOfRange) return false;
+    if (notification.metrics.pixels <= notification.metrics.minScrollExtent + 2) {
+      _scrollTravel = 0;
+      if (_miniCollapsed) setState(() => _miniCollapsed = false);
+      return false;
+    }
+    final direction = delta > 0 ? ScrollDirection.reverse : ScrollDirection.forward;
+    if (_scrollDirection != direction) {
+      _scrollDirection = direction;
+      _scrollTravel = 0;
+    }
+    _scrollTravel += delta.abs();
+    if (_scrollTravel >= 24) {
+      final collapsed = direction == ScrollDirection.reverse;
+      if (_miniCollapsed != collapsed) setState(() => _miniCollapsed = collapsed);
+      _scrollTravel = 0;
+    }
+    return false;
+  }
+
+  @override
+  void didUpdateWidget(covariant AppNavigation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state.uri.path != widget.state.uri.path) {
+      _miniCollapsed = false;
+      _scrollTravel = 0;
+      _scrollDirection = ScrollDirection.idle;
+    }
+  }
 
   @override
   void dispose() {
@@ -95,7 +139,9 @@ class _AppNavigationState extends State<AppNavigation> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    home
+                    NotificationListener<ScrollNotification>(
+                      onNotification: _onMiniScroll,
+                      child: home
                         ? PrimaryScrollController(
                             controller: _homeScroll,
                             child: widget.child,
@@ -109,11 +155,16 @@ class _AppNavigationState extends State<AppNavigation> {
                             ),
                             child: widget.child,
                           ),
+                    ),
                     if (miniVisible)
                       Positioned(left: 12, right: 12, bottom: bottomInset + 76,
                         child: Align(alignment: Alignment.bottomCenter,
-                          child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440),
-                            child: RetainedPlayerButton(media: retained!, mobile: true)))),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeInOutCubic,
+                            width: _miniCollapsed ? 168 : 440,
+                            child: RetainedPlayerButton(media: retained!, mobile: true,
+                              collapsed: _miniCollapsed)))),
                     if (dockVisible)
                       Positioned(
                         left: 12,

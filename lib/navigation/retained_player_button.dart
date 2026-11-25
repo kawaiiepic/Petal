@@ -8,7 +8,9 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 class RetainedPlayerButton extends StatefulWidget {
   final RetainedMedia media;
   final bool mobile;
-  const RetainedPlayerButton({super.key, required this.media, required this.mobile});
+  final bool collapsed;
+  const RetainedPlayerButton({super.key, required this.media, required this.mobile,
+    this.collapsed = false});
   @override
   State<RetainedPlayerButton> createState() => _RetainedPlayerButtonState();
 }
@@ -45,6 +47,22 @@ class _RetainedPlayerButtonState extends State<RetainedPlayerButton> {
     final episode = widget.media.item.episode;
     return FutureBuilder(future: _metadata, builder: (context, snapshot) {
       final title = snapshot.data?.title ?? 'Resume playback';
+      if (widget.mobile && widget.collapsed) {
+        return glass.GlassButton.custom(
+          useOwnLayer: true,
+          shape: const glass.LiquidRoundedSuperellipse(borderRadius: 24),
+          style: glass.GlassButtonStyle.filled,
+          onTap: _open,
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(LucideIcons.play, size: 18, color: colors.foreground),
+              const SizedBox(width: 8),
+              Flexible(child: Text('Resume player', maxLines: 1,
+                overflow: TextOverflow.ellipsis, style: TextStyle(color: colors.foreground,
+                  fontSize: 12, fontWeight: FontWeight.w600))),
+            ])),
+        );
+      }
       return glass.GlassContainer(
         useOwnLayer: true,
         shape: const glass.LiquidRoundedSuperellipse(borderRadius: 18),
