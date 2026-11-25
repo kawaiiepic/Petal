@@ -1,4 +1,4 @@
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
+import 'package:petal/pages/player/overlay/player_glass_panel.dart';
 import 'package:petal/api/playback_preferences.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:petal/pages/player/overlay/control_button.dart';
@@ -11,14 +11,15 @@ class SubtitleAudioMenuButton extends StatelessWidget {
   const SubtitleAudioMenuButton({super.key, required this.player, required this.onChanged});
 
   Future<void> _open(BuildContext context) async {
+    final anchor = playerMenuAnchor(context);
     bool? subtitles;
-    await glass.showGlassActionSheet<void>(
-      context: context, title: 'Audio & subtitles',
+    await showPlayerMenu(
+      context, anchor: anchor, title: 'Audio & subtitles',
       actions: [
-        glass.GlassActionSheetAction(
+        PlayerMenuAction(
           label: 'Subtitles · ${player.state.track.subtitle.id == 'no' ? 'Off' : player.state.track.subtitle.language ?? 'Auto'}',
           icon: const Icon(LucideIcons.typeOutline), onPressed: () => subtitles = true),
-        glass.GlassActionSheetAction(
+        PlayerMenuAction(
           label: 'Audio · ${player.state.track.audio.language ?? 'Auto'}',
           icon: const Icon(LucideIcons.volume2), onPressed: () => subtitles = false),
       ],
@@ -27,14 +28,14 @@ class SubtitleAudioMenuButton extends StatelessWidget {
     if (subtitles!) {
       SubtitleTrack? selected;
       final current = player.state.track.subtitle.id;
-      await glass.showGlassActionSheet<void>(
-        context: context, title: 'Subtitles',
+      await showPlayerMenu(
+        context, anchor: anchor, title: 'Subtitles',
         actions: [
-          glass.GlassActionSheetAction(label: 'Off',
+          PlayerMenuAction(label: 'Off',
             icon: current == 'no' ? const Icon(LucideIcons.check) : null,
             onPressed: () => selected = SubtitleTrack.no()),
           for (final track in player.state.tracks.subtitle.where((t) => t.id != 'auto' && t.id != 'no'))
-            glass.GlassActionSheetAction(label: track.title ?? track.language ?? track.id,
+            PlayerMenuAction(label: track.title ?? track.language ?? track.id,
               icon: current == track.id ? const Icon(LucideIcons.check) : null,
               onPressed: () => selected = track),
         ],
@@ -46,14 +47,14 @@ class SubtitleAudioMenuButton extends StatelessWidget {
     } else {
       AudioTrack? selected;
       final current = player.state.track.audio.id;
-      await glass.showGlassActionSheet<void>(
-        context: context, title: 'Audio track',
+      await showPlayerMenu(
+        context, anchor: anchor, title: 'Audio track',
         actions: [
-          glass.GlassActionSheetAction(label: 'Automatic',
+          PlayerMenuAction(label: 'Automatic',
             icon: current == 'auto' ? const Icon(LucideIcons.check) : null,
             onPressed: () => selected = AudioTrack.auto()),
           for (final track in player.state.tracks.audio.where((t) => t.id != 'auto' && t.id != 'no'))
-            glass.GlassActionSheetAction(label: track.title ?? track.language ?? track.id,
+            PlayerMenuAction(label: track.title ?? track.language ?? track.id,
               icon: current == track.id ? const Icon(LucideIcons.check) : null,
               onPressed: () => selected = track),
         ],

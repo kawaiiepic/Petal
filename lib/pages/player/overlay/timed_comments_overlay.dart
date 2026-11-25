@@ -113,7 +113,7 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
     setState(() => _visible = next);
   }
 
-  Future<void> openComposer() async {
+  Future<void> openComposer({Offset? anchor}) async {
     if (_opening) return;
     if (BackendApi.authState.selectedProfile == null) {
       showToast(context: context, builder: (_, _) =>
@@ -131,6 +131,7 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
     try {
       await showPlayerGlassPanel<void>(
         context,
+        anchor: anchor,
         title: 'Timed comment · ${MediaFormatting.fmt(position)}',
         builder: (context) => _TimedCommentComposer(
           position: position,
@@ -245,7 +246,7 @@ class _TimedCommentComposerState extends State<_TimedCommentComposer> {
     setState(() { _posting = true; _error = null; });
     try {
       await widget.onPost(body);
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) closePlayerPanel(context);
     } catch (_) {
       if (mounted) setState(() {
         _posting = false;

@@ -1,5 +1,4 @@
 import 'package:petal/pages/player/overlay/player_glass_panel.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/episode.dart';
 import 'package:petal/models/tmdb/tmdb_episode.dart';
@@ -58,10 +57,10 @@ class _EpisodeListState extends State<_EpisodeList> {
         PetalButton.secondary(
           onPressed: () async {
             int? choice;
-            await glass.showGlassActionSheet<void>(context: context, title: 'Select a season',
+            await showPlayerMenu(context, title: 'Select a season',
               actions: [
                 for (final season in show.seasons)
-                  glass.GlassActionSheetAction(label: season.name,
+                  PlayerMenuAction(label: season.name,
                     icon: selected == season.seasonNumber ? const Icon(LucideIcons.check) : null,
                     onPressed: () => choice = season.seasonNumber),
               ]);
@@ -77,7 +76,7 @@ class _EpisodeListState extends State<_EpisodeList> {
             return Column(spacing: 8, children: [
               for (final ep in episodes.data!.episodes)
                 PetalButton.card(
-                  onPressed: () => Navigator.of(context).pop(Episode(
+                  onPressed: () => closePlayerPanel(context, Episode(
                     seasonNumber: ep.seasonNumber, episodeNumber: ep.episodeNumber)),
                   child: Row(children: [
                     ClipRRect(borderRadius: BorderRadius.circular(8),

@@ -1,3 +1,4 @@
+import 'package:petal/pages/player/overlay/player_glass_panel.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:flutter/services.dart';
 import 'package:petal/api/playback_preferences.dart';
@@ -579,9 +580,9 @@ class _PlayerControlsState extends State<PlayerControls> {
                     Expanded(child: _titleHeader()),
                     if (!_offline && mediaId > 0)
                       Tooltip(tooltip: (_) => const Text('Timed comments'),
-                        child: ControlButton(filled: true,
-                          onTap: () => _timedCommentsKey.currentState?.openComposer(),
-                          icon: const Icon(LucideIcons.messageCircle, size: 19))),
+                        child: Builder(builder: (buttonContext) => ControlButton(filled: true,
+                          onTap: () => _timedCommentsKey.currentState?.openComposer(anchor: playerMenuAnchor(buttonContext)),
+                          icon: const Icon(LucideIcons.messageCircle, size: 19)))),
                     const SizedBox(width: 6),
                     Tooltip(tooltip: (_) => Text(_showDebug ? 'Hide playback diagnostics' : 'Playback diagnostics'),
                       child: ControlButton(filled: true, onTap: _toggleDebug,
