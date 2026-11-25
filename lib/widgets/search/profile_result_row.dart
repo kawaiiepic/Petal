@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/models/social/social_profile.dart';
@@ -24,23 +25,27 @@ class ProfileResultRow extends StatelessWidget {
     final url = _avatarUrl;
 
     final avatar = url == null
-        ? Avatar(initials: initials, size: 36)
+        ? Avatar(initials: initials, size: 44)
         : CachedNetworkImage(
             imageUrl: url,
             imageBuilder: (context, provider) =>
-                Avatar(initials: initials, provider: provider, size: 36),
-            placeholder: (context, _) => Avatar(initials: initials, size: 36),
+                Avatar(initials: initials, provider: provider, size: 44),
+            placeholder: (context, _) => Avatar(initials: initials, size: 44),
             errorWidget: (context, _, _) =>
-                Avatar(initials: initials, size: 36),
+                Avatar(initials: initials, size: 44),
           );
 
-    return Button.ghost(
+    return PetalButton.ghost(
       alignment: Alignment.centerLeft,
       onPressed: () => context.push('/profile/${profile.id}'),
       leading: avatar,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(profile.name),
+        child: Row(children: [Expanded(child: Text(profile.name,
+          maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: Theme.of(context).colorScheme.foreground, fontWeight: FontWeight.w500))),
+          Icon(LucideIcons.chevronRight, size: 16, color: Theme.of(context).colorScheme.mutedForeground),
+        ]),
       ),
     );
   }
