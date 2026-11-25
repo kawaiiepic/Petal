@@ -1,3 +1,4 @@
+import 'package:petal/pages/player/overlay/player_glass_panel.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
 import 'dart:async';
 
@@ -128,9 +129,9 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
     final api = _api;
     _opening = true;
     try {
-      await showOverlay<void>(
+      await showPlayerGlassPanel<void>(
         context,
-        DialogConfiguration(),
+        title: 'Timed comment · ${MediaFormatting.fmt(position)}',
         builder: (context) => _TimedCommentComposer(
           position: position,
           enabled: _enabled,
@@ -156,7 +157,7 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
             _updateVisible(widget.player.state.position);
           },
         ),
-      ).future;
+      );
     } finally {
       _opening = false;
     }
@@ -244,7 +245,7 @@ class _TimedCommentComposerState extends State<_TimedCommentComposer> {
     setState(() { _posting = true; _error = null; });
     try {
       await widget.onPost(body);
-      if (mounted) closeOverlay(context);
+      if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (mounted) setState(() {
         _posting = false;
@@ -260,43 +261,23 @@ class _TimedCommentComposerState extends State<_TimedCommentComposer> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text('Timed comment · ${MediaFormatting.fmt(widget.position)}'),
-    content: SizedBox(
-      width: 360,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PetalButton.ghost(
-            onPressed: () {
-              setState(() => _enabled = !_enabled);
-              widget.onToggle(_enabled);
-            },
-            child: Text(_enabled ? 'Hide timed comments' : 'Show timed comments'),
-          ),
-          const SizedBox(height: 12),
-          PetalTextField(
-            controller: _text,
-            placeholder: const Text('React to this moment'),
-          ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(_error!),
-            ),
-        ],
-      ),
-    ),
-    actions: [
-      PetalButton.ghost(
-        onPressed: _posting ? null : () => closeOverlay(context),
-        child: const Text('Close'),
-      ),
-      PetalButton.primary(
-        onPressed: _posting ? null : _post,
-        child: Text(_posting ? 'Posting…' : 'Post'),
-      ),
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    spacing: 14,
+    children: [
+      Row(children: [
+        const Expanded(child: Text('Show timed comments')),
+        PetalSwitch(value: _enabled, onChanged: (enabled) {
+          setState(() => _enabled = enabled);
+          widget.onToggle(enabled);
+        }),
+      ]),
+      PetalTextField(controller: _text, maxLines: 3, maxLength: 500,
+        placeholder: const Text('React to this moment')),
+      if (_error != null) Text(_error!, style: const TextStyle(fontSize: 12)),
+      PetalButton.primary(onPressed: _posting ? null : _post,
+        child: Text(_posting ? 'Posting…' : 'Post comment')),
     ],
   );
 }

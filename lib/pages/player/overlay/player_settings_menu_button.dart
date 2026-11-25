@@ -1,72 +1,51 @@
+import 'package:petal/pages/player/overlay/player_glass_panel.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/widgets/settings/playback_preferences_card.dart';
-
-import 'dart:typed_data';
-
 import 'package:media_kit/media_kit.dart';
-import 'package:petal/pages/player/overlay/player_dropdown_button.dart';
+import 'package:petal/pages/player/overlay/control_button.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class PlayerSettingsMenuButton extends StatelessWidget {
   final Player player;
-
   const PlayerSettingsMenuButton({super.key, required this.player});
 
-  @override
-  Widget build(BuildContext context) {
-    return PlayerDropdownButton(
-      dropdownMenu: DropdownMenu(
-        children: [
-          MenuLabel(
-            child: Row(
-              spacing: 8,
-              children: [
-                Icon(size: AppTypography.normalIconSize, LucideIcons.settings2),
-                Text(style: AppTypography.normalTextStyle, 'Settings'),
-              ],
-            ),
-          ),
-          MenuDivider(),
-          MenuButton(
-            child: const Text('Playback preferences'),
-            onPressed: (context) {
-              showOverlay<void>(
-                context,
-                DialogConfiguration(),
-                builder: (context) => AlertDialog(
-                  title: const Text('Playback preferences'),
-                  content: const SizedBox(
-                    width: 380,
-                    child: SingleChildScrollView(
-                      child: PlaybackPreferencesCard(),
-                    ),
-                  ),
-                  actions: [
-                    Button.ghost(
-                      onPressed: () => closeOverlay(context),
-                      child: const Text('Close'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const MenuLabel(
-            child: Text(
-              'Shortcuts: Space/K play · ←/→ or J/L seek · ↑/↓ volume\nM mute · S subtitles · F fullscreen · Esc exit\n+/− speed · [/] subtitle delay',
-            ),
-          ),
-
-          MenuButton(
-            child: Text('Take Screenshot'),
-            onPressed: (context) async {
-              final Uint8List? screenshot = await player.screenshot();
-              screenshot;
-            },
-          ),
-        ],
-      ),
-      icon: Icon(size: AppTypography.normalIconSize, LucideIcons.settings2),
+  Future<void> _open(BuildContext context) async {
+    String? selection;
+    await glass.showGlassActionSheet<void>(
+      context: context, title: 'Playback settings',
+      actions: [
+        glass.GlassActionSheetAction(label: 'Playback preferences',
+          icon: const Icon(LucideIcons.settings2), onPressed: () => selection = 'preferences'),
+        glass.GlassActionSheetAction(label: 'Keyboard shortcuts',
+          icon: const Icon(LucideIcons.info), onPressed: () => selection = 'shortcuts'),
+        glass.GlassActionSheetAction(label: 'Take screenshot',
+          icon: const Icon(LucideIcons.camera), onPressed: () => selection = 'screenshot'),
+      ],
     );
+    if (!context.mounted) return;
+    if (selection == 'preferences') {
+      await showPlayerGlassPanel<void>(context, title: 'Playback preferences',
+        builder: (_) => const PlaybackPreferencesCard());
+    } else if (selection == 'shortcuts') {
+      await showPlayerGlassPanel<void>(context, title: 'Keyboard shortcuts',
+        builder: (_) => const Column(crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 12, children: [
+            Text('Space / K   Play or pause'),
+            Text('← / → or J / L   Seek 10 seconds'),
+            Text('↑ / ↓   Volume · M   Mute'),
+            Text('S   Subtitles · F   Fullscreen · Esc   Exit'),
+            Text('+ / −   Playback speed'),
+            Text('[ / ]   Subtitle delay'),
+          ]));
+    } else if (selection == 'screenshot') {
+      await player.screenshot();
+    }
   }
+
+  @override
+  Widget build(BuildContext context) => ControlButton(
+    onTap: () => _open(context),
+    icon: Icon(LucideIcons.settings2, size: AppTypography.normalIconSize),
+  );
 }
