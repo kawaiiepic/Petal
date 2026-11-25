@@ -1,3 +1,4 @@
+import 'package:petal/widgets/home/featured_position.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
@@ -22,13 +23,25 @@ class IosFeaturedHero extends StatefulWidget {
 }
 
 class _IosFeaturedHeroState extends State<IosFeaturedHero> {
-  final _pages = PageController(keepPage: false);
-  int _index = 0;
+  late int _index = FeaturedPosition.restore(widget.items);
+  late PageController _pages = PageController(initialPage: _index, keepPage: false);
 
   @override
   void didUpdateWidget(covariant IosFeaturedHero oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.items != widget.items) _index = 0;
+    if (oldWidget.items != widget.items && widget.items.isNotEmpty) {
+      final restored = FeaturedPosition.restore(widget.items);
+      _index = restored;
+      if (_pages.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _pages.hasClients && widget.items.isNotEmpty &&
+              _index < widget.items.length) _pages.jumpToPage(_index);
+        });
+      } else {
+        _pages.dispose();
+        _pages = PageController(initialPage: restored, keepPage: false);
+      }
+    }
   }
 
   @override
@@ -38,7 +51,7 @@ class _IosFeaturedHeroState extends State<IosFeaturedHero> {
   }
 
   void _advance() {
-    if (!_pages.hasClients) return;
+    if (!_pages.hasClients || widget.items.isEmpty) return;
     if (_index + 1 >= widget.items.length) {
       _pages.jumpToPage(0);
     } else {
@@ -47,6 +60,7 @@ class _IosFeaturedHeroState extends State<IosFeaturedHero> {
   }
 
   void _goTo(int index) {
+    if (!_pages.hasClients || index < 0 || index >= widget.items.length) return;
     if (MediaQuery.disableAnimationsOf(context)) {
       _pages.jumpToPage(index);
     } else {
@@ -60,7 +74,7 @@ class _IosFeaturedHeroState extends State<IosFeaturedHero> {
 
   @override
   Widget build(BuildContext context) => FeaturedAutoplay(
-    enabled: widget.items.length > 1,
+    enabled: !widget.loading && widget.items.length > 1,
     onAdvance: _advance,
     child: _banner(context),
   );
@@ -91,9 +105,12 @@ class _IosFeaturedHeroState extends State<IosFeaturedHero> {
             if (hasArt && !widget.loading)
               Positioned.fill(
                 child: PageView.builder(
-                  key: ValueKey(items),
                   controller: _pages,
-                  onPageChanged: (index) => setState(() => _index = index),
+                  onPageChanged: (index) {
+                    if (index < 0 || index >= items.length || widget.loading) return;
+                    FeaturedPosition.remember(items[index]);
+                    setState(() => _index = index);
+                  },
                   itemCount: items.length,
                   itemBuilder: (context, index) => _slide(
                     context,

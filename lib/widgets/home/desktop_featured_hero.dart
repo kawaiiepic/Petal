@@ -1,3 +1,4 @@
+import 'package:petal/widgets/home/featured_position.dart';
 import 'dart:math' as math;
 
 import 'package:petal/api/api.dart';
@@ -21,15 +22,21 @@ class DesktopFeaturedHero extends StatefulWidget {
 }
 
 class _DesktopFeaturedHeroState extends State<DesktopFeaturedHero> {
-  int _index = 0;
+  late int _index = FeaturedPosition.restore(widget.items);
 
   @override
   void didUpdateWidget(covariant DesktopFeaturedHero oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.items != widget.items) _index = 0;
+    if (oldWidget.items != widget.items && widget.items.isNotEmpty) {
+      _index = FeaturedPosition.restore(widget.items);
+    }
   }
 
-  void _select(int index) => setState(() => _index = index);
+  void _select(int index) {
+    if (index < 0 || index >= widget.items.length) return;
+    FeaturedPosition.remember(widget.items[index]);
+    setState(() => _index = index);
+  }
 
   void _move(int delta) => _select((_index + delta) % widget.items.length);
 
