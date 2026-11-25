@@ -1,11 +1,10 @@
-import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/history_actions.dart';
-import 'package:petal/models/watch_history/watch_history_item.dart';
-import 'package:petal/utils/group_watch_history.dart';
+import 'package:petal/utils/history_timeline.dart';
 import 'package:petal/widgets/home_section.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
-import 'package:petal/widgets/library/history_title_card.dart';
+import 'package:petal/widgets/library/history_play_card.dart';
+import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:petal/widgets/library/library_page_header.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -91,9 +90,10 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
           child: ValueListenableBuilder(
             valueListenable: BackendCache.watchHistory,
             builder: (context, items, _) {
-              final byDay = <DateTime, List<WatchHistoryItem>>{};
-              for (final item in groupWatchHistory(items)) {
-                (byDay[_day(item.updatedAt)] ??= []).add(item);
+              final byDay = <DateTime?, List<HistoryPlay>>{};
+              for (final play in historyTimeline(items)) {
+                final date = play.date;
+                (byDay[date == null ? null : _day(date)] ??= []).add(play);
               }
               if (byDay.isEmpty) {
                 return _busy
@@ -108,46 +108,20 @@ class _WatchHistoryPageState extends State<WatchHistoryPage> {
                   final day = days[index];
                   return HomeSection(
                     key: ValueKey(day.key),
-                    title: _dayLabel(day.key),
+                    title: day.key == null ? 'Date unavailable' : _dayLabel(day.key!),
                     editorial: true,
-                    child: Padding(
+                    child: MediaShelf(
+                      orientation: Orientation.portrait,
+                      scrollDirection: Axis.horizontal,
+                      cardHeight: 212,
+                      cardWidth: 118,
+                      spacing: 10,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        spacing: 12,
-                        children: [
-                          for (final item in day.value)
-                            Column(
-                              key: ValueKey((item.mediaType, item.tmdbId)),
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              spacing: 6,
-                              children: [
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: SizedBox(
-                                    width: 320,
-                                    height: 180,
-                                    child: HistoryTitleCard(item: item),
-                                  ),
-                                ),
-                                for (final episode in item.episodes)
-                                  PetalButton.ghost(
-                                    onPressed: () => context.push(
-                                      '/episode?tmdb=${item.tmdbId}&s=${episode.season}&e=${episode.episode}',
-                                    ),
-                                    child: Row(
-                                      spacing: 8,
-                                      children: [
-                                        const Icon(LucideIcons.play, size: 16),
-                                        Expanded(child: Text('Season ${episode.season} · Episode ${episode.episode}')),
-                                        Text('${(episode.completion * 100).round()}%'),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                        ],
-                      ),
+                      itemCount: day.value.length,
+                      itemBuilder: (context, index) {
+                        final play = day.value[index];
+                        return HistoryPlayCard(key: ValueKey(play.key), play: play);
+                      },
                     ),
                   );
                 },
