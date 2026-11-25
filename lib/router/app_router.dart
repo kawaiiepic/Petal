@@ -114,28 +114,32 @@ class AppRouter {
               );
             },
           ),
-          GoRoute(
-            path: '/streams',
-            pageBuilder: (context, state) {
-              final showId = state.uri.queryParameters['show'];
-              final season = state.uri.queryParameters['s'];
-              final episode = state.uri.queryParameters['e'];
-              final movieId = state.uri.queryParameters['movie'];
-              final download = state.uri.queryParameters['download'] == '1';
-              return _navigationPage(state, StreamsPage(
-                showId: showId != null ? int.parse(showId) : null,
-                episode: (season != null && episode != null)
-                    ? Episode(
-                        seasonNumber: int.parse(season),
-                        episodeNumber: int.parse(episode),
-                      )
-                    : null,
-                movieId: movieId != null ? int.parse(movieId) : null,
-                download: download,
-              ));
-            },
-          ),
         ],
+      ),
+      GoRoute(
+        path: '/streams',
+        pageBuilder: (context, state) {
+          final showId = state.uri.queryParameters['show'];
+          final season = state.uri.queryParameters['s'];
+          final episode = state.uri.queryParameters['e'];
+          final movieId = state.uri.queryParameters['movie'];
+          final download = state.uri.queryParameters['download'] == '1';
+          return EpisodeSheetPage(
+            key: state.pageKey,
+            label: 'source picker',
+            maxWidth: 620,
+            builder: (_) => StreamsPage(
+            showId: showId != null ? int.parse(showId) : null,
+            episode: (season != null && episode != null)
+                ? Episode(
+                    seasonNumber: int.parse(season),
+                    episodeNumber: int.parse(episode),
+                  )
+                : null,
+            movieId: movieId != null ? int.parse(movieId) : null,
+            download: download,
+          ));
+        },
       ),
       GoRoute(
         path: '/episode',

@@ -6,8 +6,6 @@ import 'package:petal/models/stream_item.dart';
 import 'package:petal/models/tmdb/tmdb_episode.dart';
 import 'package:petal/models/tmdb/tmdb_movie.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
-import 'package:petal/navigation/ios_navigation_dock.dart';
-import 'package:petal/navigation/tv_layout.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:petal/widgets/streams/stream_tile.dart';
@@ -79,8 +77,6 @@ class _StreamsPageState extends State<StreamsPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final bottom = TvLayout.isCompact(context) && MediaQuery.viewInsetsOf(context).bottom == 0
-        ? MediaQuery.viewPaddingOf(context).bottom + IosNavigationDock.clearance : 0.0;
     final episodeLabel = widget.episode == null ? null :
       'S${widget.episode!.seasonNumber} · E${widget.episode!.episodeNumber}';
     return FutureBuilder(
@@ -93,10 +89,13 @@ class _StreamsPageState extends State<StreamsPage> {
             final streams = snapshot.data ?? const <StreamItem>[];
             final loading = snapshot.connectionState != ConnectionState.done;
             return CustomScrollView(
+              shrinkWrap: true,
+              primary: false,
+              physics: const ClampingScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 16, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -165,7 +164,7 @@ class _StreamsPageState extends State<StreamsPage> {
                       childCount: streams.length,
                     )),
                   ),
-                SliverToBoxAdapter(child: SizedBox(height: bottom + 24)),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
               ],
             );
           },

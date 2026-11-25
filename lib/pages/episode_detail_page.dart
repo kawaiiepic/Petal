@@ -102,14 +102,8 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
     final router = GoRouter.of(context);
     final route = '/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}'
         '${download ? '&download=1' : ''}';
-    if (widget.popup && router.canPop()) router.pop();
-    const shellPaths = {'/', '/collection', '/history', '/downloads',
-      '/search', '/series', '/movie', '/streams'};
-    if (shellPaths.contains(router.state.uri.path)) {
-      router.push(route);
-    } else {
-      router.go(route);
-    }
+    // Both routes are root-level sheets; closing the picker reveals this episode.
+    router.push(route);
   }
 
   void _openShowPage() {

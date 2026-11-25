@@ -5,17 +5,20 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 /// Content-sized episode preview with a bounded scrollable body.
 class EpisodeSheetPage extends Page<void> {
   final Widget Function(ScrollController?) builder;
-  const EpisodeSheetPage({required super.key, required this.builder});
+  final String label;
+  final double maxWidth;
+  const EpisodeSheetPage({required super.key, required this.builder,
+    this.label = 'episode overview', this.maxWidth = 820});
 
   @override
   Route<void> createRoute(BuildContext context) => RawDialogRoute<void>(
     settings: this,
     barrierDismissible: true,
-    barrierLabel: 'Close episode overview',
+    barrierLabel: 'Close $label',
     barrierColor: const Color(0x99000000),
     transitionDuration: const Duration(milliseconds: 280),
     pageBuilder: (context, animation, secondaryAnimation) =>
-        _EpisodeSheet(builder: builder),
+        _EpisodeSheet(builder: builder, label: label, maxWidth: maxWidth),
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       final eased = animation.drive(CurveTween(curve: Curves.easeOutCubic));
       return TvLayout.isCompact(context)
@@ -30,7 +33,9 @@ class EpisodeSheetPage extends Page<void> {
 
 class _EpisodeSheet extends StatefulWidget {
   final Widget Function(ScrollController?) builder;
-  const _EpisodeSheet({required this.builder});
+  final String label;
+  final double maxWidth;
+  const _EpisodeSheet({required this.builder, required this.label, required this.maxWidth});
 
   @override
   State<_EpisodeSheet> createState() => _EpisodeSheetState();
@@ -79,7 +84,7 @@ class _EpisodeSheetState extends State<_EpisodeSheet> {
                 onVerticalDragEnd: (details) => _endDrag(details.primaryVelocity ?? 0),
                 onVerticalDragCancel: () => _endDrag(0),
                 child: Semantics(
-                  label: 'Swipe down to dismiss episode overview',
+                  label: 'Swipe down to dismiss ${widget.label}',
                   child: SizedBox(
                     height: 28,
                     child: Center(
@@ -119,7 +124,7 @@ class _EpisodeSheetState extends State<_EpisodeSheet> {
               child: LayoutBuilder(
                 builder: (context, constraints) => ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: compact ? constraints.maxWidth : 820,
+                    maxWidth: compact ? constraints.maxWidth : widget.maxWidth,
                     maxHeight: compact ? constraints.maxHeight : constraints.maxHeight.clamp(0.0, 850.0).toDouble(),
                   ),
                   child: AnimatedSlide(

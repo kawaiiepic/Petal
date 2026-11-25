@@ -79,7 +79,13 @@ class StreamTile extends StatelessWidget {
               mediaTitle: mediaTitle,
               episodeTitle: episodeTitle,
             );
-            if (context.mounted) context.push('/downloads');
+            if (context.mounted) {
+              final router = GoRouter.of(context);
+              if (router.canPop()) router.pop();
+              // Downloads belongs to the browsing shell. Avoid pushing a second shell
+              // over a root-level episode or source dialog.
+              router.go('/downloads');
+            }
           } catch (_) {
             if (context.mounted) {
               showToast(
@@ -103,12 +109,12 @@ class StreamTile extends StatelessWidget {
         if (stream.external) return;
         if (!context.mounted) return;
         if (episode != null) {
-          context.push(
+          context.pushReplacement(
             '/player?media=$tmdbId&s=${episode?.seasonNumber}&e=${episode?.episodeNumber}',
             extra: stream,
           );
         } else {
-          context.push('/player?media=$tmdbId', extra: stream);
+          context.pushReplacement('/player?media=$tmdbId', extra: stream);
         }
       },
     );
