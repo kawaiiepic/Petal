@@ -15,7 +15,9 @@ class ReleaseTile extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Button.secondary(
       onPressed: () => context.push(
-        movie ? '/movie?tmdb=${item.tmdbId}' : '/series?tmdb=${item.tmdbId}',
+        movie
+            ? '/movie?tmdb=${item.tmdbId}'
+            : '/episode?tmdb=${item.tmdbId}&s=${item.season}&e=${item.episode}',
       ),
       child: Row(
         spacing: 10,

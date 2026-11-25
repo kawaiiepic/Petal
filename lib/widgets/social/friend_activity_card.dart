@@ -25,18 +25,33 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   void didUpdateWidget(covariant FriendActivityCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.item.tmdbId != widget.item.tmdbId ||
-        oldWidget.item.mediaType != widget.item.mediaType) {
+        oldWidget.item.mediaType != widget.item.mediaType ||
+        oldWidget.item.season != widget.item.season ||
+        oldWidget.item.episode != widget.item.episode) {
       _artwork = _loadArtwork();
     }
   }
 
-  Future<({String? title, String? backdrop, String? poster})>
+  Future<({String? title, String? backdrop, String? poster, String? episodeTitle})>
   _loadArtwork() async {
     if (_isShow) {
-      final show = await TMDB.tvShow(widget.item.tmdbId);
+      final item = widget.item;
+      final show = await TMDB.tvShow(item.tmdbId);
+      String? still;
+      String? episodeTitle;
+      if (item.isEpisode) {
+        try {
+          final episode = await TMDB.tvEpisode(item.tmdbId, item.season!, item.episode!);
+          still = episode.stillPath;
+          episodeTitle = episode.name;
+        } catch (_) {
+          // Fall back to series artwork and episode number.
+        }
+      }
       return (
         title: show.name,
-        backdrop: show.backdropPath,
+        backdrop: still?.isNotEmpty == true ? still : show.backdropPath,
+        episodeTitle: episodeTitle,
         poster: show.posterPath,
       );
     }
@@ -45,6 +60,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
       title: movie.title,
       backdrop: movie.backdropPath,
       poster: movie.posterPath,
+      episodeTitle: null,
     );
   }
 
@@ -60,6 +76,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
       final title = data?.title?.isNotEmpty == true
           ? data!.title!
           : (_isShow ? 'TV show' : 'Movie');
+      final episodeLabel = item.isEpisode
+          ? 'S${item.season} · E${item.episode}'
+          : null;
+      final episodeTitle = data?.episodeTitle;
+      final episodeCaption = episodeLabel == null ? null :
+          episodeTitle?.isNotEmpty == true ? '$episodeLabel · $episodeTitle' : episodeLabel;
       final avatar = item.avatar;
       final timestamp = WatchMeta.relative(item.at);
       return MediaCard(
@@ -73,9 +95,11 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     ? path
                     : 'https://image.tmdb.org/t/p/w780$path',
               ),
-        semanticLabel: '${item.name} watched $title · $timestamp',
+        semanticLabel: '${item.name} watched $title${episodeCaption == null ? '' : ' · $episodeCaption'} · $timestamp',
         onTap: () => context.push(
-          '/${_isShow ? 'series' : 'movie'}?tmdb=${item.tmdbId}',
+          item.isEpisode
+              ? '/episode?tmdb=${item.tmdbId}&s=${item.season}&e=${item.episode}'
+              : '/${_isShow ? 'series' : 'movie'}?tmdb=${item.tmdbId}',
         ),
         overlay: Positioned(
           bottom: 0,
@@ -120,6 +144,9 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                        if (episodeCaption != null)
+                          Text(episodeCaption, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontSize: 12)),
                         Text(
                           '${item.name} · $timestamp',
                           maxLines: 1,
