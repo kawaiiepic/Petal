@@ -22,12 +22,14 @@ class SeasonDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final seasons = tvShow?.seasons ?? const <SeasonSummary>[];
     final scheme = Theme.of(context).colorScheme;
-    return glass.GlassButton.custom(
-      useOwnLayer: true,
-      style: glass.GlassButtonStyle.transparent,
-      shape: const glass.LiquidRoundedRectangle(borderRadius: 14),
+    return Semantics(
+      button: true,
       enabled: seasons.isNotEmpty,
-      onTap: () async {
+      child: MouseRegion(
+        cursor: seasons.isNotEmpty ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: seasons.isEmpty ? null : () async {
         SeasonSummary? selected;
         await glass.showGlassActionSheet<void>(
           context: context,
@@ -54,6 +56,8 @@ class SeasonDropdown extends StatelessWidget {
           Icon(ios.CupertinoIcons.chevron_down, color: scheme.foreground, size: 14),
         ],
       ),
+      ),
+        ),
       ),
     );
   }

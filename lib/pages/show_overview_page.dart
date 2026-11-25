@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/history_actions.dart';
@@ -52,6 +53,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
   bool _hasAiredEpisode = false;
   bool _rewatch = false;
   bool _startingPlayback = false;
+  bool _queueingDownloads = false;
   int _selectedSeasonNumber = 1;
   int _targetRevision = 0;
   int _loadRevision = 0;
@@ -125,6 +127,66 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
         const Text('Could not start playback'), Text(HistoryActions.errorMessage(error)));
     } finally {
       if (mounted) setState(() => _startingPlayback = false);
+    }
+  }
+
+  Future<void> _chooseDownloads(TmdbShow show) async {
+    if (_queueingDownloads) return;
+    final selectedSeason = _selectedSeasonNumber;
+    final seasonFuture = _season;
+    bool? wholeShow;
+    await glass.showGlassActionSheet<void>(
+      context: context,
+      title: 'Download episodes',
+      actions: [
+        glass.GlassActionSheetAction(
+          label: 'Download selected season',
+          icon: const Icon(LucideIcons.download),
+          onPressed: () => wholeShow = false,
+        ),
+        glass.GlassActionSheetAction(
+          label: 'Download entire show',
+          icon: const Icon(LucideIcons.layers),
+          onPressed: () => wholeShow = true,
+        ),
+      ],
+    );
+    if (!mounted || wholeShow == null || _queueingDownloads) return;
+    setState(() => _queueingDownloads = true);
+    try {
+      final numbers = wholeShow!
+          ? (show.seasons.where((s) => s.seasonNumber > 0)
+              .map((s) => s.seasonNumber).toSet().toList()..sort())
+          : [selectedSeason];
+      final now = DateTime.now();
+      var queued = 0;
+      for (final number in numbers) {
+        final season = number == selectedSeason && seasonFuture != null
+            ? await seasonFuture
+            : await TMDB.tvSeason(show.id, number);
+        final aired = season.episodes.where((e) =>
+          e.airDate != null && !e.airDate!.isAfter(now))
+            .map((e) => e.episodeNumber).toList();
+        if (aired.isEmpty) continue;
+        await DownloadManager.enqueueSeason(
+          tmdbId: show.id, showName: show.name,
+          season: number, episodes: aired,
+        );
+        queued += aired.length;
+      }
+      if (!mounted) return;
+      if (queued == 0) {
+        AppNotifications.sendNotification(
+          const Text('No aired episodes'), const Text('Nothing to download yet.'));
+      } else {
+        context.push('/downloads');
+      }
+    } catch (_) {
+      if (mounted) AppNotifications.sendNotification(
+        const Text('Could not finish queuing downloads'),
+        const Text('Episodes already queued will remain in Downloads. Please try again.'));
+    } finally {
+      if (mounted) setState(() => _queueingDownloads = false);
     }
   }
 
@@ -426,20 +488,41 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                       ),
                       const SizedBox(height: 32),
                       Skeleton.keep(
-                        child: SeasonDropdown(
-                          tvShow: show,
-                          selectedSeason: show?.seasons.firstWhereOrNull(
-                            (s) => s.seasonNumber == _selectedSeasonNumber,
-                          ),
-                          onSeasonChanged: (season) {
-                            setState(() {
-                              _selectedSeasonNumber = season.seasonNumber;
-                              _season = TMDB.tvSeason(
-                                _resolvedTmdbId!,
-                                season.seasonNumber,
-                              );
-                            });
-                          },
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: SeasonDropdown(
+                                tvShow: show,
+                                selectedSeason: show?.seasons.firstWhereOrNull(
+                                  (s) => s.seasonNumber == _selectedSeasonNumber,
+                                ),
+                                onSeasonChanged: (season) {
+                                  setState(() {
+                                    _selectedSeasonNumber = season.seasonNumber;
+                                    _season = TMDB.tvSeason(
+                                      _resolvedTmdbId!, season.seasonNumber,
+                                    );
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Semantics(
+                              label: 'Download episodes',
+                              button: true,
+                              child: glass.GlassButton.custom(
+                                width: 40, height: 40, useOwnLayer: true,
+                                style: glass.GlassButtonStyle.transparent,
+                                enabled: show != null && !_queueingDownloads,
+                                onTap: () {
+                                  if (show != null && !_queueingDownloads) _chooseDownloads(show);
+                                },
+                                child: _queueingDownloads
+                                    ? const PetalActivityIndicator(size: 18)
+                                    : const Icon(LucideIcons.download, size: 19),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       FutureBuilder(
@@ -451,42 +534,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             spacing: 10,
                             children: [
-                              if (snapshot.hasData &&
-                                  snapshot.data!.episodes.isNotEmpty)
-                                PetalButton.outline(
-                                  onPressed: () async {
-                                    try {
-                                      await DownloadManager.enqueueSeason(
-                                        tmdbId: _resolvedTmdbId!,
-                                        showName: show!.name,
-                                        season: snapshot
-                                            .data!
-                                            .episodes
-                                            .first
-                                            .seasonNumber,
-                                        episodes: snapshot.data!.episodes
-                                            .where(
-                                              (e) =>
-                                                  e.airDate != null &&
-                                                  !e.airDate!.isAfter(
-                                                    DateTime.now(),
-                                                  ),
-                                            )
-                                            .map((e) => e.episodeNumber)
-                                            .toList(),
-                                      );
-                                      if (context.mounted)
-                                        context.push('/downloads');
-                                    } catch (_) {
-                                      if (context.mounted)
-                                        AppNotifications.sendNotification(
-                                          const Text('Could not queue season'),
-                                          const Text('Please try again.'),
-                                        );
-                                    }
-                                  },
-                                  child: const Text('Download season'),
-                                ),
                               if (snapshot.hasData &&
                                   snapshot.data!.episodes.isEmpty)
                                 Text(
