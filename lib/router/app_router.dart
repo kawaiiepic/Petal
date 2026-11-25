@@ -102,6 +102,18 @@ class AppRouter {
           ..._libraryRoutes(),
           _searchRoute(),
           GoRoute(
+            path: '/person/:id',
+            pageBuilder: (context, state) => _navigationPage(state,
+              ActorOverviewPage(key: ValueKey('person:${state.pathParameters['id']}'),
+                personId: int.parse(state.pathParameters['id']!))),
+          ),
+          GoRoute(
+            path: '/profile/:id',
+            pageBuilder: (context, state) => _navigationPage(state,
+              PublicProfilePage(key: ValueKey('profile:${state.pathParameters['id']}'),
+                profileId: state.pathParameters['id']!)),
+          ),
+          GoRoute(
             path: '/series',
             pageBuilder: (context, state) {
               final tmdbId = state.uri.queryParameters['tmdb'];
@@ -181,11 +193,6 @@ class AppRouter {
       ),
       GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
       GoRoute(
-        path: '/profile/:id',
-        builder: (context, state) =>
-            PublicProfilePage(profileId: state.pathParameters['id']!),
-      ),
-      GoRoute(
         path: '/comments',
         builder: (context, state) {
           final type = state.uri.queryParameters['type'] ?? 'show';
@@ -194,11 +201,6 @@ class AppRouter {
           final title = state.uri.queryParameters['title'] ?? 'Comments';
           return CommentsPage(mediaType: type, tmdbId: tmdb, title: title);
         },
-      ),
-      GoRoute(
-        path: '/person/:id',
-        builder: (context, state) =>
-            ActorOverviewPage(personId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/settings',

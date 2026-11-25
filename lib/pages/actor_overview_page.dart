@@ -1,4 +1,3 @@
-import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/media_type.dart';
@@ -46,11 +45,6 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
       ((end.month < born.month || (end.month == born.month && end.day < born.day)) ? 1 : 0);
     return person.deathday == null || person.deathday!.isEmpty ? '$age years old' : '$age at death';
   }
-
-  Widget _back(BuildContext context) => Align(alignment: Alignment.centerLeft,
-    child: PetalButton.ghost(
-      onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/search'); } },
-      child: const Icon(LucideIcons.chevronLeft, size: 22)));
 
   Widget _heading(String label) => Padding(
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
@@ -117,7 +111,6 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done || !snapshot.hasData) {
           return Column(children: [
-            SafeArea(bottom: false, child: _back(context)),
             Expanded(child: Center(child: snapshot.hasError
               ? Column(mainAxisSize: MainAxisSize.min, spacing: 12, children: [
                 const Text('Could not load actor details.'),
@@ -135,8 +128,7 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
         final known = unique.values.where((c) => c.posterPath != null).toList();
         final filtered = credits.where((c) => _filter == null || c.mediaType == _filter).toList();
         return CustomScrollView(slivers: [
-          SliverToBoxAdapter(child: SafeArea(bottom: false, child: _back(context))),
-          SliverToBoxAdapter(child: _hero(person, compact)),
+          SliverToBoxAdapter(child: SafeArea(bottom: false, child: _hero(person, compact))),
           if (known.isNotEmpty) ...[
             SliverToBoxAdapter(child: _heading('Featured credits')),
             SliverToBoxAdapter(child: SizedBox(height: 208,

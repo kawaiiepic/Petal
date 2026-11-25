@@ -1,4 +1,3 @@
-import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/api.dart';
@@ -118,9 +117,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     final shows = plays.where((p) => p.item.mediaType == MediaType.show).map((p) => p.item.tmdbId).toSet().length;
     final filtered = plays.where((p) => _filter == null || p.item.mediaType == _filter).toList();
     return CustomScrollView(slivers: [
-      SliverToBoxAdapter(child: SafeArea(bottom: false, child: Align(alignment: Alignment.centerLeft,
-        child: PetalButton.ghost(onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/search'); } },
-          child: const Icon(LucideIcons.chevronLeft, size: 22))))),
+      SliverToBoxAdapter(child: SizedBox(height: MediaQuery.viewPaddingOf(context).top)),
       if (profile == null)
         SliverFillRemaining(hasScrollBody: false, child: Center(child: _loading
           ? const PetalActivityIndicator()

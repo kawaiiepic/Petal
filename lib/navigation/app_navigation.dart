@@ -96,7 +96,8 @@ class _AppNavigationState extends State<AppNavigation> {
     final location = currentUri.path;
     final home = location == '/';
     final search = location == '/search';
-    final overview = location == '/series' || location == '/movie';
+    final overview = location == '/series' || location == '/movie' ||
+        location.startsWith('/person/') || location.startsWith('/profile/');
     final selectedDestination = DockDestination.values.firstWhere(
       (destination) => destination.path == location,
       orElse: () => location.startsWith('/collection/') ? DockDestination.collection : _lastDestination,
