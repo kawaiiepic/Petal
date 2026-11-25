@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:go_router/go_router.dart';
 import 'package:petal/models/library/collection_section.dart';
-import 'package:petal/widgets/ios/ios_controls.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey, SystemMouseCursors;
 import 'dart:async';
 
 import 'package:petal/api/backend/backend_cache.dart';
@@ -116,21 +116,42 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
           spacing: 8,
           children: [
             Flexible(
-              child: PetalButton.ghost(
-                alignment: Alignment.centerLeft,
-                onPressed: () => context.go(section.route),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  spacing: 6,
-                  children: [
-                    Flexible(child: Text(section.label, style: TextStyle(
-                      color: Theme.of(context).colorScheme.foreground,
-                      fontSize: 21, fontWeight: FontWeight.w700,
-                    ))),
-                    if (count != null) SecondaryBadge(child: Text('$count')),
-                    Icon(LucideIcons.chevronRight, size: 16,
-                      color: Theme.of(context).colorScheme.mutedForeground),
-                  ],
+              child: Semantics(
+                button: true,
+                child: FocusableActionDetector(
+                  mouseCursor: SystemMouseCursors.click,
+                  shortcuts: const {
+                    SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+                    SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+                  },
+                  actions: {
+                    ActivateIntent: CallbackAction<ActivateIntent>(
+                      onInvoke: (_) {
+                        context.go(section.route);
+                        return null;
+                      },
+                    ),
+                  },
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => context.go(section.route),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: 6,
+                        children: [
+                          Flexible(child: Text(section.label, style: TextStyle(
+                            color: Theme.of(context).colorScheme.foreground,
+                            fontSize: 21, fontWeight: FontWeight.w700,
+                          ))),
+                          if (count != null) SecondaryBadge(child: Text('$count')),
+                          Icon(LucideIcons.chevronRight, size: 16,
+                            color: Theme.of(context).colorScheme.mutedForeground),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
