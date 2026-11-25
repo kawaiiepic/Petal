@@ -8,8 +8,19 @@ class CollectionHistoryEntry {
   final Object? metadata;
   const CollectionHistoryEntry({required this.item, this.metadata});
 
-  int? get episodeCount =>
-      metadata is TmdbShow ? (metadata as TmdbShow).numberOfEpisodes : null;
+  int? get episodeCount {
+    final show = metadata;
+    if (show is! TmdbShow) return null;
+    final last = show.lastEpisodeToAir;
+    if (last != null && last.seasonNumber > 0 && last.episodeNumber > 0) {
+      final earlier = show.mainSeasons.where((s) => s.seasonNumber < last.seasonNumber);
+      // Count only already aired regular episodes, not announced future episodes.
+      if (earlier.length == last.seasonNumber - 1) {
+        return earlier.fold<int>(last.episodeNumber, (sum, s) => sum + s.episodeCount);
+      }
+    }
+    return show.numberOfEpisodes > 0 ? show.numberOfEpisodes : null;
+  }
   String? get artworkPath {
     final (backdrop, poster) = switch (metadata) {
       TmdbShow show => (show.backdropPath, show.posterPath),

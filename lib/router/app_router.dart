@@ -40,14 +40,17 @@ List<GoRoute> _libraryRoutes() => [
     path: '/collection',
     pageBuilder: (context, state) => _navigationPage(state, const CollectionPage()),
   ),
-  GoRoute(
-    path: '/collection/:section',
-    redirect: (context, state) => CollectionSection.parse(state.pathParameters['section']) == null ? '/collection' : null,
-    pageBuilder: (context, state) => _navigationPage(state, CollectionPage(
-      key: ValueKey(state.pathParameters['section']),
-      section: CollectionSection.parse(state.pathParameters['section']),
-    )),
-  ),
+  for (final section in CollectionSection.values)
+    GoRoute(
+      path: section.route,
+      pageBuilder: (context, state) => ShadcnPage<void>(
+        key: ValueKey('collection-page:${section.name}'),
+        child: CollectionPage(
+          key: ValueKey(section),
+          section: section,
+        ),
+      ),
+    ),
   GoRoute(
     path: '/history',
     pageBuilder: (context, state) =>

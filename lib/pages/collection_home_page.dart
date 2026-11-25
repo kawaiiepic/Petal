@@ -88,7 +88,7 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
         );
       }
       return ListView(
-        key: PageStorageKey('collection:${section?.name ?? 'all'}'),
+        key: const PageStorageKey('collection:all'),
         padding: const EdgeInsets.only(bottom: 32),
         children: [
           _historyShelf(CollectionSection.watching, watching),
@@ -118,7 +118,7 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
             Flexible(
               child: PetalButton.ghost(
                 alignment: Alignment.centerLeft,
-                onPressed: () => context.push(section.route),
+                onPressed: () => context.go(section.route),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   spacing: 6,
@@ -127,6 +127,7 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
                       color: Theme.of(context).colorScheme.foreground,
                       fontSize: 21, fontWeight: FontWeight.w700,
                     ))),
+                    if (count != null) SecondaryBadge(child: Text('$count')),
                     Icon(LucideIcons.chevronRight, size: 16,
                       color: Theme.of(context).colorScheme.mutedForeground),
                   ],
@@ -134,7 +135,6 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
               ),
             ),
             const Spacer(),
-            if (count != null) SecondaryBadge(child: Text('$count')),
           ],
         ),
       ),

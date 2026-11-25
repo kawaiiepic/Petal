@@ -1,3 +1,6 @@
+import 'package:petal/utils/collection_progress.dart';
+import 'package:petal/models/library/collection_history_entry.dart';
+import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/watch_history/continue_watching_item.dart';
@@ -17,6 +20,34 @@ WatchHistoryItem history(List<double> completions) =>
     });
 
 void main() {
+  test('collection excludes fully watched shows even with partial specials', () {
+    final item = WatchHistoryItem.fromJson({
+      'tmdb_id': 42, 'media_type': 'show', 'updated_at': 1700000000,
+      'episodes': [
+        {'season': 1, 'episode': 1, 'completion': 1},
+        {'season': 1, 'episode': 2, 'completion': .9},
+        {'season': 0, 'episode': 1, 'completion': .4},
+      ],
+    });
+    expect(isWatching(item, tmdbEpisodeCount: 2), isFalse);
+    expect(isFinished(item, tmdbEpisodeCount: 2), isTrue);
+    expect(isWatching(item, tmdbEpisodeCount: 3), isTrue);
+    expect(isWatching(item), isFalse);
+  });
+
+  test('collection uses last aired episode instead of announced season total', () {
+    final show = TmdbShow.fromJson({
+      'id': 42, 'number_of_episodes': 12,
+      'last_episode_to_air': {'id': 1, 'season_number': 1,
+        'episode_number': 2, 'show_id': 42},
+      'seasons': [{'id': 1, 'season_number': 1, 'episode_count': 12}],
+    });
+    final entry = CollectionHistoryEntry(item: history([1, 1]), metadata: show);
+    expect(entry.episodeCount, 2);
+    expect(isFinished(entry.item, tmdbEpisodeCount: entry.episodeCount), isTrue);
+    expect(isWatching(entry.item, tmdbEpisodeCount: entry.episodeCount), isFalse);
+  });
+
   test(
     '90% is the exact watched boundary; partial progress remains resumable',
     () {
