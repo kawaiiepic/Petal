@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey, SystemMouseCursors;
 import 'package:petal/models/library/collection_section.dart';
 import 'package:petal/navigation/desktop_media_tabs.dart';
 import 'package:petal/api/retained_player.dart';
@@ -118,7 +120,7 @@ class DesktopTvShell extends StatelessWidget {
                             ),
                             for (final section in CollectionSection.values)
                               Padding(padding: const EdgeInsets.only(left: 12),
-                                child: _destination(context, section.route, section.label,
+                                child: _collectionDestination(context, section,
                                   switch (section) {
                                     CollectionSection.watching => LucideIcons.play,
                                     CollectionSection.watchlist => LucideIcons.bookmark,
@@ -154,6 +156,50 @@ class DesktopTvShell extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  // Use a normal hit-testable navigation row for collection links. Glass is
+  // decorative here, rather than owning the pointer interaction.
+  Widget _collectionDestination(BuildContext context, CollectionSection section, IconData icon) {
+    final selected = Uri.parse(location).path == section.route;
+    final colors = Theme.of(context).colorScheme;
+    final foreground = selected ? Colors.white : colors.foreground;
+    void open() => GoRouter.of(context).go(section.route);
+    return Semantics(
+      button: true, selected: selected, label: section.label,
+      child: FocusableActionDetector(
+        mouseCursor: SystemMouseCursors.click,
+        shortcuts: const {
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        },
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+            open();
+            return null;
+          }),
+        },
+        child: GestureDetector(
+          key: ValueKey('collection-nav:${section.name}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: open,
+          child: Container(
+            height: 36,
+            margin: const EdgeInsets.only(bottom: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFF0069D9) : Colors.transparent,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Row(spacing: 9, children: [
+              Icon(icon, size: 16, color: foreground),
+              Expanded(child: Text(section.label, style: TextStyle(
+                color: foreground, fontSize: 14, fontWeight: FontWeight.w500))),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 

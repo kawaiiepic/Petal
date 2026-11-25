@@ -91,7 +91,9 @@ class _AppNavigationState extends State<AppNavigation> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final location = widget.state.uri.path;
+    final router = GoRouter.of(context);
+    final currentUri = widget.state.uri;
+    final location = currentUri.path;
     final home = location == '/';
     final search = location == '/search';
     final overview = location == '/series' || location == '/movie';
@@ -100,13 +102,13 @@ class _AppNavigationState extends State<AppNavigation> {
       orElse: () => location.startsWith('/collection/') ? DockDestination.collection : _lastDestination,
     );
     _lastDestination = selectedDestination;
-    final hasQuery = widget.state.uri.queryParameters['q']?.isNotEmpty ?? false;
+    final hasQuery = currentUri.queryParameters['q']?.isNotEmpty ?? false;
     final dockVisible = MediaQuery.viewInsetsOf(context).bottom == 0;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     void navigate(String path) {
-      if (path != widget.state.uri.toString() || (search && hasQuery)) {
-        context.go(path);
+      if (path != router.state.uri.toString() || (search && hasQuery)) {
+        router.go(path);
       } else if (home) {
         setState(() {
           _miniCollapsed = false;
@@ -138,7 +140,7 @@ class _AppNavigationState extends State<AppNavigation> {
         child: !TvLayout.isCompact(context)
             ? SafeArea(
                 child: DesktopTvShell(
-                  location: widget.state.uri.toString(),
+                  location: currentUri.toString(),
                   onNavigate: navigate,
                   child: home ? PrimaryScrollController(controller: _homeScroll, child: widget.child) : widget.child,
                 ),

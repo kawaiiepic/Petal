@@ -43,8 +43,8 @@ List<GoRoute> _libraryRoutes() => [
   for (final section in CollectionSection.values)
     GoRoute(
       path: section.route,
-      pageBuilder: (context, state) => ShadcnPage<void>(
-        key: ValueKey('collection-page:${section.name}'),
+      pageBuilder: (context, state) => NoTransitionPage<void>(
+        key: state.pageKey,
         child: CollectionPage(
           key: ValueKey(section),
           section: section,
