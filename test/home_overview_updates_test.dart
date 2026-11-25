@@ -63,7 +63,7 @@ void main() {
   });
 
   testWidgets(
-    'show hero exposes trailer and shared library controls without comments button',
+    'show hero exposes shared library controls without trailer or comments buttons',
     (tester) async {
       await tester.pumpWidget(
         harness(
@@ -75,14 +75,13 @@ void main() {
                   play: const Text('Play'),
                   mediaType: MediaType.show,
                   tmdbId: 42,
-                  onTrailer: () {},
                 ),
               ],
             ),
           ),
         ),
       );
-      expect(find.byIcon(LucideIcons.video), findsOneWidget);
+      expect(find.byIcon(LucideIcons.video), findsNothing);
       expect(find.byIcon(LucideIcons.check), findsOneWidget);
       expect(find.byIcon(LucideIcons.bookmark), findsOneWidget);
       expect(find.byIcon(LucideIcons.thumbsUp), findsOneWidget);

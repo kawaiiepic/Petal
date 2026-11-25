@@ -86,21 +86,35 @@ class AppRouter {
           GoRoute(path: '/', builder: (context, state) => const HomePage()),
           ..._libraryRoutes(),
           _searchRoute(),
+          GoRoute(
+            path: '/series',
+            pageBuilder: (context, state) {
+              final tmdbId = state.uri.queryParameters['tmdb'];
+              final imdbId = state.uri.queryParameters['imdb'];
+              return _navigationPage(
+                state,
+                ShowOverviewPage(
+                  tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
+                  imdbId: imdbId,
+                ),
+              );
+            },
+          ),
+          GoRoute(
+            path: '/movie',
+            pageBuilder: (context, state) {
+              final imdbId = state.uri.queryParameters['imdb'];
+              final tmdbId = state.uri.queryParameters['tmdb'];
+              return _navigationPage(
+                state,
+                MovieOverviewPage(
+                  tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
+                  imdbId: imdbId,
+                ),
+              );
+            },
+          ),
         ],
-      ),
-      GoRoute(
-        path: '/series',
-        pageBuilder: (context, state) {
-          final tmdbId = state.uri.queryParameters['tmdb'];
-          final imdbId = state.uri.queryParameters['imdb'];
-          return _navigationPage(
-            state,
-            ShowOverviewPage(
-              tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
-              imdbId: imdbId,
-            ),
-          );
-        },
       ),
       GoRoute(
         path: '/episode',
@@ -119,20 +133,6 @@ class AppRouter {
               episode: episode,
               popup: true,
               scrollController: controller,
-            ),
-          );
-        },
-      ),
-      GoRoute(
-        path: '/movie',
-        pageBuilder: (context, state) {
-          final imdbId = state.uri.queryParameters['imdb'];
-          final tmdbId = state.uri.queryParameters['tmdb'];
-          return _navigationPage(
-            state,
-            MovieOverviewPage(
-              tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
-              imdbId: imdbId,
             ),
           );
         },

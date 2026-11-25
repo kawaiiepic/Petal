@@ -16,13 +16,12 @@ import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/utils/media_formatting.dart';
 import 'package:petal/widgets/ios/ios_context_menu.dart';
-import 'package:petal/widgets/overview/overview_back_button.dart';
+import 'package:petal/widgets/overview/trailers_shelf.dart';
 import 'package:petal/widgets/overview/cast_card.dart';
 import 'package:petal/widgets/overview/movie_recommendation_card.dart';
 import 'package:petal/widgets/overview/overview_hero_actions.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class MovieOverviewPage extends StatefulWidget {
   final int? tmdbId;
@@ -104,14 +103,6 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
         final movie = snapshot.hasData ? snapshot.data! : null;
         final router = GoRouter.of(context);
 
-        final trailer =
-            movie?.videos?.results
-                .where((v) => v.site == 'YouTube' && v.type == 'Trailer')
-                .firstOrNull ??
-            movie?.videos?.results
-                .where((v) => v.site == 'YouTube')
-                .firstOrNull;
-
         final cast = movie?.credits?.cast.take(12).toList();
         final director = movie?.credits?.director;
         final recommendations = movie?.recommendations?.results
@@ -136,7 +127,6 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                             : 'https://image.tmdb.org/t/p/original${movie!.backdropPath}',
                         isLoading: loading,
                       ),
-                      const OverviewBackButton(),
                       Positioned(
                         bottom: 100,
                         left: 24,
@@ -169,9 +159,6 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                         mediaType: MediaType.movie,
                         tmdbId: _resolvedTmdbId,
                         title: movie?.title,
-                        onTrailer: trailer != null
-                            ? () => launchUrl(Uri.parse(trailer.youtubeUrl))
-                            : null,
                         play: PetalContextMenu(
                           items: [
                             MenuButton(
@@ -370,24 +357,8 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                           ),
                         ),
                       ],
+                      TrailersShelf(videos: movie?.videos?.results ?? const []),
                       const SizedBox(height: 20),
-                      Skeleton.keep(
-                        child: Text(
-                          style: TextStyle(fontSize: AppTypography.h4Size),
-                          'Cast',
-                        ).h4,
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 150,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: cast != null ? cast.length : 3,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, i) =>
-                              CastCard(member: cast != null ? cast[i] : null),
-                        ),
-                      ),
                       Skeleton.keep(
                         child: Text(
                           style: TextStyle(fontSize: AppTypography.h4Size),
@@ -415,6 +386,24 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                           tmdbId: _resolvedTmdbId!,
                         ),
                       ],
+                      const SizedBox(height: 20),
+                      Skeleton.keep(
+                        child: Text(
+                          style: TextStyle(fontSize: AppTypography.h4Size),
+                          'Cast',
+                        ).h4,
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 150,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: cast != null ? cast.length : 3,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, i) =>
+                              CastCard(member: cast != null ? cast[i] : null),
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -1,7 +1,5 @@
 import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
-import 'package:petal/widgets/overview/episode_action_menu.dart';
-import 'package:petal/api/user_library.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/utils/show_playback.dart';
@@ -9,7 +7,6 @@ import 'package:petal/utils/app_notifications.dart';
 import 'package:petal/api/download_manager.dart';
 import 'package:petal/widgets/connection_error_view.dart';
 import 'package:petal/widgets/media/media_artwork.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -20,21 +17,18 @@ import 'package:petal/models/episode.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/tmdb/tmdb_season.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
-import 'package:petal/models/watch_history/episode_progress.dart';
-import 'package:petal/models/watch_history/show_item.dart';
-import 'package:petal/models/watch_history/watch_history_item.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/utils/media_formatting.dart';
-import 'package:petal/widgets/overview/overview_back_button.dart';
+import 'package:petal/widgets/overview/trailers_shelf.dart';
 import 'package:petal/widgets/overview/cast_card.dart';
-import 'package:petal/widgets/overview/episode_thumbnail_fallback.dart';
+import 'package:petal/widgets/overview/episode_portrait_card.dart';
+import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:petal/widgets/overview/overview_hero_actions.dart';
 import 'package:petal/widgets/overview/title_comments.dart';
 import 'package:petal/widgets/overview/season_dropdown.dart';
 import 'package:petal/widgets/overview/show_recommendation_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ShowOverviewPage extends StatefulWidget {
   final int? tmdbId;
@@ -195,11 +189,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
         }
         final loading = snapshot.connectionState != ConnectionState.done;
         final show = snapshot.hasData ? snapshot.data! : null;
-        final trailer =
-            show?.videos?.results
-                .where((v) => v.site == 'YouTube' && v.type == 'Trailer')
-                .firstOrNull ??
-            show?.videos?.results.where((v) => v.site == 'YouTube').firstOrNull;
         final cast = show?.credits?.cast.take(12).toList();
         final recommendations = show?.recommendations?.results
             .take(15)
@@ -221,7 +210,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         imageUrl: show?.backdropUrl,
                         isLoading: loading,
                       ),
-                      const OverviewBackButton(),
                       Positioned(
                         bottom: 100,
                         left: 24,
@@ -243,9 +231,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         tmdbId: _resolvedTmdbId,
                         show: show,
                         title: show?.name,
-                        onTrailer: trailer == null
-                            ? null
-                            : () => launchUrl(Uri.parse(trailer.youtubeUrl)),
                         play: PetalContextMenu(
                           items: [
                             MenuButton(
@@ -444,26 +429,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                           ],
                         ],
                       ),
-                      const SizedBox(height: 28),
-                      Skeleton.keep(
-                        child: Text(
-                          style: TextStyle(fontSize: AppTypography.h4Size),
-                          'Cast',
-                        ).h4,
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 150,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: cast != null ? cast.length : 3,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, i) => CastCard(
-                            fallbackIcon: LucideIcons.userRound,
-                            member: cast != null ? cast[i] : null,
-                          ),
-                        ),
-                      ),
                       Skeleton.keep(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -543,261 +508,18 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                 ),
                               if (snapshot.hasData &&
                                   snapshot.data!.episodes.isNotEmpty)
-                                ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
+                                MediaShelf(
+                                  orientation: Orientation.portrait,
+                                  cardWidth: 132,
+                                  cardHeight: 220,
+                                  spacing: 10,
+                                  padding: EdgeInsets.zero,
                                   itemCount: snapshot.data!.episodes.length,
-                                  separatorBuilder: (_, _) =>
-                                      const SizedBox(height: 8),
-                                  itemBuilder: (context, i) {
-                                    final episode = snapshot.data!.episodes[i];
-                                    return EpisodeActionMenu(
-                                      tmdbId: _resolvedTmdbId!,
-                                      season: episode.seasonNumber,
-                                      episode: episode.episodeNumber,
-                                      builder: (context, watched, busy, play) => GhostButton(
-                                        onPressed: () {
-                                          context.push(
-                                            '/episode?tmdb=${_resolvedTmdbId}&s=${episode.seasonNumber}&e=${episode.episodeNumber}',
-                                          );
-                                        },
-                                        child: Row(
-                                          spacing: 12,
-                                          children: [
-                                            Skeleton.keep(
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                child: Stack(
-                                                  children: [
-                                                    CachedNetworkImage(
-                                                      imageUrl:
-                                                          'https://image.tmdb.org/t/p/w300${episode.stillPath}',
-                                                      width: 120,
-                                                      height: 68,
-                                                      fit: BoxFit.cover,
-                                                      errorWidget: (
-                                                        context,
-                                                        url,
-                                                        error,
-                                                      ) => const EpisodeThumbnailFallback(),
-                                                    ),
-                                                    Positioned.fill(
-                                                      child: Container(
-                                                        decoration: BoxDecoration(
-                                                          gradient: LinearGradient(
-                                                            begin: Alignment
-                                                                .bottomCenter,
-                                                            end: Alignment
-                                                                .topCenter,
-                                                            colors: [
-                                                              Colors.black
-                                                                  .withValues(
-                                                                    alpha: 0.4,
-                                                                  ),
-                                                              Colors.black
-                                                                  .withValues(
-                                                                    alpha: 0.1,
-                                                                  ),
-                                                            ],
-                                                            stops: const [
-                                                              0.0,
-                                                              1.0,
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    ValueListenableBuilder(
-                                                      valueListenable:
-                                                          BackendCache
-                                                              .continueWatching,
-                                                      builder: (context, value, child) {
-                                                        if (value.any((boop) {
-                                                          if (boop.mediaType ==
-                                                              'episode') {
-                                                            final showItem =
-                                                                boop
-                                                                    as ShowItem;
-                                                            return (showItem
-                                                                        .tmdbId ==
-                                                                    _resolvedTmdbId &&
-                                                                showItem
-                                                                        .nextEpisode
-                                                                        ?.season ==
-                                                                    episode
-                                                                        .seasonNumber &&
-                                                                showItem
-                                                                        .nextEpisode
-                                                                        ?.episode ==
-                                                                    episode
-                                                                        .episodeNumber);
-                                                          }
-                                                          return false;
-                                                        })) {
-                                                          return const Positioned(
-                                                            top: 4,
-                                                            right: 4,
-                                                            left: 4,
-                                                            bottom: 4,
-                                                            child: Icon(
-                                                              LucideIcons.play,
-                                                              size: 30,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                          );
-                                                        }
-                                                        return Container();
-                                                      },
-                                                    ),
-                                                    ListenableBuilder(
-                                                      listenable: Listenable.merge([
-                                                        BackendCache.watchHistory,
-                                                        UserLibrary.pendingWatched,
-                                                      ]),
-                                                      builder: (context, child) {
-                                                        final history = BackendCache.watchHistory.value;
-                                                        final entry = history
-                                                            .where(
-                                                              (h) =>
-                                                                  h.tmdbId ==
-                                                                      show?.id &&
-                                                                  h.mediaType ==
-                                                                      MediaType
-                                                                          .show,
-                                                            )
-                                                            .expand(
-                                                              (h) => h.episodes
-                                                                  .map(
-                                                                    (e) => (
-                                                                      item: h,
-                                                                      ep: e,
-                                                                    ),
-                                                                  ),
-                                                            )
-                                                            .cast<
-                                                              ({
-                                                                WatchHistoryItem
-                                                                item,
-                                                                EpisodeProgress
-                                                                ep,
-                                                              })?
-                                                            >()
-                                                            .firstWhere(
-                                                              (pair) =>
-                                                                  pair!.ep.season ==
-                                                                      episode
-                                                                          .seasonNumber &&
-                                                                  pair.ep.episode ==
-                                                                      episode
-                                                                          .episodeNumber,
-                                                              orElse: () =>
-                                                                  null,
-                                                            );
-                                                        final pending = episode.airDate == null || !episode.airDate!.isAfter(DateTime.now())
-                                                          ? UserLibrary.pendingCompletion(show?.id ?? 0, MediaType.show) : null;
-                                                        final progress = pending ?? entry?.ep.completion;
-                                                        if (progress == null ||
-                                                            progress <= 0.0)
-                                                          return const SizedBox.shrink();
-                                                        if (progress >= 1.0) {
-                                                          return const Positioned(
-                                                            top: 4,
-                                                            right: 4,
-                                                            child: Icon(
-                                                              LucideIcons.check,
-                                                              size: 20,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                          );
-                                                        }
-                                                        return Positioned(
-                                                          bottom: 2,
-                                                          left: 5,
-                                                          right: 5,
-                                                          child: LinearProgressIndicator(
-                                                            value: progress,
-                                                            minHeight: 5,
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  8,
-                                                                ),
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                spacing: 8,
-                                                children: [
-                                                  Text.rich(
-                                                    TextSpan(
-                                                      children: [
-                                                        TextSpan(
-                                                          text:
-                                                              '${episode.seasonNumber}x${episode.episodeNumber}  ',
-                                                          style: TextStyle(
-                                                            fontSize:
-                                                                AppTypography
-                                                                    .bodySize,
-                                                            fontWeight:
-                                                                FontWeight.w300,
-                                                          ),
-                                                        ),
-                                                        TextSpan(
-                                                          text: episode.name,
-                                                          style: TextStyle(
-                                                            fontSize:
-                                                                AppTypography
-                                                                    .bodySize,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    episode.airDate.toString(),
-                                                    style: TextStyle(
-                                                      fontSize: AppTypography
-                                                          .smallSize,
-                                                      color:
-                                                          (episode.airDate
-                                                                  ?.isAfter(
-                                                                    DateTime.now(),
-                                                                  ) ??
-                                                              false)
-                                                          ? Colors.red
-                                                                .withAlpha(200)
-                                                          : Colors.white
-                                                                .withAlpha(200),
-                                                    ),
-                                                  ).light,
-                                                  Text(
-                                                    episode.overview,
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: AppTypography
-                                                          .smallSize,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                  itemBuilder: (context, i) => EpisodePortraitCard(
+                                    tmdbId: _resolvedTmdbId!,
+                                    episode: snapshot.data!.episodes[i],
+                                    fallbackImage: show?.posterPath,
+                                  ),
                                 ),
                             ],
                             ),
@@ -805,6 +527,8 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         },
                       ),
                       const SizedBox(height: 28),
+                      TrailersShelf(videos: show?.videos?.results ?? const []),
+                      const SizedBox(height: 20),
                       Skeleton.keep(
                         child: Text(
                           style: TextStyle(fontSize: AppTypography.h4Size),
@@ -831,6 +555,26 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                           tmdbId: _resolvedTmdbId!,
                         ),
                       ],
+                      const SizedBox(height: 28),
+                      Skeleton.keep(
+                        child: Text(
+                          style: TextStyle(fontSize: AppTypography.h4Size),
+                          'Cast',
+                        ).h4,
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 150,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: cast != null ? cast.length : 3,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, i) => CastCard(
+                            fallbackIcon: LucideIcons.userRound,
+                            member: cast != null ? cast[i] : null,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

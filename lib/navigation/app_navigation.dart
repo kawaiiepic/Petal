@@ -19,6 +19,7 @@ class AppNavigation extends StatefulWidget {
 
 class _AppNavigationState extends State<AppNavigation> {
   final _homeScroll = ScrollController();
+  DockDestination _lastDestination = DockDestination.home;
 
   @override
   void dispose() {
@@ -34,7 +35,9 @@ class _AppNavigationState extends State<AppNavigation> {
     final search = location == '/search';
     final selectedDestination = DockDestination.values.firstWhere(
       (destination) => destination.path == location,
+      orElse: () => _lastDestination,
     );
+    _lastDestination = selectedDestination;
     final hasQuery = widget.state.uri.queryParameters['q']?.isNotEmpty ?? false;
     final dockVisible = MediaQuery.viewInsetsOf(context).bottom == 0;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
@@ -64,7 +67,7 @@ class _AppNavigationState extends State<AppNavigation> {
         child: !TvLayout.isCompact(context)
             ? SafeArea(
                 child: DesktopTvShell(
-                  location: location,
+                  location: selectedDestination.path,
                   onNavigate: navigate,
                   child: widget.child,
                 ),

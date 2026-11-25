@@ -5,7 +5,6 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class OverviewHeroActions extends StatelessWidget {
   final Widget play;
-  final VoidCallback? onTrailer;
   final int? tmdbId;
   final MediaType mediaType;
   final TmdbShow? show;
@@ -15,7 +14,6 @@ class OverviewHeroActions extends StatelessWidget {
     super.key,
     required this.play,
     required this.mediaType,
-    this.onTrailer,
     this.tmdbId,
     this.show,
     this.title,
@@ -33,15 +31,6 @@ class OverviewHeroActions extends StatelessWidget {
           spacing: 8,
           children: [
             play,
-            if (onTrailer != null)
-              Button(
-                onPressed: onTrailer,
-                style: const ButtonStyle.outline().withBorderRadius(
-                  borderRadius: BorderRadius.circular(16),
-                  hoverBorderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(LucideIcons.video, size: 18),
-              ),
             if (tmdbId != null)
               LibraryActions(
                 tmdbId: tmdbId!,
