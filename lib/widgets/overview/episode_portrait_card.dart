@@ -26,7 +26,8 @@ class EpisodePortraitCard extends StatelessWidget {
       builder: (context, watched, busy, play) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          AspectRatio(
+            aspectRatio: 2 / 3,
             child: MediaCard(
               orientation: Orientation.portrait,
               imageUrl: image,
@@ -44,7 +45,7 @@ class EpisodePortraitCard extends StatelessWidget {
           Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 11, color: future ? Colors.red :
               Theme.of(context).colorScheme.mutedForeground)),
-          Text(episode.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+          Text(episode.name, maxLines: 2, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         ],
       ),

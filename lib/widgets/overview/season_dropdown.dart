@@ -24,6 +24,7 @@ class SeasonDropdown extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return glass.GlassButton.custom(
       useOwnLayer: true,
+      style: glass.GlassButtonStyle.transparent,
       shape: const glass.LiquidRoundedRectangle(borderRadius: 14),
       enabled: seasons.isNotEmpty,
       onTap: () async {
@@ -35,7 +36,7 @@ class SeasonDropdown extends StatelessWidget {
             for (final season in seasons)
               glass.GlassActionSheetAction(
                 label: season.name,
-                icon: season == selectedSeason ? const Icon(ios.CupertinoIcons.check_mark) : null,
+                icon: season.seasonNumber == selectedSeason?.seasonNumber ? const Icon(ios.CupertinoIcons.check_mark) : null,
                 onPressed: () => selected = season,
               ),
           ],
@@ -43,12 +44,12 @@ class SeasonDropdown extends StatelessWidget {
         if (selected != null && context.mounted) onSeasonChanged(selected!);
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
         child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(child: Text(selectedSeason?.name ?? 'Select a season',
-            style: TextStyle(color: scheme.foreground, fontSize: AppTypography.bodySize))),
+            style: TextStyle(color: scheme.foreground, fontSize: AppTypography.h3Size, fontWeight: FontWeight.w600))),
           const SizedBox(width: 8),
           Icon(ios.CupertinoIcons.chevron_down, color: scheme.foreground, size: 14),
         ],

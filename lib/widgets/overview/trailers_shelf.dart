@@ -22,7 +22,7 @@ class TrailersShelf extends StatelessWidget {
         const SizedBox(height: 12),
         MediaShelf(
           orientation: Orientation.portrait,
-          cardWidth: 132, cardHeight: 220, spacing: 10,
+          cardWidth: 116, cardHeight: 230, spacing: 10,
           padding: EdgeInsets.zero,
           itemCount: trailers.length,
           itemBuilder: (context, index) {
@@ -30,7 +30,7 @@ class TrailersShelf extends StatelessWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: MediaCard(
+                AspectRatio(aspectRatio: 2 / 3, child: MediaCard(
                   orientation: Orientation.portrait,
                   imageUrl: trailer.youtubeThumbnail,
                   label: trailer.name,
@@ -41,7 +41,7 @@ class TrailersShelf extends StatelessWidget {
                     color: Colors.white, size: 30)),
                 )),
                 const SizedBox(height: 5),
-                Text(trailer.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                Text(trailer.name, maxLines: 2, overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 Text(trailer.type, maxLines: 1, style: TextStyle(fontSize: 11,
                   color: Theme.of(context).colorScheme.mutedForeground)),

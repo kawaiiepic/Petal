@@ -348,11 +348,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                       ],
                       const SizedBox(height: 20),
                       Text(
-                        style: TextStyle(fontSize: AppTypography.h3Size),
-                        'About ${show?.name ?? 'Show Name'}',
-                      ).h3,
-                      const SizedBox(height: 8),
-                      Text(
                         show?.overview ?? 'Show overview...',
                         style: TextStyle(
                           fontSize: AppTypography.bodySize,
@@ -429,38 +424,32 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                           ],
                         ],
                       ),
+                      const SizedBox(height: 32),
                       Skeleton.keep(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              style: TextStyle(fontSize: AppTypography.h3Size),
-                              'Episodes',
-                            ).h3,
-                            SeasonDropdown(
-                              tvShow: show,
-                              selectedSeason: show?.seasons.firstWhereOrNull(
-                                (s) => s.seasonNumber == _selectedSeasonNumber,
-                              ),
-                              onSeasonChanged: (season) {
-                                _selectedSeasonNumber = season.seasonNumber;
-                                _season = TMDB.tvSeason(
-                                  _resolvedTmdbId!,
-                                  season.seasonNumber,
-                                );
-                                setState(() {});
-                              },
-                            ),
-                          ],
+                        child: SeasonDropdown(
+                          tvShow: show,
+                          selectedSeason: show?.seasons.firstWhereOrNull(
+                            (s) => s.seasonNumber == _selectedSeasonNumber,
+                          ),
+                          onSeasonChanged: (season) {
+                            setState(() {
+                              _selectedSeasonNumber = season.seasonNumber;
+                              _season = TMDB.tvSeason(
+                                _resolvedTmdbId!,
+                                season.seasonNumber,
+                              );
+                            });
+                          },
                         ),
                       ),
                       FutureBuilder(
                         future: _season,
                         builder: (context, snapshot) {
                           return Padding(
-                            padding: const EdgeInsets.only(top: 16),
+                            padding: const EdgeInsets.only(top: 6),
                             child: Column(
-                            spacing: 16,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            spacing: 10,
                             children: [
                               if (snapshot.hasData &&
                                   snapshot.data!.episodes.isNotEmpty)
@@ -510,8 +499,8 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                                   snapshot.data!.episodes.isNotEmpty)
                                 MediaShelf(
                                   orientation: Orientation.portrait,
-                                  cardWidth: 132,
-                                  cardHeight: 220,
+                                  cardWidth: 116,
+                                  cardHeight: 230,
                                   spacing: 10,
                                   padding: EdgeInsets.zero,
                                   itemCount: snapshot.data!.episodes.length,

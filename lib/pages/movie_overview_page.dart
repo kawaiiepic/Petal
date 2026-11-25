@@ -266,11 +266,6 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                       ],
                       const SizedBox(height: 15),
                       Text(
-                        style: TextStyle(fontSize: AppTypography.h3Size),
-                        'About ${movie?.title ?? 'Movie Name'}',
-                      ).h3,
-                      const SizedBox(height: 8),
-                      Text(
                         movie?.overview ?? 'Movie overview...',
                         style: TextStyle(
                           fontSize: AppTypography.bodySize,
@@ -357,6 +352,7 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 24),
                       TrailersShelf(videos: movie?.videos?.results ?? const []),
                       const SizedBox(height: 20),
                       Skeleton.keep(
