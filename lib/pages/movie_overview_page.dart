@@ -373,15 +373,6 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                           ),
                         ),
                       ),
-                      if (_resolvedTmdbId != null) ...[
-                        const SizedBox(height: 28),
-                        const Text('Comments').h4,
-                        const SizedBox(height: 12),
-                        TitleComments(
-                          mediaType: 'movie',
-                          tmdbId: _resolvedTmdbId!,
-                        ),
-                      ],
                       const SizedBox(height: 20),
                       Skeleton.keep(
                         child: Text(
@@ -400,6 +391,13 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                               CastCard(member: cast != null ? cast[i] : null),
                         ),
                       ),
+                      if (_resolvedTmdbId != null) ...[
+                        const SizedBox(height: 28),
+                        CollapsibleTitleComments(
+                          mediaType: 'movie',
+                          tmdbId: _resolvedTmdbId!,
+                        ),
+                      ],
                     ],
                   ),
                 ),

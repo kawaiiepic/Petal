@@ -535,15 +535,6 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                               ShowRecommendationCard(show: recommendations?[i]),
                         ),
                       ),
-                      if (_resolvedTmdbId != null) ...[
-                        const SizedBox(height: 28),
-                        const Text('Comments').h4,
-                        const SizedBox(height: 12),
-                        TitleComments(
-                          mediaType: 'show',
-                          tmdbId: _resolvedTmdbId!,
-                        ),
-                      ],
                       const SizedBox(height: 28),
                       Skeleton.keep(
                         child: Text(
@@ -564,6 +555,13 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                           ),
                         ),
                       ),
+                      if (_resolvedTmdbId != null) ...[
+                        const SizedBox(height: 28),
+                        CollapsibleTitleComments(
+                          mediaType: 'show',
+                          tmdbId: _resolvedTmdbId!,
+                        ),
+                      ],
                     ],
                   ),
                 ),

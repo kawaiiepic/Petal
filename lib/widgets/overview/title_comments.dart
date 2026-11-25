@@ -129,3 +129,68 @@ class _TitleCommentsState extends State<TitleComments> {
     );
   }
 }
+
+class CollapsibleTitleComments extends StatefulWidget {
+  final String mediaType;
+  final int tmdbId;
+
+  const CollapsibleTitleComments({
+    super.key,
+    required this.mediaType,
+    required this.tmdbId,
+  });
+
+  @override
+  State<CollapsibleTitleComments> createState() =>
+      _CollapsibleTitleCommentsState();
+}
+
+class _CollapsibleTitleCommentsState extends State<CollapsibleTitleComments> {
+  bool _expanded = false;
+  bool _opened = false;
+
+  @override
+  void didUpdateWidget(covariant CollapsibleTitleComments oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tmdbId != widget.tmdbId ||
+        oldWidget.mediaType != widget.mediaType) {
+      _expanded = false;
+      _opened = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      PetalButton.ghost(
+        alignment: Alignment.centerLeft,
+        onPressed: () {
+          if (_expanded) FocusScope.of(context).unfocus();
+          setState(() {
+            _expanded = !_expanded;
+            _opened = _opened || _expanded;
+          });
+        },
+        child: Row(
+          children: [
+            Expanded(child: const Text('Comments').h4),
+            Icon(_expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown),
+          ],
+        ),
+      ),
+      if (_opened)
+        Offstage(
+          offstage: !_expanded,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: TitleComments(
+              key: ValueKey('${widget.mediaType}:${widget.tmdbId}'),
+              mediaType: widget.mediaType,
+              tmdbId: widget.tmdbId,
+            ),
+          ),
+        ),
+    ],
+  );
+}
