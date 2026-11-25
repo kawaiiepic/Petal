@@ -2,6 +2,7 @@ import 'package:petal/models/media_type.dart';
 import 'package:petal/models/watch_history/episode_progress.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
 import 'package:petal/utils/group_watch_history.dart';
+import 'package:petal/utils/watch_progress.dart';
 
 class HistoryPlay {
   final WatchHistoryItem item;
@@ -17,7 +18,8 @@ List<HistoryPlay> historyTimeline(List<WatchHistoryItem> history) {
   for (final item in groupWatchHistory(history)) {
     if (item.mediaType == MediaType.movie) {
       if (item.watches.isEmpty) {
-        plays.add(HistoryPlay(item, null, item.watchedAt ?? item.lastWatched, 0));
+        if (!WatchProgress.isWatched(item.completion) && item.watchedAt == null && item.plays <= 0) continue;
+        plays.add(HistoryPlay(item, null, item.watchedAt, 0));
       } else {
         for (var i = 0; i < item.watches.length; i++) {
           plays.add(HistoryPlay(item, null, item.watches[i], i));
@@ -26,6 +28,7 @@ List<HistoryPlay> historyTimeline(List<WatchHistoryItem> history) {
     } else {
       for (final episode in item.episodes) {
         if (episode.watches.isEmpty) {
+          if (!WatchProgress.isWatched(episode.completion) && episode.watchedAt == null && episode.plays <= 0) continue;
           plays.add(HistoryPlay(item, episode, episode.watchedAt, 0));
         } else {
           for (var i = 0; i < episode.watches.length; i++) {

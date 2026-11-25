@@ -14,15 +14,17 @@ void main() {
         tmdbId: 1, mediaType: MediaType.show, completion: 1,
         updatedAt: DateTime(2026, 11, 24),
         episodes: [
-          EpisodeProgress(season: 1, episode: 1, completion: 1,
+          EpisodeProgress(season: 1, episode: 1, completion: .25,
             watches: [first, third]),
           EpisodeProgress(season: 1, episode: 2, completion: 1,
             watchedAt: second),
           EpisodeProgress(season: 1, episode: 3, completion: .5),
         ],
       ),
+      WatchHistoryItem(tmdbId: 2, mediaType: MediaType.movie,
+        completion: .5, updatedAt: third, lastWatched: third),
     ]);
-    expect(plays.map((p) => p.date).toList(), [third, second, first, null]);
-    expect(plays.map((p) => p.episode!.episode).toList(), [1, 2, 1, 3]);
+    expect(plays.map((p) => p.date).toList(), [third, second, first]);
+    expect(plays.map((p) => p.episode!.episode).toList(), [1, 2, 1]);
   });
 }
