@@ -28,6 +28,7 @@ class EpisodeDetailPage extends StatefulWidget {
   final int season;
   final int episode;
   final bool popup;
+  final ScrollController? scrollController;
 
   const EpisodeDetailPage({
     super.key,
@@ -35,6 +36,7 @@ class EpisodeDetailPage extends StatefulWidget {
     required this.season,
     required this.episode,
     this.popup = false,
+    this.scrollController,
   });
 
   @override
@@ -148,6 +150,9 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
             child: Container(
               color: Theme.of(context).colorScheme.background,
               child: CustomScrollView(
+                controller: widget.scrollController,
+                primary: false,
+                physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
                     child: SizedBox(

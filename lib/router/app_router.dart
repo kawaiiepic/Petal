@@ -1,4 +1,5 @@
 import 'package:petal/router/popup_page.dart';
+import 'package:petal/router/episode_sheet_page.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart'
     show Page, ShadcnPage, Widget;
 import 'package:petal/pages/watch_history_page.dart';
@@ -110,14 +111,14 @@ class AppRouter {
               int.tryParse(state.uri.queryParameters['s'] ?? '') ?? 1;
           final episode =
               int.tryParse(state.uri.queryParameters['e'] ?? '') ?? 1;
-          return PopupPage(
+          return EpisodeSheetPage(
             key: state.pageKey,
-            title: 'Episode overview',
-            child: EpisodeDetailPage(
+            builder: (controller) => EpisodeDetailPage(
               tmdbId: tmdb,
               season: season,
               episode: episode,
               popup: true,
+              scrollController: controller,
             ),
           );
         },
