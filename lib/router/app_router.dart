@@ -38,8 +38,14 @@ Page<void> _navigationPage(GoRouterState state, Widget child) =>
 List<GoRoute> _libraryRoutes() => [
   GoRoute(
     path: '/collection',
+    pageBuilder: (context, state) => _navigationPage(state, const CollectionPage()),
+  ),
+  GoRoute(
+    path: '/collection/:section',
+    redirect: (context, state) => CollectionSection.parse(state.pathParameters['section']) == null ? '/collection' : null,
     pageBuilder: (context, state) => _navigationPage(state, CollectionPage(
-      section: CollectionSection.parse(state.uri.queryParameters['section']),
+      key: ValueKey(state.pathParameters['section']),
+      section: CollectionSection.parse(state.pathParameters['section']),
     )),
   ),
   GoRoute(

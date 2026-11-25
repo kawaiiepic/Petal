@@ -8,7 +8,7 @@ enum CollectionSection {
   const CollectionSection(this.label, this.description);
   final String label;
   final String description;
-  String get route => '/collection?section=$name';
+  String get route => '/collection/$name';
 
   static CollectionSection? parse(String? value) {
     for (final section in values) {

@@ -73,20 +73,29 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
         isFinished(e.item, tmdbEpisodeCount: e.episodeCount)).toList();
       final planned = _entries.where((e) => isPlanned(e.item)).toList();
       final section = widget.section;
+      if (section != null) {
+        final content = switch (section) {
+          CollectionSection.watching => _historyShelf(section, watching),
+          CollectionSection.watchlist => _libraryShelf(section, watchlist),
+          CollectionSection.liked => _libraryShelf(section, liked),
+          CollectionSection.watched => _historyShelf(section, watched),
+          CollectionSection.planned => _historyShelf(section, planned),
+        };
+        return ListView(
+          key: PageStorageKey('collection:${section.name}'),
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
+          children: [content],
+        );
+      }
       return ListView(
         key: PageStorageKey('collection:${section?.name ?? 'all'}'),
         padding: const EdgeInsets.only(bottom: 32),
         children: [
-          if (section == null || section == CollectionSection.watching)
-            _historyShelf(CollectionSection.watching, watching),
-          if (section == null || section == CollectionSection.watchlist)
-            _libraryShelf(CollectionSection.watchlist, watchlist),
-          if (section == null || section == CollectionSection.liked)
-            _libraryShelf(CollectionSection.liked, liked),
-          if (section == null || section == CollectionSection.watched)
-            _historyShelf(CollectionSection.watched, watched),
-          if (section == null || section == CollectionSection.planned)
-            _historyShelf(CollectionSection.planned, planned),
+          _historyShelf(CollectionSection.watching, watching),
+          _libraryShelf(CollectionSection.watchlist, watchlist),
+          _libraryShelf(CollectionSection.liked, liked),
+          _historyShelf(CollectionSection.watched, watched),
+          _historyShelf(CollectionSection.planned, planned),
         ],
       );
     },
@@ -101,7 +110,7 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
   }) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Padding(
+      if (widget.section == null) Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
         child: Row(
           spacing: 8,

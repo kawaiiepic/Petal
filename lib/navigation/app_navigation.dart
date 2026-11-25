@@ -97,7 +97,7 @@ class _AppNavigationState extends State<AppNavigation> {
     final overview = location == '/series' || location == '/movie';
     final selectedDestination = DockDestination.values.firstWhere(
       (destination) => destination.path == location,
-      orElse: () => _lastDestination,
+      orElse: () => location.startsWith('/collection/') ? DockDestination.collection : _lastDestination,
     );
     _lastDestination = selectedDestination;
     final hasQuery = widget.state.uri.queryParameters['q']?.isNotEmpty ?? false;

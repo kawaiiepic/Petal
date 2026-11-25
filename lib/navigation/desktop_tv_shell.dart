@@ -165,8 +165,7 @@ class DesktopTvShell extends StatelessWidget {
   ) {
     final current = Uri.parse(location);
     final destination = Uri.parse(path);
-    final selected = current.path == destination.path &&
-      current.queryParameters['section'] == destination.queryParameters['section'];
+    final selected = current.path == destination.path;
     final colors = Theme.of(context).colorScheme;
     final foreground = selected ? Colors.white : colors.foreground;
     return Padding(
