@@ -23,6 +23,15 @@ class SeasonSummary {
 
   String? get posterUrl => posterPath != null ? '$_imageBase$posterPath' : null;
 
+  /// A season's first air date, rather than the show's original premiere.
+  String get releaseLabel {
+    final date = DateTime.tryParse(airDate);
+    if (date == null) return '$name · TBA';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '$name · ${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
   factory SeasonSummary.fromJson(Map<String, dynamic> json) => SeasonSummary(
     id: json['id'],
     seasonNumber: json['season_number'],

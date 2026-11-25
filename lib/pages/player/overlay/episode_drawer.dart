@@ -52,7 +52,7 @@ class _EpisodeListState extends State<_EpisodeList> {
       if (!snapshot.hasData) return const Center(child: PetalActivityIndicator());
       final (show, current) = snapshot.data!;
       final selected = _season ?? current.seasonNumber;
-      final label = show.seasons.where((s) => s.seasonNumber == selected).firstOrNull?.name ?? 'Season $selected';
+      final label = show.seasons.where((s) => s.seasonNumber == selected).firstOrNull?.releaseLabel ?? 'Season $selected';
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, spacing: 12, children: [
         PetalButton.secondary(
           onPressed: () async {
@@ -60,7 +60,7 @@ class _EpisodeListState extends State<_EpisodeList> {
             await showPlayerMenu(context, title: 'Select a season',
               actions: [
                 for (final season in show.seasons)
-                  PlayerMenuAction(label: season.name,
+                  PlayerMenuAction(label: season.releaseLabel,
                     icon: selected == season.seasonNumber ? const Icon(LucideIcons.check) : null,
                     onPressed: () => choice = season.seasonNumber),
               ]);
