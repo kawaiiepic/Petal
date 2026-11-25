@@ -292,7 +292,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             return ListenableBuilder(
               listenable: HomeLayout.instance,
               builder: (context, _) => CustomScrollView(
-                primary: compact,
+                primary: PrimaryScrollController.maybeOf(context) != null,
                 scrollCacheExtent: ScrollCacheExtent.pixels(200),
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [

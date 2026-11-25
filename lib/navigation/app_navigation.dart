@@ -107,12 +107,16 @@ class _AppNavigationState extends State<AppNavigation> {
     void navigate(String path) {
       if (path != location || (search && hasQuery)) {
         context.go(path);
-      } else if (home && _homeScroll.hasClients) {
-        _homeScroll.animateTo(
-          _homeScroll.position.minScrollExtent,
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-        );
+      } else if (home) {
+        setState(() {
+          _miniCollapsed = false;
+          _scrollTravel = 0;
+          _scrollDirection = ScrollDirection.idle;
+        });
+        for (final position in _homeScroll.positions.toList()) {
+          position.animateTo(position.minScrollExtent,
+            duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic);
+        }
       }
     }
 
@@ -136,7 +140,7 @@ class _AppNavigationState extends State<AppNavigation> {
                 child: DesktopTvShell(
                   location: selectedDestination.path,
                   onNavigate: navigate,
-                  child: widget.child,
+                  child: home ? PrimaryScrollController(controller: _homeScroll, child: widget.child) : widget.child,
                 ),
               )
             : DecoratedBox(
