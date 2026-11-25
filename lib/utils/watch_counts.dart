@@ -1,18 +1,19 @@
+import 'package:petal/utils/watch_progress.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
 
 /// Completion describes this viewing cycle; plays and dates describe all cycles.
 abstract final class WatchCounts {
-  static int _count(int plays, int dates, double completion) {
+  static int _count(int plays, int dates, double completion, DateTime? watchedAt) {
     var count = plays > dates ? plays : dates;
-    if (completion >= 1 && count < 1) count = 1;
+    if ((WatchProgress.isWatched(completion) || watchedAt != null) && count < 1) count = 1;
     return count < 0 ? 0 : count;
   }
 
   static int movie(List<WatchHistoryItem> history, int id) {
     var count = 0;
     for (final row in history.where((h) => h.tmdbId == id && h.mediaType == MediaType.movie)) {
-      final value = _count(row.plays, row.watches.length, row.completion);
+      final value = _count(row.plays, row.watches.length, row.completion, row.watchedAt);
       if (value > count) count = value;
     }
     return count;
@@ -23,7 +24,7 @@ abstract final class WatchCounts {
     for (final row in history.where((h) => h.tmdbId == id && h.mediaType == MediaType.show)) {
       for (final ep in row.episodes) {
         final key = '${ep.season}:${ep.episode}';
-        final count = _count(ep.plays, ep.watches.length, ep.completion);
+        final count = _count(ep.plays, ep.watches.length, ep.completion, ep.watchedAt);
         if (count > (result[key] ?? 0)) result[key] = count;
       }
     }

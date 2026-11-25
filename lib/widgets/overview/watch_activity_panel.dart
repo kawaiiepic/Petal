@@ -26,6 +26,13 @@ class WatchActivityPanel extends StatefulWidget {
 
 class _WatchActivityPanelState extends State<WatchActivityPanel> {
   late Future<({List<String> aired, Episode? first})> _catalog = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    // Start fetching immediately rather than waiting for the first build.
+    _catalog = _load();
+  }
   bool _busy = false;
 
   @override
@@ -37,7 +44,7 @@ class _WatchActivityPanelState extends State<WatchActivityPanel> {
   }
 
   Future<({List<String> aired, Episode? first})> _load() async {
-    await BackendCache.fetchWatchHistory();
+    await BackendCache.fetchWatchHistory(force: true);
     final show = widget.show;
     if (show == null || widget.season != null) return (aired: <String>[], first: null);
     final seasons = show.mainSeasons.toList()

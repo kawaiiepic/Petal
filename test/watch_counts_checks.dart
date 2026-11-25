@@ -4,13 +4,17 @@ import 'package:petal/models/watch_history/episode_progress.dart';
 import 'package:petal/utils/watch_counts.dart';
 
 void checkWatchCounts() {
-  WatchHistoryItem movie({int plays = 0, List<DateTime> dates = const [], double completion = 0}) =>
+  WatchHistoryItem movie({int plays = 0, List<DateTime> dates = const [], double completion = 0, DateTime? watchedAt}) =>
     WatchHistoryItem(tmdbId: 42, mediaType: MediaType.movie, completion: completion,
-      updatedAt: DateTime(2026), plays: plays, watches: dates);
+      updatedAt: DateTime(2026), plays: plays, watches: dates, watchedAt: watchedAt);
   {
     assert((WatchCounts.movie([movie(plays: 5, dates: [DateTime(2026)], completion: .2)], 42)) == (5));
     assert((WatchCounts.movie([movie(dates: [DateTime(2025), DateTime(2026)])], 42)) == (2));
     assert((WatchCounts.movie([movie(completion: 1)], 42)) == (1));
+    assert(WatchCounts.movie([movie(completion: .9)], 42) == 1);
+    assert(WatchCounts.movie([movie(completion: .89)], 42) == 0);
+    assert(WatchCounts.movie([movie(watchedAt: DateTime(2026))], 42) == 1);
+    assert(WatchCounts.movie([movie(plays: 2, completion: .95)], 42) == 2);
     assert((WatchCounts.movie([movie(completion: .5)], 42)) == (0));
     assert((WatchCounts.movie([movie(plays: 2), movie(plays: 2)], 42)) == (2));
   }
@@ -19,7 +23,7 @@ void checkWatchCounts() {
       tmdbId: 42, mediaType: MediaType.show, completion: 0, updatedAt: DateTime(2026),
       episodes: [
         EpisodeProgress(season: 1, episode: 1, completion: .1, plays: 3),
-        EpisodeProgress(season: 1, episode: 2, completion: 1, plays: 2),
+        EpisodeProgress(season: 1, episode: 2, completion: .95, plays: 2),
         EpisodeProgress(season: 0, episode: 1, completion: 1, plays: 8),
       ])];
     final counts = WatchCounts.episodes(history, 42);
