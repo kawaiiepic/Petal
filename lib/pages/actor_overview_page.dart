@@ -55,11 +55,14 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
     final portrait = person.profilePath;
     final url = portrait == null ? null : Api.proxyImage('https://image.tmdb.org/t/p/w500$portrait');
     return Stack(children: [
-      if (url != null) Positioned.fill(child: IgnorePointer(child: Opacity(opacity: .16,
-        child: MediaArtwork(imageUrl: url, fit: BoxFit.cover)))),
-      Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: [colors.background.withValues(alpha: .25), colors.background])))),
+      if (url != null) Positioned.fill(child: IgnorePointer(child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) => const LinearGradient(
+          begin: Alignment.topCenter, end: Alignment.bottomCenter,
+          colors: [Colors.white, Colors.transparent],
+        ).createShader(bounds),
+        child: Opacity(opacity: .16,
+          child: MediaArtwork(imageUrl: url, fit: BoxFit.cover))))),
       Padding(padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, spacing: compact ? 16 : 28,
           children: [
