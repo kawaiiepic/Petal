@@ -52,7 +52,7 @@ class _EpisodeListState extends State<_EpisodeList> {
       if (!snapshot.hasData) return const Center(child: PetalActivityIndicator());
       final (show, current) = snapshot.data!;
       final selected = _season ?? current.seasonNumber;
-      final label = show.seasons.where((s) => s.seasonNumber == selected).firstOrNull?.releaseLabel ?? 'Season $selected';
+      final label = show.seasons.where((s) => s.seasonNumber == selected).firstOrNull?.name ?? 'Season $selected';
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, spacing: 12, children: [
         PetalButton.secondary(
           onPressed: () async {
@@ -60,7 +60,7 @@ class _EpisodeListState extends State<_EpisodeList> {
             await showPlayerMenu(context, title: 'Select a season',
               actions: [
                 for (final season in show.seasons)
-                  PlayerMenuAction(label: season.releaseLabel,
+                  PlayerMenuAction(label: season.name,
                     icon: selected == season.seasonNumber ? const Icon(LucideIcons.check) : null,
                     onPressed: () => choice = season.seasonNumber),
               ]);
@@ -86,6 +86,8 @@ class _EpisodeListState extends State<_EpisodeList> {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('${ep.episodeNumber}. ${ep.name}', maxLines: 2, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text(ep.releaseLabel, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.mutedForeground)),
                       Text(ep.overview, maxLines: 2, overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.mutedForeground)),
                     ])),

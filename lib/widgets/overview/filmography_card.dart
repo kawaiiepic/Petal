@@ -1,6 +1,7 @@
+import 'package:petal/api/api.dart';
+import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/models/tmdb/person_cast_credit.dart';
-import 'package:petal/widgets/overview/poster_fallback.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class FilmographyCard extends StatelessWidget {
@@ -11,22 +12,16 @@ class FilmographyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/movie/${credit.id}'), // adjust to your route
+      onTap: () => context.push('/movie?tmdb=${credit.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
+          Expanded(child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: credit.posterPath != null
-                ? Image.network(
-                    'https://image.tmdb.org/t/p/w185${credit.posterPath}',
-                    width: 110,
-                    height: 155,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => PosterFallback(),
-                  )
-                : PosterFallback(),
-          ),
+            child: SizedBox(width: double.infinity,
+              child: MediaArtwork(imageUrl: credit.posterPath == null ? null :
+                Api.proxyImage('https://image.tmdb.org/t/p/w185${credit.posterPath}'))),
+          )),
           const SizedBox(height: 6),
           Text(
             credit.title,

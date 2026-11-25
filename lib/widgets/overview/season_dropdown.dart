@@ -37,7 +37,7 @@ class SeasonDropdown extends StatelessWidget {
           actions: [
             for (final season in seasons)
               glass.GlassActionSheetAction(
-                label: season.releaseLabel,
+                label: season.name,
                 icon: season.seasonNumber == selectedSeason?.seasonNumber ? const Icon(ios.CupertinoIcons.check_mark) : null,
                 onPressed: () => selected = season,
               ),
@@ -50,7 +50,7 @@ class SeasonDropdown extends StatelessWidget {
         child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Flexible(child: Text(selectedSeason?.releaseLabel ?? 'Select a season',
+          Flexible(child: Text(selectedSeason?.name ?? 'Select a season',
             style: TextStyle(color: scheme.foreground, fontSize: AppTypography.bodySize, fontWeight: FontWeight.w500))),
           const SizedBox(width: 8),
           Icon(ios.CupertinoIcons.chevron_down, color: scheme.foreground, size: 14),

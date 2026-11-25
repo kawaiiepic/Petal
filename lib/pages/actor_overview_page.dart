@@ -1,8 +1,9 @@
+import 'package:petal/api/api.dart';
+import 'package:petal/widgets/ios/ios_controls.dart';
+import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/tmdb/tmdb_person.dart';
-import 'package:petal/pages/splash_screen.dart';
 import 'package:petal/widgets/overview/filmography_card.dart';
-import 'package:petal/widgets/overview/person_profile_fallback.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
@@ -22,6 +23,12 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
   void initState() {
     super.initState();
     _person = TMDB.person(widget.personId);
+  }
+
+  @override
+  void didUpdateWidget(covariant ActorOverviewPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.personId != widget.personId) _person = TMDB.person(widget.personId);
   }
 
   String? _formatAge(String? birthday, String? deathday) {
@@ -45,10 +52,11 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
+    return FutureBuilder<TmdbPerson>(
+      key: ValueKey(widget.personId),
       future: _person,
       builder: (context, snapshot) {
-        if (snapshot.hasData && !snapshot.hasError) {
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData && !snapshot.hasError) {
           final person = snapshot.data!;
 
           final filmography = [...(person.movieCredits?.cast ?? [])]
@@ -60,13 +68,17 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
             color: Theme.of(context).colorScheme.background,
             child: CustomScrollView(
               slivers: [
-                AppBar(
-                  backgroundColor: Colors.transparent,
-                  title: Text(
-                    person.name,
-                    style: TextStyle(fontSize: _bodySize),
+                SliverToBoxAdapter(child: SafeArea(bottom: false,
+                  child: Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                    child: Row(children: [
+                      PetalButton.ghost(onPressed: () => Navigator.of(context).maybePop(),
+                        child: const Icon(LucideIcons.chevronLeft, size: 22)),
+                      Expanded(child: Text(person.name, maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: _bodySize))),
+                    ]),
                   ),
-                ),
+                )),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -78,16 +90,9 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: person.profilePath != null
-                                  ? Image.network(
-                                      'https://image.tmdb.org/t/p/w342${person.profilePath}',
-                                      width: 120,
-                                      height: 170,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) =>
-                                          PersonProfileFallback(),
-                                    )
-                                  : PersonProfileFallback(),
+                              child: SizedBox(width: 120, height: 170,
+                                child: MediaArtwork(imageUrl: person.profilePath == null
+                                  ? null : Api.proxyImage('https://image.tmdb.org/t/p/w342${person.profilePath}'))),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -200,9 +205,21 @@ class _ActorOverviewPageState extends State<ActorOverviewPage> {
               ],
             ),
           );
-        } else {
-          return SplashScreen();
         }
+        return Scaffold(child: SafeArea(child: Column(children: [
+          Align(alignment: Alignment.centerLeft,
+            child: PetalButton.ghost(
+              onPressed: () => Navigator.of(context).maybePop(),
+              child: const Icon(LucideIcons.chevronLeft, size: 22))),
+          Expanded(child: Center(child: snapshot.hasError
+            ? Column(mainAxisSize: MainAxisSize.min, spacing: 12, children: [
+                const Text('Could not load actor details.'),
+                PetalButton.secondary(
+                  onPressed: () => setState(() => _person = TMDB.person(widget.personId)),
+                  child: const Text('Try again')),
+              ])
+            : const PetalActivityIndicator())),
+        ])));
       },
     );
   }

@@ -28,7 +28,7 @@ class EpisodePortraitCard extends StatelessWidget {
         orientation: Orientation.landscape,
         imageUrl: image,
         label: episode.name,
-        semanticLabel: '$label · ${episode.name}',
+        semanticLabel: '$label · ${episode.name} · ${episode.releaseLabel}',
         showLogo: false,
         showDefaultContextMenu: false,
         target: MediaCardTarget(tmdbId: tmdbId, type: MediaType.show,
@@ -39,6 +39,19 @@ class EpisodePortraitCard extends StatelessWidget {
             children: [
               OverviewThumbnailCaption(title: episode.name, subtitle: label,
                 subtitleColor: future ? Colors.red : null),
+              Positioned(top: 6, left: 6, right: watched ? 36 : 6,
+                child: Align(alignment: Alignment.topLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: .7),
+                      borderRadius: BorderRadius.circular(5)),
+                    child: Text(episode.releaseLabel, maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
+                        color: future ? const Color(0xFFFFB86B) : Colors.white)),
+                  ),
+                ),
+              ),
               if (watched)
                 const Positioned(top: 8, right: 8,
                   child: Icon(LucideIcons.check, color: Colors.white, size: 20)),

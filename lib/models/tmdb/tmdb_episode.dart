@@ -36,10 +36,18 @@ class TmdbEpisode {
 
   String? get stillUrl => stillPath != null ? '$_imageBase$stillPath' : null;
 
+  String get releaseLabel {
+    final date = airDate;
+    if (date == null) return 'TBA';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
   factory TmdbEpisode.fromJson(Map<String, dynamic> json) {
     return TmdbEpisode(
       airDate: json['air_date'] != null
-          ? DateTime.parse(json['air_date'])
+          ? DateTime.tryParse(json['air_date'].toString())
           : null,
       crew: (json['crew'] as List? ?? [])
           .map((e) => CrewMember.fromJson(e))
