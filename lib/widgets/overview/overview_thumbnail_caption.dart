@@ -27,7 +27,7 @@ class OverviewThumbnailCaption extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: subtitleColor ?? Colors.white70)),
+                style: TextStyle(fontSize: 11, color: subtitleColor ?? Colors.white.withValues(alpha: 0.7))),
               Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                   color: Colors.white)),
