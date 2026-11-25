@@ -1,3 +1,5 @@
+import 'package:petal/api/retained_player.dart';
+import 'package:petal/navigation/retained_player_button.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/api/user_library.dart';
@@ -55,7 +57,11 @@ class _AppNavigationState extends State<AppNavigation> {
       }
     }
 
-    return RefreshTrigger(
+    return ValueListenableBuilder(
+      valueListenable: RetainedPlayer.instance.available,
+      builder: (context, retained, _) {
+      final miniVisible = retained != null && dockVisible;
+      return RefreshTrigger(
       key: PetalApp.refreshTriggerKey,
       onRefresh: () async {
         await Future.wait([
@@ -98,11 +104,16 @@ class _AppNavigationState extends State<AppNavigation> {
                             // Search already reserves space in its scroll view.
                             padding: EdgeInsets.only(
                               bottom: !search && !overview && dockVisible
-                                  ? bottomInset + IosNavigationDock.clearance
+                                  ? bottomInset + IosNavigationDock.clearance + (miniVisible ? 62 : 0)
                                   : 0,
                             ),
                             child: widget.child,
                           ),
+                    if (miniVisible)
+                      Positioned(left: 12, right: 12, bottom: bottomInset + 76,
+                        child: Align(alignment: Alignment.bottomCenter,
+                          child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440),
+                            child: RetainedPlayerButton(media: retained!, mobile: true)))),
                     if (dockVisible)
                       Positioned(
                         left: 12,
@@ -122,5 +133,6 @@ class _AppNavigationState extends State<AppNavigation> {
               ),
       ),
     );
+    });
   }
 }

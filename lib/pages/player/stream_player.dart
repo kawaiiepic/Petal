@@ -1,3 +1,4 @@
+import 'package:petal/api/retained_player.dart';
 import 'package:petal/pages/player/player_theme.dart';
 import 'package:petal/api/playback_volume_store.dart';
 import 'package:petal/api/playback_preferences.dart';
@@ -33,12 +34,14 @@ class StreamPlayer extends StatefulWidget {
   final Episode? episode;
   final StreamItem? stream;
   final double? progress;
+  final bool resume;
   const StreamPlayer({
     super.key,
     required this.mediaId,
     required this.episode,
     this.stream,
     this.progress,
+    this.resume = false,
   });
 
   @override
@@ -54,10 +57,15 @@ class StreamPlayerState extends State<StreamPlayer> {
   List<StreamItem>? _alternateSources;
   bool _loadingSources = false;
   MediaType mediaType = MediaType.movie;
-  late final player = Player(configuration: PlayerConfiguration());
-  late final VideoController controller;
+  final _retained = RetainedPlayer.instance;
+  late final int _lease;
+  bool get _ownsPlayer => _retained.owns(_lease);
+  Player get player => _retained.player;
+  VideoController get controller => _retained.controller;
   final _videoKey = GlobalKey<VideoState>();
-  late final PlaybackMediaSession _mediaSession = PlaybackMediaSession(player);
+  PlaybackMediaSession get _mediaSession => _retained.mediaSession;
+  Future<void>? _opening;
+  bool _externalHandoff = false;
   StreamItem? selectedStream;
   bool get isOffline => _item.isOffline;
   final _subscriptions = <StreamSubscription<dynamic>>[];
@@ -73,7 +81,9 @@ class StreamPlayerState extends State<StreamPlayer> {
   @override
   void initState() {
     super.initState();
-    _item = PlaybackItem(
+    final retained = widget.resume ? _retained.resumable : null;
+    _lease = _retained.acquire();
+    _item = retained?.item ?? PlaybackItem(
       mediaId: widget.mediaId,
       episode: widget.episode,
       stream: widget.stream,
@@ -93,19 +103,33 @@ class StreamPlayerState extends State<StreamPlayer> {
     PlaybackPreferences.instance.addListener(_preferencesChanged);
     saveProgressTask();
 
-    controller = VideoController(
-      player,
-      configuration: VideoControllerConfiguration(),
-    );
 
     _subscriptions.add(
       player.stream.error.listen((event) {
-        if (mounted) _handleFailure();
+        if (mounted && _ownsPlayer && !_switching) _handleFailure();
       }),
     );
 
     _watchPlayback();
-    _startStream();
+    _opening = _retained.serialize(() async {
+      if (!mounted || !_ownsPlayer) return;
+      if (retained != null && _retained.loaded == retained) {
+        selectedStream = retained.source;
+        _resumeApplied = true;
+        _lastGoodProgress = _ratio();
+        _finishedThisSession = retained.finished;
+        _lastWrittenProgress = retained.lastWritten;
+        setState(() => _switching = false);
+        await player.play();
+        if (mounted && _ownsPlayer && !isOffline) _setupDiscord();
+      } else {
+        await player.stop();
+        if (mounted && _ownsPlayer) await _startStream();
+      }
+    });
+    unawaited(_opening!.catchError((Object _) {
+      if (mounted && _ownsPlayer) _handleFailure();
+    }));
   }
 
   bool _leaving = false;
@@ -114,6 +138,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     if (_leaving) return;
     _leaving = true;
     try {
+      if (_ownsPlayer) await player.pause();
       await _saveCurrentProgress();
       await PlayerOrientation.restorePortrait();
       if (mounted &&
@@ -146,7 +171,7 @@ class StreamPlayerState extends State<StreamPlayer> {
           episode.seasonNumber,
           episode.episodeNumber,
         );
-        if (!mounted || _switching || !identical(item, _item)) return;
+        if (!mounted || !_ownsPlayer || _switching || !identical(item, _item)) return;
         Discord.updateStatus(
           show.name,
           '${ep.seasonNumber}x${ep.episodeNumber} ${ep.name}',
@@ -207,7 +232,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
   Future<void> _saveCurrentProgress({bool duringSwitch = false}) async {
-    if (_switching && !duringSwitch) return;
+    if (!_ownsPlayer || (_switching && !duringSwitch)) return;
     if (player.state.duration <= Duration.zero && _failure == null) return;
     final ratio = _failure == null ? _ratio() : _lastGoodProgress;
     if (ratio <= 0 && !_finishedThisSession) return;
@@ -223,7 +248,7 @@ class StreamPlayerState extends State<StreamPlayer> {
 
   void _applyResume() {
     final progress = _item.progress ?? 0;
-    if (_switching ||
+    if (!_ownsPlayer || _switching ||
         _resumeApplied ||
         progress <= 0 ||
         player.state.duration <= Duration.zero)
@@ -235,7 +260,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   void _watchPlayback() {
     _subscriptions.add(
       player.stream.position.listen((position) {
-        if (_switching || _failure != null) return;
+        if (!_ownsPlayer || _switching || _failure != null) return;
         if (_ratio() > 0) _lastGoodProgress = _ratio();
         if (_finishedThisSession &&
             position.inSeconds <= 5 &&
@@ -252,7 +277,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     );
     _subscriptions.add(
       player.stream.completed.listen((done) {
-        if (_switching || _failure != null) return;
+        if (!_ownsPlayer || _switching || _failure != null) return;
         // End-of-file alone is not evidence of 90% progress.
         if (done &&
             !_finishedThisSession &&
@@ -265,7 +290,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     _subscriptions.add(player.stream.duration.listen((_) => _applyResume()));
     _subscriptions.add(
       player.stream.tracks.listen((tracks) {
-        if (_switching || _failure != null) return;
+        if (!_ownsPlayer || _switching || _failure != null) return;
         applyPreferredTracks(
           audios: tracks.audio,
           subtitles: tracks.subtitle,
@@ -297,7 +322,7 @@ class StreamPlayerState extends State<StreamPlayer> {
   }
 
   void _handleFailure() {
-    if (!mounted || _failure != null) return;
+    if (!mounted || !_ownsPlayer || _failure != null) return;
     if (!_switching && _ratio() > 0) _lastGoodProgress = _ratio();
     _discordSub?.cancel();
     () async {
@@ -328,7 +353,7 @@ class StreamPlayerState extends State<StreamPlayer> {
           );
       });
     }
-    if (!mounted || _switching || _failure != null) return;
+    if (!mounted || !_ownsPlayer || _switching || _failure != null) return;
     PlaybackPreferences.instance.apply(player).catchError((Object _) {});
     final tracks = player.state.tracks;
     applyPreferredTracks(
@@ -366,7 +391,7 @@ class StreamPlayerState extends State<StreamPlayer> {
         PlaybackVolumeStore.instance.value ?? player.state.volume,
       );
     } catch (_) {}
-    await _startStream();
+    await _runOpening();
   }
 
   Future<void> _findRecoverySources() async {
@@ -405,7 +430,7 @@ class StreamPlayerState extends State<StreamPlayer> {
       selectedStream = null;
       _lastGoodProgress = 0;
       _failure = null;
-      await _startStream();
+      await _runOpening();
     } catch (_) {
       if (!mounted) return;
       setState(() => _switching = false);
@@ -417,6 +442,14 @@ class StreamPlayerState extends State<StreamPlayer> {
     }
   }
 
+  Future<void> _runOpening() {
+    final task = _retained.serialize(() async {
+      if (mounted && _ownsPlayer) await _startStream();
+    });
+    _opening = task;
+    return task;
+  }
+
   Future<void> _startStream() async {
     try {
       final stream = await PlaybackSource.resolve(
@@ -424,7 +457,7 @@ class StreamPlayerState extends State<StreamPlayer> {
         episode: _item.episode,
         selected: _item.stream,
       );
-      if (!mounted) return;
+      if (!mounted || !_ownsPlayer) return;
       if (stream == null) {
         _handleFailure();
         return;
@@ -438,7 +471,8 @@ class StreamPlayerState extends State<StreamPlayer> {
             episode: _item.episode,
             label: stream.title,
           )) {
-        if (mounted) await _leave();
+        _externalHandoff = true;
+        if (mounted && _ownsPlayer) await _leave();
         return;
       }
       await _mediaSession.open(
@@ -453,9 +487,10 @@ class StreamPlayerState extends State<StreamPlayer> {
           },
         ),
         beforePlay: () async {
-          if (!mounted || _failure != null)
+          if (!mounted || !_ownsPlayer || _failure != null)
             throw StateError('Playback opening cancelled');
           await PlaybackPreferences.instance.apply(player);
+          if (!mounted || !_ownsPlayer) throw StateError('Playback opening cancelled');
           _switching = false;
           final tracks = player.state.tracks;
           applyPreferredTracks(
@@ -469,7 +504,8 @@ class StreamPlayerState extends State<StreamPlayer> {
           _applyResume();
         },
       );
-      if (!mounted) return;
+      if (!mounted || !_ownsPlayer) return;
+      _retained.loaded = RetainedMedia(item: _item, source: stream);
       setState(() => _switching = false);
       if (!isOffline) _setupDiscord();
     } catch (_) {
@@ -623,7 +659,16 @@ class StreamPlayerState extends State<StreamPlayer> {
 
   @override
   void dispose() {
-    _saveCurrentProgress();
+    final owns = _ownsPlayer;
+    if (owns) {
+      unawaited(_saveCurrentProgress());
+      final loaded = _retained.loaded;
+      final keep = !_externalHandoff && _failure == null && !_switching &&
+          loaded != null && identical(loaded.item, _item);
+      _retained.release(_lease, keep ? RetainedMedia(item: _item,
+        source: loaded!.source, finished: _finishedThisSession,
+        lastWritten: _lastWrittenProgress) : null);
+    }
     PlaybackPreferences.instance.removeListener(_preferencesChanged);
     if (_syncSuspended) OfflineProgressSync.instance.resume();
     for (final subscription in _subscriptions) {
@@ -632,9 +677,7 @@ class StreamPlayerState extends State<StreamPlayer> {
     _saveProgress?.cancel();
     _discordSub?.cancel();
     if (!isOffline) Discord.resetStatus();
-    controller.pictureInPicture.stop();
-    player.dispose();
-    PlayerOrientation.restorePortrait();
+    if (owns) PlayerOrientation.restorePortrait();
     super.dispose();
   }
 

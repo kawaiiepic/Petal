@@ -1,3 +1,5 @@
+import 'package:petal/api/retained_player.dart';
+import 'package:petal/navigation/retained_player_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/navigation/tv_layout.dart';
@@ -126,6 +128,10 @@ class DesktopTvShell extends StatelessWidget {
                           ],
                         ),
                       ),
+                      ValueListenableBuilder(valueListenable: RetainedPlayer.instance.available,
+                        builder: (context, media, _) => media == null ? const SizedBox.shrink() :
+                          Padding(padding: const EdgeInsets.only(bottom: 8),
+                            child: RetainedPlayerButton(media: media, mobile: false))),
                       const UserProfile(horizontal: true),
                     ],
                   ),

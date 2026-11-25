@@ -1,3 +1,4 @@
+import 'package:petal/api/retained_player.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 // ignore: deprecated_member_use
 import 'package:flutter/cupertino.dart' as ios;
@@ -28,11 +29,12 @@ class _PetalAppState extends State<PetalApp> {
   void initState() {
     super.initState();
     Api.initApi();
+    RetainedPlayer.instance.bindAuth();
   }
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
 
     return ValueListenableBuilder(
       valueListenable: AppTheme.mode,

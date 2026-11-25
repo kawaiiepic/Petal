@@ -1,3 +1,4 @@
+import 'package:petal/api/retained_player.dart';
 import 'package:petal/router/popup_page.dart';
 import 'package:petal/router/episode_sheet_page.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart'
@@ -66,6 +67,8 @@ class AppRouter {
     redirect: (context, state) {
       final loggingIn = state.matchedLocation == '/login';
       final onOffline = state.matchedLocation == '/offline';
+      if (state.matchedLocation == '/player' && state.uri.queryParameters['resume'] == '1' &&
+          RetainedPlayer.instance.resumable == null) return '/';
 
       if (BackendApi.authState.initializing) {
         return onOffline ? null : '/offline';
@@ -214,6 +217,9 @@ class AppRouter {
         parentNavigatorKey: PetalApp.rootNavigatorKey,
         path: '/player',
         builder: (context, state) {
+          final retained = state.uri.queryParameters['resume'] == '1' ? RetainedPlayer.instance.resumable : null;
+          if (retained != null) return StreamPlayer(mediaId: retained.item.mediaId,
+            episode: retained.item.episode, resume: true);
           final mediaId = state.uri.queryParameters['media'];
           final season = state.uri.queryParameters['s'];
           final episode = state.uri.queryParameters['e'];
