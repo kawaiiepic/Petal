@@ -102,6 +102,7 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
   }) => HomeSection(
     title: title,
     editorial: true,
+    padding: const EdgeInsets.only(top: 0, bottom: 4),
     trailing: count == null ? null : SecondaryBadge(child: Text('$count')),
     child: itemCount == 0
         ? const EmptyCollectionRow(text: 'Nothing here yet')
@@ -109,8 +110,9 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
             orientation: landscape
                 ? Orientation.landscape
                 : Orientation.portrait,
-            cardHeight: landscape ? 168 : 212,
+            cardHeight: landscape ? 148 : 190,
             cardWidth: landscape ? null : 118,
+            spacing: 10,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: itemCount,
             itemBuilder: itemBuilder,

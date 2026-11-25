@@ -1,4 +1,3 @@
-import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/pages/collection_home_page.dart';
 import 'package:petal/widgets/library/library_page_header.dart';
@@ -28,11 +27,6 @@ class _CollectionPageState extends State<CollectionPage> {
               'Pick up where you left off or find something you saved.',
           icon: LucideIcons.library,
           showAccount: true,
-          action: Button.secondary(
-            leading: const Icon(LucideIcons.activity),
-            onPressed: () => context.push('/stats'),
-            child: const Text('Stats'),
-          ),
         ),
       ],
       child: const CollectionHomePage(),

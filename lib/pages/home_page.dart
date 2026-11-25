@@ -20,7 +20,6 @@ import 'package:petal/widgets/dashboard_stats.dart';
 import 'package:petal/widgets/downloads/downloads_shelf.dart';
 import 'package:petal/widgets/friend_activity.dart';
 import 'package:petal/widgets/home/because_you_watched_shelf.dart';
-import 'package:petal/widgets/home/continue_watching_shelf.dart';
 import 'package:petal/widgets/home/desktop_featured_hero.dart';
 import 'package:petal/widgets/home/home_quick_actions.dart';
 import 'package:petal/widgets/home/ios_featured_hero.dart';
@@ -273,7 +272,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         final sections = <String, Widget>{
           'stats': const DashboardStats(),
           'upcoming': const UpcomingEpisodes(),
-          'deck': const OnDeckShelf(),
           'start': const StartNowShelf(),
           'watchlist': const WatchlistShelf(),
           'liked': const LikedShelf(),
@@ -310,9 +308,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             featured.connectionState == ConnectionState.done
                             ? featured.data ?? const <CatalogItem>[]
                             : const <CatalogItem>[];
+                        final showFeatured = !HomeLayout.instance.hidden.contains('catalogs');
+                        final heroLoading = showFeatured && (loading ||
+                            (catalogs.isNotEmpty && featured.connectionState != ConnectionState.done));
                         return compact
-                            ? IosFeaturedHero(items: items)
-                            : DesktopFeaturedHero(items: items);
+                            ? IosFeaturedHero(items: items, loading: heroLoading)
+                            : DesktopFeaturedHero(items: items, loading: heroLoading);
                       },
                     ),
                   ),
@@ -324,8 +325,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                   ),
                   if (!HomeLayout.instance.hidden.contains('deck'))
-                    const SliverToBoxAdapter(
-                      child: ContinueWatchingShelf(editorial: true),
+                    SliverToBoxAdapter(
+                      key: ValueKey('home-$_profileKey-deck'),
+                      child: loadingRows ? _placeholder('deck') : const OnDeckShelf(),
                     ),
                   if (!HomeLayout.instance.hidden.contains('catalogs'))
                     for (final catalog in promoted.values)
@@ -335,7 +337,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ),
                   for (final id in HomeLayout.instance.order.where(
                     (id) =>
-                        id != 'surprise' &&
+                        id != 'surprise' && id != 'deck' &&
                         !HomeLayout.instance.hidden.contains(id),
                   ))
                     if (id == 'catalogs')

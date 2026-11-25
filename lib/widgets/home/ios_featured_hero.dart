@@ -12,9 +12,10 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 /// Edge-to-edge featured artwork with a manually paged carousel.
 class IosFeaturedHero extends StatefulWidget {
-  const IosFeaturedHero({super.key, required this.items});
+  const IosFeaturedHero({super.key, required this.items, this.loading = false});
 
   final List<CatalogItem> items;
+  final bool loading;
 
   @override
   State<IosFeaturedHero> createState() => _IosFeaturedHeroState();
@@ -82,10 +83,12 @@ class _IosFeaturedHeroState extends State<IosFeaturedHero> {
           ? SystemUiOverlayStyle.light
           : SystemUiOverlayStyle.dark,
       child: SizedBox(
-        height: hasArt ? height : null,
+        height: hasArt || widget.loading ? height : null,
         child: Stack(
           children: [
-            if (hasArt)
+            if (widget.loading)
+              const Positioned.fill(child: MediaArtwork(isLoading: true)),
+            if (hasArt && !widget.loading)
               Positioned.fill(
                 child: PageView.builder(
                   key: ValueKey(items),

@@ -11,9 +11,10 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 /// Featured artwork flush with the edges of the desktop content area.
 class DesktopFeaturedHero extends StatefulWidget {
-  const DesktopFeaturedHero({super.key, required this.items});
+  const DesktopFeaturedHero({super.key, required this.items, this.loading = false});
 
   final List<CatalogItem> items;
+  final bool loading;
 
   @override
   State<DesktopFeaturedHero> createState() => _DesktopFeaturedHeroState();
@@ -34,6 +35,13 @@ class _DesktopFeaturedHeroState extends State<DesktopFeaturedHero> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.loading) {
+      return SizedBox(
+        height: math.max(320.0, MediaQuery.sizeOf(context).height * .55),
+        width: double.infinity,
+        child: const MediaArtwork(isLoading: true),
+      );
+    }
     if (widget.items.isEmpty) return const SizedBox.shrink();
     return FeaturedAutoplay(
       enabled: widget.items.length > 1,

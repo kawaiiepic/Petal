@@ -69,7 +69,9 @@ class _UserProfileState extends State<UserProfile> {
             imageUrl: '${Api.ProfileUrl}/${profile?.avatar}',
             placeholder: (_, _) => fallback,
             errorWidget: (_, _, _) => fallback,
-            imageBuilder: (context, imageProvider) => Avatar(
+            imageBuilder: (context, imageProvider) => widget.avatarOnly
+                ? ClipOval(child: Image(image: imageProvider, width: 44, height: 44, fit: BoxFit.cover))
+                : Avatar(
               initials: '',
               provider: imageProvider,
               size: avatarSize,
@@ -213,15 +215,9 @@ class _UserProfileState extends State<UserProfile> {
               child: widget.avatarOnly
                   ? Semantics(
                       label: 'Account',
-                      child: DecoratedBox(
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0x66000000),
-                        ),
-                        child: SizedBox.square(
-                          dimension: 44,
-                          child: Center(child: avatar),
-                        ),
+                      child: SizedBox.square(
+                        dimension: 44,
+                        child: Center(child: avatar),
                       ),
                     )
                   : widget.horizontal
