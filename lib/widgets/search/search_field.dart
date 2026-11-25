@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -8,11 +9,13 @@ class SearchField extends StatefulWidget {
     this.placeholder = 'Search shows and movies',
     this.initialQuery = '',
     this.replaceResults = false,
+    this.onQueryChanged,
   });
 
   final String placeholder;
   final String initialQuery;
   final bool replaceResults;
+  final ValueChanged<String>? onQueryChanged;
 
   @override
   State<SearchField> createState() => _SearchFieldState();
@@ -21,17 +24,41 @@ class SearchField extends StatefulWidget {
 class _SearchFieldState extends State<SearchField> {
   late final _textController = TextEditingController(text: widget.initialQuery);
 
-  void _openResults() {
-    final q = _textController.text.trim();
-    if (q.isEmpty) return;
-    FocusManager.instance.primaryFocus?.unfocus();
-    if (q == widget.initialQuery) return;
-    final route = '/search?q=${Uri.encodeQueryComponent(q)}';
-    if (widget.replaceResults) {
-      context.replace(route);
-    } else {
-      context.push(route);
+  Timer? _debounce;
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(_changed);
+  }
+
+  void _changed() {
+    if (widget.onQueryChanged == null) return;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) widget.onQueryChanged?.call(_textController.text.trim());
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialQuery != widget.initialQuery &&
+        _textController.text.trim() != widget.initialQuery) {
+      _textController.text = widget.initialQuery;
+      _debounce?.cancel();
     }
+  }
+
+  void _openResults() {
+    _debounce?.cancel();
+    final q = _textController.text.trim();
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (widget.onQueryChanged != null) {
+      widget.onQueryChanged!(q);
+      return;
+    }
+    if (q.isEmpty) return;
+    context.go(Uri(path: '/search', queryParameters: {'q': q}).toString());
   }
 
   @override
@@ -50,6 +77,8 @@ class _SearchFieldState extends State<SearchField> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _textController.removeListener(_changed);
     _textController.dispose();
     super.dispose();
   }

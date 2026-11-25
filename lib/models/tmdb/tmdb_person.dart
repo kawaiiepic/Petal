@@ -1,3 +1,4 @@
+import 'package:petal/models/tmdb/person_cast_credit.dart';
 import 'package:petal/models/tmdb/person_movie_credits.dart';
 
 class TmdbPerson {
@@ -11,6 +12,8 @@ class TmdbPerson {
   final List<String> alsoKnownAs;
   final String? knownForDepartment;
   final PersonMovieCredits? movieCredits;
+  final PersonMovieCredits? combinedCredits;
+  List<PersonCastCredit> get credits => combinedCredits?.cast ?? movieCredits?.cast ?? const [];
 
   TmdbPerson({
     required this.id,
@@ -23,6 +26,7 @@ class TmdbPerson {
     required this.alsoKnownAs,
     this.knownForDepartment,
     this.movieCredits,
+    this.combinedCredits,
   });
 
   factory TmdbPerson.fromJson(Map<String, dynamic> json) => TmdbPerson(
@@ -35,6 +39,8 @@ class TmdbPerson {
     placeOfBirth: json['place_of_birth'],
     alsoKnownAs: (json['also_known_as'] as List<dynamic>? ?? []).cast<String>(),
     knownForDepartment: json['known_for_department'],
+    combinedCredits: json['combined_credits'] != null
+        ? PersonMovieCredits.fromJson(json['combined_credits']) : null,
     movieCredits: json['movie_credits'] != null
         ? PersonMovieCredits.fromJson(json['movie_credits'])
         : null,

@@ -170,7 +170,7 @@ class TMDB {
   }
 
   static Future<TmdbPerson> person(int id) =>
-      tmdbApi('/person/$id?append_to_response=movie_credits,external_ids')
+      tmdbApi('/person/$id?append_to_response=combined_credits,external_ids')
           .then((json) => TmdbPerson.fromJson(json.data));
 
   static Future<String> _fetchEpisodeStill(

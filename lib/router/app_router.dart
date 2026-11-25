@@ -65,9 +65,9 @@ List<GoRoute> _libraryRoutes() => [
 
 GoRoute _searchRoute() => GoRoute(
   path: '/search',
-  pageBuilder: (context, state) => _navigationPage(
-    state,
-    SearchResultsPage(query: state.uri.queryParameters['q'] ?? ''),
+  pageBuilder: (context, state) => NoTransitionPage<void>(
+    key: state.pageKey,
+    child: SearchResultsPage(query: state.uri.queryParameters['q'] ?? ''),
   ),
 );
 

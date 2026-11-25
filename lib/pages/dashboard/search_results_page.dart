@@ -33,6 +33,7 @@ class SearchResultsPage extends StatefulWidget {
 }
 
 class _SearchResultsPageState extends State<SearchResultsPage> {
+  late String _query;
   late Future<List<CatalogItem>> _future;
   late Future<List<SocialProfile>> _profiles;
   late Future<List<PersonSearchResult>> _actors;
@@ -48,7 +49,8 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   @override
   void initState() {
     super.initState();
-    _future = _load(widget.query);
+    _query = widget.query;
+    _future = _load(_query);
     _profiles = _loadProfiles();
     _actors = _loadActors();
   }
@@ -56,23 +58,39 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   @override
   void didUpdateWidget(covariant SearchResultsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.query != widget.query) {
-      _filter = _ResultFilter.all;
-      if (_scroll.hasClients) _scroll.jumpTo(0);
-      _reload();
+    if (oldWidget.query != widget.query && _query != widget.query) {
+      _setQuery(widget.query);
     }
+  }
+
+  void _setQuery(String value) {
+    final next = value.trim();
+    if (next == _query) return;
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    setState(() {
+      _query = next;
+      _future = _load(_query);
+      _profiles = _loadProfiles();
+      _actors = _loadActors();
+    });
+  }
+
+  void _changeQuery(String value) {
+    _setQuery(value);
+    final route = Uri(path: '/search', queryParameters: value.isEmpty ? null : {'q': value});
+    if (GoRouter.of(context).state.uri != route) context.go(route.toString());
   }
 
   void _reload() {
     setState(() {
-      _future = _load(widget.query);
+      _future = _load(_query);
       _profiles = _loadProfiles();
-    _actors = _loadActors();
+      _actors = _loadActors();
     });
   }
 
   Future<List<PersonSearchResult>> _loadActors() async {
-    final query = widget.query.trim();
+    final query = _query.trim();
     if (query.isEmpty) return [];
     // The proxy decodes the supplied path once before sending it to TMDB.
     final encoded = Uri.encodeQueryComponent(Uri.encodeQueryComponent(query));
@@ -88,9 +106,9 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     ];
   }
 
-  Future<List<SocialProfile>> _loadProfiles() => widget.query.trim().isEmpty
+  Future<List<SocialProfile>> _loadProfiles() => _query.trim().isEmpty
       ? Future.value(const [])
-      : SocialApi.searchProfiles(widget.query);
+      : SocialApi.searchProfiles(_query);
 
   Future<List<CatalogItem>> _load(String query) async {
     final trimmed = query.trim();
@@ -296,7 +314,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   @override
   Widget build(BuildContext context) {
     final compact = TvLayout.isCompact(context);
-    if (widget.query.trim().isEmpty) return const SearchDiscovery();
+    if (_query.trim().isEmpty) return const SearchDiscovery();
     final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SafeArea(bottom: false, child: Padding(
@@ -305,11 +323,11 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
           Row(children: [
             const Expanded(child: Text('Search',
               style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800))),
-            PetalButton.ghost(onPressed: () => context.replace('/search'),
+            PetalButton.ghost(onPressed: () => _changeQuery(''),
               child: Text('Browse', style: TextStyle(color: colors.foreground))),
           ]),
-          SearchField(key: ValueKey(widget.query), initialQuery: widget.query,
-            replaceResults: true, placeholder: 'Shows, Movies, and More'),
+          SearchField(initialQuery: _query, onQueryChanged: _changeQuery,
+            replaceResults: true, placeholder: 'Shows, Movies, Actors, and More'),
         ]),
       )),
       _filterBar(),
@@ -400,7 +418,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
             if (all && !mediaLoading && !profilesLoading && !actorsLoading && items.isEmpty && profiles.isEmpty && actors.isEmpty &&
                 !mediaSnap.hasError && !profileSnap.hasError && !actorSnap.hasError) {
               slivers.add(_message(LucideIcons.search, 'No results found',
-                'No movies, shows, actors or profiles match “${widget.query}”.'));
+                'No movies, shows, actors or profiles match “${_query}”.'));
             }
             return ValueListenableBuilder(valueListenable: RetainedPlayer.instance.available,
               builder: (context, retained, _) => CustomScrollView(
