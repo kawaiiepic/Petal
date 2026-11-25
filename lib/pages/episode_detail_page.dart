@@ -18,6 +18,7 @@ import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/widgets/ios/ios_context_menu.dart';
+import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/widgets/overview/overview_back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
@@ -259,80 +260,35 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                                 tmdbId: widget.tmdbId,
                                 season: widget.season,
                                 episode: widget.episode,
-                                builder: (context, watched, busy, play) => Button(
-                                onPressed: snapshot.hasData && !busy ? play : null,
-                                style: const ButtonStyle.primary()
-                                    .withBorderRadius(
-                                      borderRadius: BorderRadius.circular(16),
-                                      hoverBorderRadius: BorderRadius.circular(
-                                        16,
-                                      ),
-                                    ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  spacing: 8,
-                                  children: [
-                                    const Icon(LucideIcons.play),
-                                    Text(busy ? 'Starting…' : watched ? 'Rewatch' : 'Play'),
-                                  ],
-                                ),
+                                builder: (context, watched, busy, play) =>
+                                    PetalButton.primary(
+                                  onPressed: snapshot.hasData && !busy ? play : null,
+                                  leading: const Icon(LucideIcons.play, size: 18),
+                                  child: Text(busy ? 'Starting…' : watched ? 'Rewatch' : 'Play'),
                                 ),
                               ),
-                              Button(
+                              PetalButton.secondary(
                                 onPressed: snapshot.hasData
                                     ? () => AppRouter.appRouter.push(
                                         '/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}',
                                       )
                                     : null,
-                                style: const ButtonStyle.outline()
-                                    .withBorderRadius(
-                                      borderRadius: BorderRadius.circular(16),
-                                      hoverBorderRadius: BorderRadius.circular(
-                                        16,
-                                      ),
-                                    ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  spacing: 8,
-                                  children: [
-                                    Icon(LucideIcons.server),
-                                    Text('Source'),
-                                  ],
-                                ),
+                                leading: const Icon(LucideIcons.server, size: 18),
+                                child: const Text('Source'),
                               ),
-                              Button(
+                              PetalButton.secondary(
                                 onPressed: snapshot.hasData
                                     ? () => AppRouter.appRouter.push(
                                         '/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}&download=1',
                                       )
                                     : null,
-                                style: const ButtonStyle.outline()
-                                    .withBorderRadius(
-                                      borderRadius: BorderRadius.circular(16),
-                                      hoverBorderRadius: BorderRadius.circular(
-                                        16,
-                                      ),
-                                    ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  spacing: 8,
-                                  children: [
-                                    Icon(LucideIcons.download),
-                                    Text('Download'),
-                                  ],
-                                ),
+                                leading: const Icon(LucideIcons.download, size: 18),
+                                child: const Text('Download'),
                               ),
-                              Button(
+                              PetalButton.ghost(
                                 onPressed: () => context.push(
                                   '/series?tmdb=${widget.tmdbId}',
                                 ),
-                                style: const ButtonStyle.ghost()
-                                    .withBorderRadius(
-                                      borderRadius: BorderRadius.circular(16),
-                                      hoverBorderRadius: BorderRadius.circular(
-                                        16,
-                                      ),
-                                    ),
                                 child: const Text('Show page'),
                               ),
                             ],
