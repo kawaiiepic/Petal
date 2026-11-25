@@ -27,9 +27,9 @@ class EpisodePortraitCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AspectRatio(
-            aspectRatio: 2 / 3,
+            aspectRatio: 16 / 9,
             child: MediaCard(
-              orientation: Orientation.portrait,
+              orientation: Orientation.landscape,
               imageUrl: image,
               label: episode.name,
               showLogo: false,

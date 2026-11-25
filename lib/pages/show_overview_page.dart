@@ -498,9 +498,9 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                               if (snapshot.hasData &&
                                   snapshot.data!.episodes.isNotEmpty)
                                 MediaShelf(
-                                  orientation: Orientation.portrait,
-                                  cardWidth: 116,
-                                  cardHeight: 230,
+                                  orientation: Orientation.landscape,
+                                  cardWidth: 208,
+                                  cardHeight: 170,
                                   spacing: 10,
                                   padding: EdgeInsets.zero,
                                   itemCount: snapshot.data!.episodes.length,
