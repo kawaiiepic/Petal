@@ -48,7 +48,7 @@ class _OverviewPlatformBadgeState extends State<OverviewPlatformBadge> {
       future: _platform,
       builder: (context, snapshot) => snapshot.connectionState == ConnectionState.done &&
           snapshot.data != null
-          ? MediaPlatformBadge(platform: snapshot.data!, size: 32)
+          ? MediaPlatformBadge(platform: snapshot.data!, size: 48)
           : const SizedBox.shrink(),
     ),
   );

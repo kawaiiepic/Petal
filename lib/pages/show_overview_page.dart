@@ -513,7 +513,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
-                        height: 200,
+                        height: 155,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: recommendations?.length ?? 10,
