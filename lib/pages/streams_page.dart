@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/api/stream_api.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
@@ -27,6 +28,37 @@ class StreamsPage extends StatefulWidget {
 class _StreamsPageState extends State<StreamsPage> {
   late Future<({String title, String? subtitle, String? artwork, String? imdbId})> _metadata;
   late Future<List<StreamItem>> _streams;
+  String? _selectedAddon;
+
+  String _addonName(StreamItem stream) {
+    final name = stream.addon.manifest?['name'];
+    if (name is String && name.trim().isNotEmpty) return name.trim();
+    final host = Uri.tryParse(stream.addon.baseUrl)?.host;
+    return host != null && host.isNotEmpty ? host : 'Addon';
+  }
+
+  Future<void> _selectAddon(Map<String, String> addons, String? current) async {
+    var changed = false;
+    String? selection = current;
+    await glass.showGlassActionSheet<void>(
+      context: context,
+      title: 'Filter by addon',
+      actions: [
+        glass.GlassActionSheetAction(
+          label: 'All addons',
+          icon: current == null ? const Icon(LucideIcons.check) : null,
+          onPressed: () { selection = null; changed = true; },
+        ),
+        for (final addon in addons.entries)
+          glass.GlassActionSheetAction(
+            label: addon.value,
+            icon: current == addon.key ? const Icon(LucideIcons.check) : null,
+            onPressed: () { selection = addon.key; changed = true; },
+          ),
+      ],
+    );
+    if (mounted && changed) setState(() => _selectedAddon = selection);
+  }
 
   @override
   void initState() {
@@ -40,6 +72,7 @@ class _StreamsPageState extends State<StreamsPage> {
     if (oldWidget.showId != widget.showId || oldWidget.movieId != widget.movieId ||
         oldWidget.episode?.seasonNumber != widget.episode?.seasonNumber ||
         oldWidget.episode?.episodeNumber != widget.episode?.episodeNumber) {
+      _selectedAddon = null;
       _reload();
     }
   }
@@ -86,7 +119,13 @@ class _StreamsPageState extends State<StreamsPage> {
         return FutureBuilder<List<StreamItem>>(
           future: _streams,
           builder: (context, snapshot) {
-            final streams = snapshot.data ?? const <StreamItem>[];
+            final allStreams = snapshot.data ?? const <StreamItem>[];
+            final addons = <String, String>{
+              for (final stream in allStreams) stream.addon.id: _addonName(stream),
+            };
+            final selected = addons.containsKey(_selectedAddon) ? _selectedAddon : null;
+            final streams = selected == null ? allStreams : allStreams
+                .where((stream) => stream.addon.id == selected).toList();
             final loading = snapshot.connectionState != ConnectionState.done;
             return CustomScrollView(
               shrinkWrap: true,
@@ -127,8 +166,26 @@ class _StreamsPageState extends State<StreamsPage> {
                         ),
                         const SizedBox(height: 20),
                         if (!loading && !snapshot.hasError)
-                          Text('${streams.length} ${streams.length == 1 ? 'source' : 'sources'} available',
-                            style: TextStyle(color: colors.mutedForeground, fontSize: 13)),
+                          Row(
+                            children: [
+                              Expanded(child: Text(
+                                '${streams.length}${selected != null ? ' of ${allStreams.length}' : ''} ${allStreams.length == 1 ? 'source' : 'sources'} available',
+                                style: TextStyle(color: colors.mutedForeground, fontSize: 13))),
+                              if (addons.length > 1)
+                                Flexible(child: PetalButton.ghost(
+                                  onPressed: () => _selectAddon(addons, selected),
+                                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                    Icon(LucideIcons.filter, size: 15, color: colors.foreground),
+                                    const SizedBox(width: 6),
+                                    Flexible(child: Text(selected == null ? 'All addons' : addons[selected]!,
+                                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: colors.foreground, fontSize: 13))),
+                                    const SizedBox(width: 4),
+                                    Icon(LucideIcons.chevronDown, size: 14, color: colors.foreground),
+                                  ]),
+                                )),
+                            ],
+                          ),
                       ],
                     ),
                   ),
