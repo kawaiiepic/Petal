@@ -51,7 +51,7 @@ class SeasonDropdown extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Flexible(child: Text(selectedSeason?.name ?? 'Select a season',
-            style: TextStyle(color: scheme.foreground, fontSize: AppTypography.h3Size, fontWeight: FontWeight.w600))),
+            style: TextStyle(color: scheme.foreground, fontSize: AppTypography.bodySize, fontWeight: FontWeight.w500))),
           const SizedBox(width: 8),
           Icon(ios.CupertinoIcons.chevron_down, color: scheme.foreground, size: 14),
         ],

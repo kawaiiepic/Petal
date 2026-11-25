@@ -4,9 +4,10 @@ import 'package:petal/models/tmdb/media_platform.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class MediaPlatformBadge extends StatelessWidget {
-  const MediaPlatformBadge({super.key, required this.platform});
+  const MediaPlatformBadge({super.key, required this.platform, this.size = 21});
 
   final MediaPlatform platform;
+  final double size;
 
   @override
   Widget build(BuildContext context) => CachedNetworkImage(
@@ -24,7 +25,7 @@ class MediaPlatformBadge extends StatelessWidget {
         image: true,
         label: platform.label,
         child: SizedBox.square(
-          dimension: 21,
+          dimension: size,
           child: Image(
             image: image,
             fit: BoxFit.contain,

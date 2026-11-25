@@ -1,3 +1,4 @@
+import 'package:petal/widgets/overview/overview_platform_badge.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
@@ -272,6 +273,8 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         imageUrl: show?.backdropUrl,
                         isLoading: loading,
                       ),
+                      if (show != null)
+                        OverviewPlatformBadge(tmdbId: show.id, type: MediaType.show),
                       Positioned(
                         bottom: 100,
                         left: 24,
@@ -350,8 +353,10 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
                         spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             '${(show != null ? show.voteAverage * 10 : 80).toStringAsFixed(0)}% Match',
@@ -375,25 +380,19 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                               fontSize: AppTypography.labelSize,
                             ),
                           ),
-                          Text(
-                            "${show?.episodeRunTime.firstOrNull ?? '20'} mins",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: AppTypography.labelSize,
-                            ),
-                          ),
-                          if (show != null &&
-                              show.episodeRunTime.isEmpty &&
-                              show.lastEpisodeToAir != null)
+                          if (show == null ||
+                              (show.episodeRunTime.firstOrNull ?? show.lastEpisodeToAir?.runtime ?? 0) > 0)
                             Text(
                               MediaFormatting.formatRuntime(
-                                show.lastEpisodeToAir!.runtime,
+                                show == null ? 20 : show.episodeRunTime.firstOrNull ??
+                                  show.lastEpisodeToAir?.runtime ?? 0,
                               ),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: AppTypography.labelSize,
-                              ),
+                              style: TextStyle(color: Colors.white, fontSize: AppTypography.labelSize),
                             ),
+                          if (show != null && show.status.trim().isNotEmpty)
+                            Text(show.status,
+                              style: TextStyle(color: Theme.of(context).colorScheme.mutedForeground,
+                                fontSize: AppTypography.labelSize)),
                         ],
                       ),
                       if (show?.tagline != null &&
@@ -417,75 +416,16 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          Chip(
-                            child: Text(
-                              style: TextStyle(
-                                fontSize: AppTypography.labelSize,
-                              ),
-                              show?.networks.firstOrNull?.name ?? 'Netflix',
-                            ),
-                          ),
-                          Chip(
-                            child: Text(
-                              style: TextStyle(
-                                fontSize: AppTypography.labelSize,
-                              ),
-                              show?.status ?? 'Ongoing',
-                            ),
-                          ),
-                          Chip(
-                            child: Text(
-                              style: TextStyle(
-                                fontSize: AppTypography.labelSize,
-                              ),
-                              show?.originCountry.firstOrNull ?? 'USA',
-                            ),
-                          ),
-                          Chip(
-                            child: Text(
-                              style: TextStyle(
-                                fontSize: AppTypography.labelSize,
-                              ),
-                              '\u2605 ${show?.voteAverage.toStringAsFixed(1) ?? 5}',
-                            ),
-                          ),
-                          if (show != null)
-                            ...show.genres
-                                .take(3)
-                                .map(
-                                  (g) => Chip(
-                                    child: Text(
-                                      style: TextStyle(
-                                        fontSize: AppTypography.labelSize,
-                                      ),
-                                      g.name,
-                                    ),
-                                  ),
-                                ),
-                          if (show == null) ...[
-                            Chip(
-                              child: Text(
-                                'Horror',
-                                style: TextStyle(
-                                  fontSize: AppTypography.labelSize,
-                                ),
-                              ),
-                            ),
-                            Chip(
-                              child: Text(
-                                'Comedy',
-                                style: TextStyle(
-                                  fontSize: AppTypography.labelSize,
-                                ),
-                              ),
-                            ),
+                      if (show != null && show.genres.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final genre in show.genres)
+                              Chip(child: Text(genre.name,
+                                style: TextStyle(fontSize: AppTypography.labelSize))),
                           ],
-                        ],
-                      ),
+                        ),
                       const SizedBox(height: 32),
                       Skeleton.keep(
                         child: Row(

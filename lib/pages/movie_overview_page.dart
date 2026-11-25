@@ -1,3 +1,4 @@
+import 'package:petal/widgets/overview/overview_platform_badge.dart';
 import 'package:petal/widgets/overview/watch_activity_panel.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/utils/watch_progress.dart';
@@ -127,6 +128,8 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                             : 'https://image.tmdb.org/t/p/original${movie!.backdropPath}',
                         isLoading: loading,
                       ),
+                      if (movie != null)
+                        OverviewPlatformBadge(tmdbId: movie.id, type: MediaType.movie),
                       Positioned(
                         bottom: 100,
                         left: 24,
@@ -273,75 +276,16 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          Chip(
-                            child: Text(
-                              style: TextStyle(
-                                fontSize: AppTypography.labelSize,
-                              ),
-                              movie?.status ?? 'Released',
-                            ),
-                          ),
-                          Chip(
-                            child: Text(
-                              style: TextStyle(
-                                fontSize: AppTypography.labelSize,
-                              ),
-                              movie?.status ?? 'Ongoing',
-                            ),
-                          ),
-                          Chip(
-                            child: Text(
-                              style: TextStyle(
-                                fontSize: AppTypography.labelSize,
-                              ),
-                              movie?.originCountry.firstOrNull ?? 'USA',
-                            ),
-                          ),
-                          Chip(
-                            child: Text(
-                              style: TextStyle(
-                                fontSize: AppTypography.labelSize,
-                              ),
-                              '★ ${movie?.voteAverage.toStringAsFixed(1) ?? 5}',
-                            ),
-                          ),
-                          if (movie != null)
-                            ...movie.genres
-                                .take(3)
-                                .map(
-                                  (g) => Chip(
-                                    child: Text(
-                                      style: TextStyle(
-                                        fontSize: AppTypography.labelSize,
-                                      ),
-                                      g.name,
-                                    ),
-                                  ),
-                                ),
-                          if (movie == null) ...[
-                            Chip(
-                              child: Text(
-                                'Horror',
-                                style: TextStyle(
-                                  fontSize: AppTypography.labelSize,
-                                ),
-                              ),
-                            ),
-                            Chip(
-                              child: Text(
-                                'Comedy',
-                                style: TextStyle(
-                                  fontSize: AppTypography.labelSize,
-                                ),
-                              ),
-                            ),
+                      if (movie != null && movie.genres.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final genre in movie.genres)
+                              Chip(child: Text(genre.name,
+                                style: TextStyle(fontSize: AppTypography.labelSize))),
                           ],
-                        ],
-                      ),
+                        ),
                       if (director != null) ...[
                         const SizedBox(height: 16),
                         Text(
