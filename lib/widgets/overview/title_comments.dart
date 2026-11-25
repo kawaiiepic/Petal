@@ -103,9 +103,9 @@ class _TitleCommentsState extends State<TitleComments> {
                   children: [
                     Text(
                       comment.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.foreground),
                     ),
-                    Text(comment.body),
+                    Text(comment.body, style: TextStyle(color: Theme.of(context).colorScheme.foreground)),
                   ],
                 ),
               ),
@@ -174,8 +174,9 @@ class _CollapsibleTitleCommentsState extends State<CollapsibleTitleComments> {
         },
         child: Row(
           children: [
-            Expanded(child: const Text('Comments').h4),
-            Icon(_expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown),
+            Expanded(child: Text('Comments', style: TextStyle(color: Theme.of(context).colorScheme.foreground)).h4),
+            Icon(_expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+              color: Theme.of(context).colorScheme.foreground),
           ],
         ),
       ),
