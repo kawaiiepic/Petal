@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 import 'package:go_router/go_router.dart';
 import 'package:petal/models/library/collection_section.dart';
-import 'package:flutter/services.dart' show LogicalKeyboardKey, SystemMouseCursors;
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
+import 'package:flutter/rendering.dart' show SystemMouseCursors;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
+import 'package:petal/models/media_type.dart';
 import 'dart:async';
 
 import 'package:petal/api/backend/backend_cache.dart';
@@ -29,6 +32,41 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
   List<CollectionHistoryEntry> _entries = [];
   int _generation = 0;
   bool _loading = true;
+  MediaType? _mediaFilter;
+  final _scroll = ScrollController();
+
+  bool _matches(MediaType type) => _mediaFilter == null || _mediaFilter == type;
+
+  Widget _filters(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    const options = <MediaType?, String>{null: 'All', MediaType.show: 'TV Shows', MediaType.movie: 'Movies'};
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(spacing: 8, children: [
+          for (final option in options.entries)
+            glass.GlassButton.custom(
+              key: ValueKey('collection-filter:${option.key?.name ?? 'all'}'),
+              label: option.value, height: 36, useOwnLayer: true,
+              isSelected: _mediaFilter == option.key,
+              shape: const glass.LiquidRoundedSuperellipse(borderRadius: 18),
+              style: _mediaFilter == option.key ? glass.GlassButtonStyle.prominent : glass.GlassButtonStyle.filled,
+              tintColor: _mediaFilter == option.key ? colors.primary : null,
+              onTap: () {
+                if (_mediaFilter == option.key) return;
+                if (_scroll.hasClients) _scroll.jumpTo(0);
+                setState(() => _mediaFilter = option.key);
+              },
+              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(option.value, style: TextStyle(fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _mediaFilter == option.key ? colors.primaryForeground : colors.foreground))),
+            ),
+        ]),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -57,6 +95,7 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
   @override
   void dispose() {
     _generation++;
+    _scroll.dispose();
     BackendCache.watchHistory.removeListener(_reloadHistory);
     super.dispose();
   }
@@ -65,14 +104,16 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([UserLibrary.watchlist, UserLibrary.ratings]),
     builder: (context, _) {
-      final watchlist = UserLibrary.watchlistTitles();
-      final liked = UserLibrary.ratedTitles();
-      final watching = _entries.where((e) =>
+      final watchlist = UserLibrary.watchlistTitles().where((title) => _matches(title.type)).toList();
+      final liked = UserLibrary.ratedTitles().where((title) => _matches(title.type)).toList();
+      final entries = _entries.where((e) => _matches(e.item.mediaType));
+      final watching = entries.where((e) =>
         isWatching(e.item, tmdbEpisodeCount: e.episodeCount)).toList();
-      final watched = _entries.where((e) =>
+      final watched = entries.where((e) =>
         isFinished(e.item, tmdbEpisodeCount: e.episodeCount)).toList();
-      final planned = _entries.where((e) => isPlanned(e.item)).toList();
+      final planned = entries.where((e) => isPlanned(e.item)).toList();
       final section = widget.section;
+      Widget scrollContent;
       if (section != null) {
         final content = switch (section) {
           CollectionSection.watching => _historyShelf(section, watching),
@@ -81,13 +122,15 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
           CollectionSection.watched => _historyShelf(section, watched),
           CollectionSection.planned => _historyShelf(section, planned),
         };
-        return ListView(
+        scrollContent = ListView(
+          controller: _scroll, primary: false,
           key: PageStorageKey('collection:${section.name}'),
           padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
           children: [content],
         );
-      }
-      return ListView(
+      } else {
+      scrollContent = ListView(
+        controller: _scroll, primary: false,
         key: const PageStorageKey('collection:all'),
         padding: const EdgeInsets.only(bottom: 32),
         children: [
@@ -98,6 +141,11 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
           _historyShelf(CollectionSection.planned, planned),
         ],
       );
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _filters(context),
+        Expanded(child: scrollContent),
+      ]);
     },
   );
 
