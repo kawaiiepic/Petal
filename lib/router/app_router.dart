@@ -67,8 +67,8 @@ class AppRouter {
     redirect: (context, state) {
       final loggingIn = state.matchedLocation == '/login';
       final onOffline = state.matchedLocation == '/offline';
-      if (state.matchedLocation == '/player' && state.uri.queryParameters['resume'] == '1' &&
-          RetainedPlayer.instance.resumable == null) return '/';
+      if (state.matchedLocation == '/player' &&
+          int.tryParse(state.uri.queryParameters['media'] ?? '') == null) return '/';
 
       if (BackendApi.authState.initializing) {
         return onOffline ? null : '/offline';
@@ -217,16 +217,17 @@ class AppRouter {
         parentNavigatorKey: PetalApp.rootNavigatorKey,
         path: '/player',
         builder: (context, state) {
-          final retained = state.uri.queryParameters['resume'] == '1' ? RetainedPlayer.instance.resumable : null;
-          if (retained != null) return StreamPlayer(mediaId: retained.item.mediaId,
-            episode: retained.item.episode, resume: true);
           final mediaId = state.uri.queryParameters['media'];
           final season = state.uri.queryParameters['s'];
           final episode = state.uri.queryParameters['e'];
           final progress = state.uri.queryParameters['p'];
-          final streamItem = state.extra as StreamItem?;
+          final extra = state.extra;
+          final retained = extra is RetainedMedia ? extra : null;
+          final streamItem = extra is StreamItem ? extra : retained?.source;
           return StreamPlayer(
-            mediaId: int.parse(mediaId!),
+            key: state.pageKey,
+            mediaId: int.parse(mediaId ?? '0'),
+            resumeMedia: retained,
             episode: (season != null && episode != null)
                 ? Episode(
                     seasonNumber: int.parse(season),

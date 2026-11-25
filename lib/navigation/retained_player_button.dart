@@ -39,7 +39,17 @@ class _RetainedPlayerButtonState extends State<RetainedPlayerButton> {
     }
   }
   void _open() {
-    if (RetainedPlayer.instance.resumable != null) context.push('/player?resume=1');
+    final retained = RetainedPlayer.instance.resumable;
+    if (retained == null) return;
+    final item = retained.item;
+    final episode = item.episode;
+    final uri = Uri(path: '/player', queryParameters: {
+      'media': '${item.mediaId}',
+      if (episode != null) 's': '${episode.seasonNumber}',
+      if (episode != null) 'e': '${episode.episodeNumber}',
+      'resume': '1',
+    });
+    context.push(uri.toString(), extra: retained);
   }
   @override
   Widget build(BuildContext context) {

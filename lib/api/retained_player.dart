@@ -12,8 +12,9 @@ class RetainedMedia {
   final StreamItem source;
   final bool finished;
   final double? lastWritten;
+  final String? profileKey;
   const RetainedMedia({required this.item, required this.source,
-    this.finished = false, this.lastWritten});
+    this.finished = false, this.lastWritten, this.profileKey});
 }
 
 /// Owns a single lazy native player for the app. Route leases prevent stale
@@ -45,6 +46,7 @@ class RetainedPlayer {
       if (next == _profile) return;
       _profile = next;
       final hadSession = _owner != null || loaded != null || available.value != null;
+      _generation++;
       _owner = null;
       loaded = null;
       available.value = null;

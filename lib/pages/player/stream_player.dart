@@ -34,14 +34,14 @@ class StreamPlayer extends StatefulWidget {
   final Episode? episode;
   final StreamItem? stream;
   final double? progress;
-  final bool resume;
+  final RetainedMedia? resumeMedia;
   const StreamPlayer({
     super.key,
     required this.mediaId,
     required this.episode,
     this.stream,
     this.progress,
-    this.resume = false,
+    this.resumeMedia,
   });
 
   @override
@@ -81,7 +81,10 @@ class StreamPlayerState extends State<StreamPlayer> {
   @override
   void initState() {
     super.initState();
-    final retained = widget.resume ? _retained.resumable : null;
+    final candidate = widget.resumeMedia;
+    final retained = candidate != null &&
+        candidate.profileKey == BackendApi.profileCacheKey &&
+        identical(_retained.loaded, candidate) ? candidate : null;
     _lease = _retained.acquire();
     _item = retained?.item ?? PlaybackItem(
       mediaId: widget.mediaId,
@@ -505,7 +508,7 @@ class StreamPlayerState extends State<StreamPlayer> {
         },
       );
       if (!mounted || !_ownsPlayer) return;
-      _retained.loaded = RetainedMedia(item: _item, source: stream);
+      _retained.loaded = RetainedMedia(item: _item, source: stream, profileKey: _profileKey);
       setState(() => _switching = false);
       if (!isOffline) _setupDiscord();
     } catch (_) {
@@ -667,7 +670,7 @@ class StreamPlayerState extends State<StreamPlayer> {
           loaded != null && identical(loaded.item, _item);
       _retained.release(_lease, keep ? RetainedMedia(item: _item,
         source: loaded!.source, finished: _finishedThisSession,
-        lastWritten: _lastWrittenProgress) : null);
+        lastWritten: _lastWrittenProgress, profileKey: _profileKey) : null);
     }
     PlaybackPreferences.instance.removeListener(_preferencesChanged);
     if (_syncSuspended) OfflineProgressSync.instance.resume();
