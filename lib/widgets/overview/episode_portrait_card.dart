@@ -24,7 +24,18 @@ class EpisodePortraitCard extends StatelessWidget {
       tmdbId: tmdbId,
       season: episode.seasonNumber,
       episode: episode.episodeNumber,
-      builder: (context, watched, busy, play) => MediaCard(
+      builder: (context, watched, busy, play) => ColorFiltered(
+        colorFilter: future
+            ? const ColorFilter.matrix(<double>[
+                .2126, .7152, .0722, 0, 0,
+                .2126, .7152, .0722, 0, 0,
+                .2126, .7152, .0722, 0, 0,
+                0, 0, 0, 1, 0,
+              ])
+            : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
+        child: Opacity(
+          opacity: future ? .55 : 1,
+          child: MediaCard(
         orientation: Orientation.landscape,
         imageUrl: image,
         label: episode.name,
@@ -56,6 +67,8 @@ class EpisodePortraitCard extends StatelessWidget {
                 const Positioned(top: 8, right: 8,
                   child: Icon(LucideIcons.check, color: Colors.white, size: 20)),
             ],
+          ),
+        ),
           ),
         ),
       ),
