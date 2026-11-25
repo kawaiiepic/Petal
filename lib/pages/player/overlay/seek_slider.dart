@@ -10,7 +10,9 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 class SeekSlider extends StatefulWidget {
   final Player player;
   final bool visible;
-  const SeekSlider({super.key, required this.player, required this.visible});
+  final ValueNotifier<List<Duration>>? commentMarkers;
+  const SeekSlider({super.key, required this.player, required this.visible,
+    this.commentMarkers});
 
   @override
   State<SeekSlider> createState() => _SeekSliderState();
@@ -247,6 +249,14 @@ class _SeekSliderState extends State<SeekSlider>
                   onChangeEnd: (value) => _finishDrag(value.value),
                 ),
               ),
+              if (ready && widget.commentMarkers != null)
+                Positioned.fill(child: IgnorePointer(
+                  child: ValueListenableBuilder<List<Duration>>(
+                    valueListenable: widget.commentMarkers!,
+                    builder: (context, markers, _) => _CommentMarkers(
+                      duration: duration, markers: markers),
+                  ),
+                )),
             ],
           ),
         ),
@@ -256,6 +266,47 @@ class _SeekSliderState extends State<SeekSlider>
             style: TextStyle(fontSize: 12),
           ),
       ],
+    );
+  }
+}
+
+
+/// Small dots on the seek track. They never intercept scrubbing gestures.
+class _CommentMarkers extends StatelessWidget {
+  final Duration duration;
+  final List<Duration> markers;
+  const _CommentMarkers({required this.duration, required this.markers});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (markers.isEmpty || duration <= Duration.zero) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: theme.density.baseGap * theme.scaling * .5),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final diameter = 4.0 * theme.scaling;
+        final width = constraints.maxWidth;
+        if (width <= diameter) return const SizedBox.shrink();
+        final positions = <int>{};
+        for (final marker in markers) {
+          if (marker < Duration.zero || marker > duration) continue;
+          final x = marker.inMicroseconds / duration.inMicroseconds * (width - diameter);
+          positions.add((x / diameter).round());
+        }
+        return Stack(children: [
+          for (final position in positions)
+            Positioned(
+              left: (position * diameter).clamp(0.0, width - diameter).toDouble(),
+              top: (constraints.maxHeight - diameter) / 2,
+              child: Container(width: diameter, height: diameter,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFB86B),
+                  border: Border.all(color: Colors.black.withValues(alpha: .6), width: .5),
+                  shape: BoxShape.circle,
+                )),
+            ),
+        ]);
+      }),
     );
   }
 }

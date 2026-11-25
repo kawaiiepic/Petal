@@ -51,6 +51,7 @@ class _PlayerControlsState extends State<PlayerControls> {
   bool _showControls = true;
   bool _showDebug = false;
   final _timedCommentsKey = GlobalKey<TimedCommentsOverlayState>();
+  final _commentMarkers = ValueNotifier<List<Duration>>(const []);
   bool _fullscreen = false;
   bool _openingNext = false;
   late bool _isShow;
@@ -175,6 +176,15 @@ class _PlayerControlsState extends State<PlayerControls> {
   }
 
   void _onPlaylistExtras(Map<String, dynamic>? newExtras) {
+    final oldMedia = extras?['mediaId'];
+    final oldEpisode = extras?['episode'];
+    final newEpisode = newExtras?['episode'];
+    if (oldMedia != newExtras?['mediaId'] ||
+        (oldEpisode is Episode ? oldEpisode.seasonNumber : null) != (newEpisode is Episode ? newEpisode.seasonNumber : null) ||
+        (oldEpisode is Episode ? oldEpisode.episodeNumber : null) != (newEpisode is Episode ? newEpisode.episodeNumber : null) ||
+        extras?['offline'] != newExtras?['offline']) {
+      _commentMarkers.value = const [];
+    }
     extras = newExtras;
     _isShow = extras?["episode"] != null;
     mediaId = extras?["mediaId"] ?? 0;
@@ -365,6 +375,7 @@ class _PlayerControlsState extends State<PlayerControls> {
     _rightSeekTimer?.cancel();
     _hideTimer?.cancel();
     _playlistSub?.cancel();
+    _commentMarkers.dispose();
     super.dispose();
   }
 
@@ -431,6 +442,7 @@ class _PlayerControlsState extends State<PlayerControls> {
                         bottom: false,
                         child: TimedCommentsOverlay(
                           key: _timedCommentsKey,
+                          markers: _commentMarkers,
                           player: player,
                           mediaId: mediaId,
                           season: _isShow ? episode.seasonNumber : null,
@@ -614,7 +626,8 @@ class _PlayerControlsState extends State<PlayerControls> {
             spacing: 8,
             children: [
               RepaintBoundary(
-                child: SeekSlider(player: player, visible: _showControls),
+                child: SeekSlider(player: player, visible: _showControls,
+                  commentMarkers: _commentMarkers),
               ),
               Row(
                 spacing: 8,

@@ -13,6 +13,7 @@ class TimedCommentsOverlay extends StatefulWidget {
   final int mediaId;
   final int? season;
   final int? episode;
+  final ValueNotifier<List<Duration>>? markers;
 
   const TimedCommentsOverlay({
     super.key,
@@ -20,6 +21,7 @@ class TimedCommentsOverlay extends StatefulWidget {
     required this.mediaId,
     this.season,
     this.episode,
+    this.markers,
   });
 
   @override
@@ -45,6 +47,13 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
     super.initState();
     _attach();
     unawaited(_load());
+  }
+
+  void _publishMarkers() {
+    final positions = _enabled
+        ? (_comments.map((comment) => comment.position).toSet().toList()..sort())
+        : <Duration>[];
+    widget.markers?.value = List.unmodifiable(positions);
   }
 
   void _attach() {
@@ -80,6 +89,7 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
       final merged = {for (final comment in comments) comment.id: comment,
         for (final comment in _comments) comment.id: comment};
       _comments = merged.values.toList()..sort(_compare);
+      _publishMarkers();
       _updateVisible(widget.player.state.position);
     } catch (_) {
       // Social features must never interrupt playback. The composer can retry.
@@ -128,6 +138,7 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
             if (!mounted || widget.mediaId != api.mediaId ||
                 widget.season != api.season || widget.episode != api.episode) return;
             _enabled = enabled;
+            _publishMarkers();
             _updateVisible(widget.player.state.position);
             if (enabled) unawaited(_load());
           },
@@ -141,6 +152,7 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
                 widget.season != api.season || widget.episode != api.episode) return;
             _comments = [..._comments.where((c) => c.id != comment.id), comment]
               ..sort(_compare);
+            _publishMarkers();
             _updateVisible(widget.player.state.position);
           },
         ),
@@ -160,12 +172,12 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
   @override
   Widget build(BuildContext context) => IgnorePointer(
     child: Align(
-      alignment: Alignment.topLeft,
+      alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             for (final item in _visible)
               Padding(
@@ -185,6 +197,7 @@ class TimedCommentsOverlayState extends State<TimedCommentsOverlay> {
                         TextSpan(text: item.comment.body),
                       ]),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
+                      textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
