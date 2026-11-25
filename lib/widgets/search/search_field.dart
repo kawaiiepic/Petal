@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show LogicalKeyboardKey, KeyDownEvent, KeyEventResult;
 import 'dart:async';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:go_router/go_router.dart';
@@ -25,6 +26,7 @@ class _SearchFieldState extends State<SearchField> {
   late final _textController = TextEditingController(text: widget.initialQuery);
 
   Timer? _debounce;
+  final _submitFocus = FocusNode(skipTraversal: true, canRequestFocus: false);
   @override
   void initState() {
     super.initState();
@@ -32,7 +34,7 @@ class _SearchFieldState extends State<SearchField> {
   }
 
   void _changed() {
-    if (widget.onQueryChanged == null) return;
+    if (widget.onQueryChanged == null || !_textController.value.composing.isCollapsed) return;
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () {
       if (mounted) widget.onQueryChanged?.call(_textController.text.trim());
@@ -64,7 +66,19 @@ class _SearchFieldState extends State<SearchField> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return glass.GlassSearchBar(
+    return Focus(
+      focusNode: _submitFocus,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.enter ||
+             event.logicalKey == LogicalKeyboardKey.numpadEnter) &&
+            _textController.value.composing.isCollapsed) {
+          _openResults();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: glass.GlassSearchBar(
       useOwnLayer: true,
       controller: _textController,
       placeholder: widget.placeholder,
@@ -72,12 +86,14 @@ class _SearchFieldState extends State<SearchField> {
       clearIconColor: scheme.mutedForeground,
       textStyle: TextStyle(color: scheme.foreground),
       onSubmitted: (_) => _openResults(),
+      ),
     );
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _submitFocus.dispose();
     _textController.removeListener(_changed);
     _textController.dispose();
     super.dispose();
