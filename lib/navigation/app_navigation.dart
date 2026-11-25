@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:petal/api/retained_player.dart';
 import 'package:petal/navigation/retained_player_button.dart';
@@ -67,6 +68,20 @@ class _AppNavigationState extends State<AppNavigation> {
     }
   }
 
+  Widget _compactDockAction(IconData icon) => glass.GlassButton(
+    icon: Icon(icon, size: 24, color: Theme.of(context).colorScheme.foreground),
+    onTap: () => setState(() {
+      _miniCollapsed = false;
+      _scrollTravel = 0;
+      _scrollDirection = ScrollDirection.idle;
+    }),
+    width: 58, height: 58,
+    useOwnLayer: true,
+    shape: const glass.LiquidOval(),
+    style: glass.GlassButtonStyle.filled,
+    stretch: .15,
+  );
+
   @override
   void dispose() {
     _homeScroll.dispose();
@@ -105,6 +120,7 @@ class _AppNavigationState extends State<AppNavigation> {
       valueListenable: RetainedPlayer.instance.available,
       builder: (context, retained, _) {
       final miniVisible = retained != null && dockVisible;
+      final collapsed = miniVisible && _miniCollapsed;
       return RefreshTrigger(
       key: PetalApp.refreshTriggerKey,
       onRefresh: () async {
@@ -150,32 +166,58 @@ class _AppNavigationState extends State<AppNavigation> {
                             // Search already reserves space in its scroll view.
                             padding: EdgeInsets.only(
                               bottom: !search && !overview && dockVisible
-                                  ? bottomInset + IosNavigationDock.clearance + (miniVisible ? 62 : 0)
+                                  ? bottomInset + IosNavigationDock.clearance + (miniVisible && !collapsed ? 64 : 0)
                                   : 0,
                             ),
                             child: widget.child,
                           ),
                     ),
-                    if (miniVisible)
-                      Positioned(left: 12, right: 12, bottom: bottomInset + 76,
-                        child: Align(alignment: Alignment.bottomCenter,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeInOutCubic,
-                            width: _miniCollapsed ? 168 : 440,
-                            child: RetainedPlayerButton(media: retained!, mobile: true,
-                              collapsed: _miniCollapsed)))),
                     if (dockVisible)
                       Positioned(
-                        left: 12,
-                        right: 12,
-                        bottom: bottomInset + 8,
+                        left: 12, right: 12, bottom: bottomInset + 8,
                         child: Align(
                           alignment: Alignment.bottomCenter,
-                          child: IosNavigationDock(
-                            selectedDestination: selectedDestination,
-                            onSelected: (destination) =>
-                                navigate(destination.path),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 440),
+                            child: AnimatedSize(
+                              duration: const Duration(milliseconds: 320),
+                              curve: Curves.easeInOutCubic,
+                              alignment: Alignment.bottomCenter,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 260),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeInCubic,
+                                transitionBuilder: (child, animation) => FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(begin: const Offset(0, .14),
+                                      end: Offset.zero).animate(animation),
+                                    child: child,
+                                  ),
+                                ),
+                                child: collapsed
+                                  ? Row(key: const ValueKey('compact-dock'), children: [
+                                      _compactDockAction(selectedDestination.icon),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: RetainedPlayerButton(
+                                        media: retained!, mobile: true, collapsed: true)),
+                                      const SizedBox(width: 8),
+                                      _compactDockAction(DockDestination.search.icon),
+                                    ])
+                                  : Column(key: const ValueKey('expanded-dock'),
+                                      mainAxisSize: MainAxisSize.min, children: [
+                                        if (miniVisible) ...[
+                                          Padding(padding: const EdgeInsets.symmetric(horizontal: 4),
+                                            child: RetainedPlayerButton(media: retained!, mobile: true)),
+                                          const SizedBox(height: 6),
+                                        ],
+                                        IosNavigationDock(
+                                          selectedDestination: selectedDestination,
+                                          onSelected: (destination) => navigate(destination.path),
+                                        ),
+                                      ]),
+                              ),
+                            ),
                           ),
                         ),
                       ),
