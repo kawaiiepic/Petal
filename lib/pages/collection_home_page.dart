@@ -254,7 +254,13 @@ class _CollectionHomePageState extends State<CollectionHomePage> {
     title,
     titles.length,
     itemCount: titles.length,
-    itemBuilder: (_, index) => LibraryPosterCard(title: titles[index]),
+    itemBuilder: (_, index) {
+      final item = titles[index];
+      return LibraryPosterCard(
+        key: ValueKey((item.type, item.tmdbId)),
+        title: item,
+      );
+    },
   );
 
   Widget _historyShelf(CollectionSection title, List<CollectionHistoryEntry> entries) =>

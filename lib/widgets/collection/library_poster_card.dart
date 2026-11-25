@@ -1,3 +1,5 @@
+import 'package:petal/models/tmdb/tmdb_movie.dart';
+import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/api.dart';
 import 'package:petal/api/collection_metadata.dart';
@@ -41,17 +43,22 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
   @override
   Widget build(BuildContext context) {
     final isShow = title.type == MediaType.show;
-    return FutureBuilder(
+    return FutureBuilder<Object>(
+      key: ValueKey((title.type, title.tmdbId)),
       initialData: CollectionMetadata.peek(title.tmdbId, title.type),
       future: _metadata,
       builder: (context, snapshot) {
-        final loading = !snapshot.hasData &&
+        // FutureBuilder can retain the previous future's data while switching.
+        // Validate both the media type and ID before reading any metadata.
+        final raw = snapshot.data;
+        final show = isShow && raw is TmdbShow && raw.id == title.tmdbId
+            ? raw : null;
+        final movie = !isShow && raw is TmdbMovie && raw.id == title.tmdbId
+            ? raw : null;
+        final loading = show == null && movie == null &&
             snapshot.connectionState != ConnectionState.done;
-        final data = snapshot.data as dynamic;
-        final path = snapshot.hasData ? data.posterPath as String? : null;
-        final name = snapshot.hasData
-            ? (isShow ? data.name : data.title) as String?
-            : null;
+        final path = show?.posterPath ?? movie?.posterPath;
+        final name = show?.name ?? movie?.title;
         final badge = title.rating == TitleRating.love
             ? 'Loved'
             : title.rating == TitleRating.like
@@ -67,9 +74,7 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                 target: MediaCardTarget(
                   tmdbId: title.tmdbId,
                   type: title.type,
-                  totalEpisodes: isShow && snapshot.hasData
-                      ? data.numberOfEpisodes as int?
-                      : null,
+                  totalEpisodes: show?.numberOfEpisodes,
                 ),
                 imageUrl: path == null || path.isEmpty
                     ? null
