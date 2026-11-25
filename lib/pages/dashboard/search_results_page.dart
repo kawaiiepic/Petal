@@ -1,3 +1,9 @@
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
+import 'package:flutter/rendering.dart' show SystemMouseCursors;
+import 'package:petal/api/api.dart';
+import 'package:petal/api/tmdb/tmdb.dart';
+import 'package:petal/widgets/media/media_artwork.dart';
+import 'package:petal/models/tmdb/person_search_result.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/retained_player.dart';
@@ -15,7 +21,7 @@ import 'package:petal/widgets/catalog/catalog_item_widget.dart';
 import 'package:petal/widgets/search/profile_result_row.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-enum _ResultFilter { all, movies, series, profiles }
+enum _ResultFilter { all, movies, series, actors, profiles }
 
 class SearchResultsPage extends StatefulWidget {
   final String query;
@@ -29,6 +35,7 @@ class SearchResultsPage extends StatefulWidget {
 class _SearchResultsPageState extends State<SearchResultsPage> {
   late Future<List<CatalogItem>> _future;
   late Future<List<SocialProfile>> _profiles;
+  late Future<List<PersonSearchResult>> _actors;
   final _scroll = ScrollController();
   _ResultFilter _filter = _ResultFilter.all;
 
@@ -43,6 +50,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     super.initState();
     _future = _load(widget.query);
     _profiles = _loadProfiles();
+    _actors = _loadActors();
   }
 
   @override
@@ -59,7 +67,25 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     setState(() {
       _future = _load(widget.query);
       _profiles = _loadProfiles();
+    _actors = _loadActors();
     });
+  }
+
+  Future<List<PersonSearchResult>> _loadActors() async {
+    final query = widget.query.trim();
+    if (query.isEmpty) return [];
+    // The proxy decodes the supplied path once before sending it to TMDB.
+    final encoded = Uri.encodeQueryComponent(Uri.encodeQueryComponent(query));
+    final response = await TMDB.tmdbApi('/search/person?query=$encoded&include_adult=false');
+    if (response.statusCode != 200) throw StateError('Actor search failed');
+    final rows = (response.data as Map)['results'] as List? ?? [];
+    final seen = <int>{};
+    return [
+      for (final row in rows.whereType<Map>())
+        if (row['id'] is int && row['name'] is String &&
+            row['known_for_department'] == 'Acting' && seen.add(row['id'] as int))
+          PersonSearchResult.fromJson(Map<String, dynamic>.from(row)),
+    ];
   }
 
   Future<List<SocialProfile>> _loadProfiles() => widget.query.trim().isEmpty
@@ -95,6 +121,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
       _ResultFilter.all: 'All',
       _ResultFilter.movies: 'Movies',
       _ResultFilter.series: 'TV Shows',
+      _ResultFilter.actors: 'Actors',
       _ResultFilter.profiles: 'Profiles',
     };
     return SingleChildScrollView(
@@ -121,23 +148,73 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
 
   Widget _heading(String title, {int? count, _ResultFilter? more}) {
     final colors = Theme.of(context).colorScheme;
+    final heading = Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
+      Flexible(child: Text(title, style: TextStyle(fontSize: 20,
+        color: colors.foreground, fontWeight: FontWeight.w700))),
+      if (count != null) SecondaryBadge(child: Text('$count')),
+      if (more != null) Icon(LucideIcons.chevronRight, size: 16,
+        color: colors.mutedForeground),
+    ]);
+    void open() { if (more != null) _select(more); }
     return SliverToBoxAdapter(child: Padding(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 10),
-      child: Row(children: [
-        Expanded(child: Row(spacing: 9, children: [
-          Container(width: 3, height: 19, decoration: BoxDecoration(
-            color: colors.primary, borderRadius: BorderRadius.circular(2))),
-          Flexible(child: Text(title, style: const TextStyle(fontSize: 20,
-            fontWeight: FontWeight.w700))),
-          if (count != null) Text('$count', style: TextStyle(fontSize: 12,
-            color: colors.mutedForeground)),
-        ])),
-        if (more != null) PetalButton.ghost(
-          onPressed: () => _select(more),
-          child: Text('See all', style: TextStyle(fontSize: 12, color: colors.foreground))),
-      ]),
+      child: Align(alignment: Alignment.centerLeft,
+        child: more == null ? heading : Semantics(button: true,
+          child: FocusableActionDetector(
+            mouseCursor: SystemMouseCursors.click,
+            shortcuts: const {
+              SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+              SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+            },
+            actions: {ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+              open(); return null;
+            })},
+            child: GestureDetector(behavior: HitTestBehavior.opaque,
+              onTap: open, child: heading),
+          ),
+        ),
+      ),
     ));
   }
+
+  Widget _actorGrid(List<PersonSearchResult> actors) => SliverPadding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    sliver: SliverLayoutBuilder(builder: (context, constraints) {
+      final columns = (constraints.crossAxisExtent / 120).floor().clamp(2, 10).toInt();
+      final width = (constraints.crossAxisExtent - (columns - 1) * 12) / columns;
+      return SliverGrid.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns, crossAxisSpacing: 12, mainAxisSpacing: 16,
+          mainAxisExtent: width + 44),
+        itemCount: actors.length,
+        itemBuilder: (context, index) {
+          final actor = actors[index];
+          final colors = Theme.of(context).colorScheme;
+          return Semantics(button: true, label: actor.name,
+            child: MouseRegion(cursor: SystemMouseCursors.click,
+              child: GestureDetector(behavior: HitTestBehavior.opaque,
+                onTap: () => context.push('/person/${actor.id}'),
+                child: Column(children: [
+                  Expanded(child: AspectRatio(aspectRatio: 1,
+                    child: ClipOval(child: actor.profilePath == null
+                      ? ColoredBox(color: colors.muted,
+                        child: Center(child: Icon(LucideIcons.user, size: 32,
+                          color: colors.mutedForeground)))
+                      : MediaArtwork(imageUrl: Api.proxyImage(
+                        'https://image.tmdb.org/t/p/w185${actor.profilePath}'))))),
+                  const SizedBox(height: 6),
+                  Text(actor.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(actor.knownFor, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: colors.mutedForeground)),
+                ]),
+              ),
+            ),
+          );
+        },
+      );
+    }),
+  );
 
   Widget _card(CatalogItem? item, BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -240,7 +317,9 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
         future: _future,
         builder: (context, mediaSnap) => FutureBuilder<List<SocialProfile>>(
           future: _profiles,
-          builder: (context, profileSnap) {
+          builder: (context, profileSnap) => FutureBuilder<List<PersonSearchResult>>(
+            future: _actors,
+            builder: (context, actorSnap) {
             final mediaLoading = mediaSnap.connectionState != ConnectionState.done;
             final profilesLoading = profileSnap.connectionState != ConnectionState.done;
             final items = mediaLoading ? const <CatalogItem>[] : mediaSnap.data ?? const <CatalogItem>[];
@@ -249,10 +328,13 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
             final series = items.where((i) => i.type == 'series').toList();
             final all = _filter == _ResultFilter.all;
             final peopleOnly = _filter == _ResultFilter.profiles;
+            final actorsOnly = _filter == _ResultFilter.actors;
+            final actorsLoading = actorSnap.connectionState != ConnectionState.done;
+            final actors = actorsLoading ? const <PersonSearchResult>[] : actorSnap.data ?? const <PersonSearchResult>[];
             final filtered = _filter == _ResultFilter.movies ? movies :
                 _filter == _ResultFilter.series ? series : items;
             final slivers = <Widget>[];
-            if (!peopleOnly) {
+            if (!peopleOnly && !actorsOnly) {
               if (mediaLoading) {
                 slivers.addAll([_heading('Searching…'), _grid(List<CatalogItem?>.filled(12, null))]);
               } else if (mediaSnap.hasError) {
@@ -282,6 +364,22 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                   'Try a different search or switch categories.'));
               }
             }
+            if (all || actorsOnly) {
+              if (actorsLoading) {
+                if (actorsOnly) slivers.add(const SliverToBoxAdapter(
+                  child: Padding(padding: EdgeInsets.all(32), child: Center(child: PetalActivityIndicator()))));
+              } else if (actorSnap.hasError) {
+                if (actorsOnly) slivers.add(_message(LucideIcons.user, 'Could not load actors',
+                  'Please try again.', retry: _reload));
+              } else if (actors.isNotEmpty) {
+                slivers.addAll([
+                  _heading('Actors', count: actors.length, more: all ? _ResultFilter.actors : null),
+                  _actorGrid(all ? actors.take(6).toList() : actors),
+                ]);
+              } else if (actorsOnly) {
+                slivers.add(_message(LucideIcons.user, 'No actors found', 'Try another actor name.'));
+              }
+            }
             if (all || peopleOnly) {
               if (profilesLoading) {
                 if (peopleOnly) slivers.add(const SliverToBoxAdapter(
@@ -292,17 +390,17 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
               } else if (profiles.isNotEmpty) {
                 slivers.addAll([
                   _heading('Profiles', count: profiles.length,
-                    more: all && profiles.length > 4 ? _ResultFilter.profiles : null),
+                    more: all ? _ResultFilter.profiles : null),
                   _profileRows(all ? profiles.take(4).toList() : profiles),
                 ]);
               } else if (peopleOnly) {
                 slivers.add(_message(LucideIcons.users, 'No profiles found', 'Try another profile name.'));
               }
             }
-            if (all && !mediaLoading && !profilesLoading && items.isEmpty && profiles.isEmpty &&
-                !mediaSnap.hasError && !profileSnap.hasError) {
+            if (all && !mediaLoading && !profilesLoading && !actorsLoading && items.isEmpty && profiles.isEmpty && actors.isEmpty &&
+                !mediaSnap.hasError && !profileSnap.hasError && !actorSnap.hasError) {
               slivers.add(_message(LucideIcons.search, 'No results found',
-                'No movies, shows or profiles match “${widget.query}”.'));
+                'No movies, shows, actors or profiles match “${widget.query}”.'));
             }
             return ValueListenableBuilder(valueListenable: RetainedPlayer.instance.available,
               builder: (context, retained, _) => CustomScrollView(
@@ -314,7 +412,8 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                       (retained != null ? 64 : 0) : 24)),
                 ],
               ));
-          },
+            },
+          ),
         ),
       )),
     ]);
