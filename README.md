@@ -12,7 +12,7 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/kawaiiepic/Petal/flutter.yml?style=flat-square&label=build)](https://github.com/kawaiiepic/Petal/actions)
 [![Release](https://img.shields.io/github/v/release/kawaiiepic/Petal?include_prereleases&style=flat-square&color=%23FFC0CB)](https://github.com/kawaiiepic/Petal/releases)
 
-[**Join iOS TestFlight**](https://testflight.apple.com/join/fPpArZG7) · [**Download**](#-download) · [**Features**](#-features) · [**Screenshots**](#-screenshots) · [**Building**](#-building-from-source)
+[**Discord**](https://discord.gg/D6a4p2G7Yn) · [**Join iOS TestFlight**](https://testflight.apple.com/join/fPpArZG7) · [**Download**](#-download) · [**Features**](#-features) · [**Screenshots**](#-screenshots) · [**Building**](#-building-from-source)
 
 </div>
 
@@ -117,6 +117,14 @@ flutter build windows
 ---
 
 See [Code structure](docs/code_structure.md) for the source layout and verification commands.
+
+## 💬 Community
+
+[![Join Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/D6a4p2G7Yn)
+
+Join the Petal Discord to share feedback, report bugs, get help, and discuss new features.
+
+---
 
 ## 🤝 Contributing
 
