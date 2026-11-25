@@ -5,6 +5,7 @@ import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/cache/async_cache.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/tmdb/images.dart';
+import 'package:petal/models/tmdb/media_platform.dart';
 import 'package:petal/models/tmdb/tmdb_episode.dart';
 import 'package:petal/models/tmdb/tmdb_image_urls.dart';
 import 'package:petal/models/tmdb/tmdb_movie.dart';
@@ -42,6 +43,62 @@ class TMDB {
         ? (await movie(tmdbId)).images
         : (await tvShow(tmdbId)).images;
     return images?.preferredLogo?.url;
+  }
+
+  /// Prefer the original network for TV. For other titles, only show a
+  /// subscription service when TMDB lists one in the selected region.
+  static Future<MediaPlatform?> mediaPlatform(
+    int tmdbId,
+    MediaType type, {
+    String? region,
+  }) async {
+    final country = region?.toUpperCase();
+    final hasRegion =
+        country != null && RegExp(r'^[A-Z]{2}$').hasMatch(country);
+    if (type == MediaType.show) {
+      final suffix = hasRegion ? '?append_to_response=watch/providers' : '';
+      final data = (await tmdbApi('/tv/$tmdbId$suffix')).data;
+      if (data is! Map) return null;
+      return _platformWithLogo(data['networks'], original: true) ??
+          (hasRegion
+              ? _regionalPlatform(data['watch/providers'], country)
+              : null);
+    }
+    if (!hasRegion) return null;
+    final data = (await tmdbApi('/movie/$tmdbId/watch/providers')).data;
+    return _regionalPlatform(data, country);
+  }
+
+  static MediaPlatform? _regionalPlatform(Object? data, String country) {
+    if (data is! Map || data['results'] is! Map) return null;
+    final entry = (data['results'] as Map)[country];
+    return entry is Map
+        ? _platformWithLogo(entry['flatrate'], original: false)
+        : null;
+  }
+
+  static MediaPlatform? _platformWithLogo(
+    Object? data, {
+    required bool original,
+  }) {
+    if (data is! List) return null;
+    for (final entry in data) {
+      if (entry is! Map) continue;
+      final name = entry[original ? 'name' : 'provider_name'];
+      final path = entry['logo_path'];
+      if (name is String &&
+          name.trim().isNotEmpty &&
+          path is String &&
+          path.startsWith('/') &&
+          path.length > 1) {
+        return MediaPlatform(
+          name: name.trim(),
+          logoUrl: 'https://image.tmdb.org/t/p/w92$path',
+          isOriginalNetwork: original,
+        );
+      }
+    }
+    return null;
   }
 
   // Cache functions

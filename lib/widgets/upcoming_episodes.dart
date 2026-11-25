@@ -74,11 +74,15 @@ class _UpcomingEpisodesState extends State<UpcomingEpisodes> {
         }
         if (items.isEmpty && _loading) {
           return const HomeShelfSkeleton(
-            title: 'Upcoming', orientation: Orientation.landscape);
+            title: 'Upcoming',
+            editorial: true,
+            orientation: Orientation.landscape,
+          );
         }
         if (items.isEmpty) return const SizedBox.shrink();
         return HomeSection(
           title: 'Upcoming',
+          editorial: true,
           child: MediaShelf(
             orientation: Orientation.landscape,
             itemCount: items.length,

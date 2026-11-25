@@ -1,59 +1,60 @@
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 // ignore: deprecated_member_use
 import 'package:flutter/cupertino.dart' as ios;
-import 'package:flutter/foundation.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-bool get usesPetalIosNavigation =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+enum DockDestination {
+  home('/', 'Home', ios.CupertinoIcons.house_fill),
+  collection('/collection', 'Collection', ios.CupertinoIcons.square_stack),
+  history('/history', 'History', ios.CupertinoIcons.clock),
+  downloads('/downloads', 'Downloads', ios.CupertinoIcons.arrow_down_circle),
+  search('/search', 'Search', ios.CupertinoIcons.search);
+
+  const DockDestination(this.path, this.label, this.icon);
+
+  final String path;
+  final String label;
+  final IconData icon;
+}
 
 class IosNavigationDock extends StatelessWidget {
   const IosNavigationDock({
     super.key,
-    required this.onHome,
-    required this.onCollection,
-    required this.onHistory,
-    required this.onDownloads,
+    required this.selectedDestination,
+    required this.onSelected,
   });
 
-  // Leave enough trailing scroll space for content behind the floating dock.
+  // Leave enough space for content above the floating dock.
   static const clearance = 82.0;
 
-  final VoidCallback onHome;
-  final VoidCallback onCollection;
-  final VoidCallback onHistory;
-  final VoidCallback onDownloads;
+  final DockDestination selectedDestination;
+  final ValueChanged<DockDestination> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    const selected = Color(0xFF2D91FF);
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 440),
       child: glass.GlassTabBar.bottom(
-        tabs: const [
-          glass.GlassTab(icon: Icon(ios.CupertinoIcons.house_fill), label: 'Home'),
-          glass.GlassTab(icon: Icon(ios.CupertinoIcons.square_stack), label: 'Collection'),
-          glass.GlassTab(icon: Icon(ios.CupertinoIcons.clock), label: 'History'),
-          glass.GlassTab(icon: Icon(ios.CupertinoIcons.arrow_down_circle), label: 'Downloads'),
+        tabs: [
+          for (final destination in DockDestination.values)
+            glass.GlassTab(
+              icon: Icon(destination.icon),
+              label: destination.label,
+            ),
         ],
-        selectedIndex: 0,
-        onTabSelected: (index) {
-          switch (index) {
-            case 0: onHome(); break;
-            case 1: onCollection(); break;
-            case 2: onHistory(); break;
-            case 3: onDownloads(); break;
-          }
-        },
+        selectedIndex: selectedDestination.index,
+        onTabSelected: (index) => onSelected(DockDestination.values[index]),
         barHeight: 60,
         iconSize: 21,
         horizontalPadding: 0,
         verticalPadding: 0,
-        selectedIconColor: scheme.primary,
-        selectedLabelColor: scheme.primary,
+        selectedIconColor: selected,
+        selectedLabelColor: selected,
         unselectedIconColor: scheme.foreground,
         unselectedLabelColor: scheme.foreground,
-        indicatorColor: scheme.primary.withValues(alpha: .16),
+        indicatorColor: selected.withValues(alpha: .15),
       ),
     );
   }

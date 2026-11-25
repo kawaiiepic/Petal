@@ -3,12 +3,14 @@ import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 class ArrowButton extends StatefulWidget {
   final bool visible;
   final IconData icon;
+  final String? semanticLabel;
   final VoidCallback onPressed;
 
   const ArrowButton({
     super.key,
     required this.visible,
     required this.icon,
+    this.semanticLabel,
     required this.onPressed,
   });
 
@@ -50,7 +52,12 @@ class _ArrowButtonState extends State<ArrowButton> {
                 child: SizedBox(
                   width: 36,
                   height: 36,
-                  child: Icon(widget.icon, size: 25, color: Colors.white),
+                  child: Icon(
+                    widget.icon,
+                    size: 25,
+                    color: Colors.white,
+                    semanticLabel: widget.semanticLabel,
+                  ),
                 ),
               ),
             ),

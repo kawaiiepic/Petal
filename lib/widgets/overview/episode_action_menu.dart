@@ -8,6 +8,7 @@ import 'package:petal/api/user_library.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/utils/app_notifications.dart';
 import 'package:petal/utils/watch_progress.dart';
+import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 /// Shared episode actions for overview playback and season episode rows.
@@ -102,7 +103,7 @@ class _EpisodeActionMenuState extends State<EpisodeActionMenu> {
       final disabled = _busy || BackendApi.profileCacheKey == null ||
           UserLibrary.isChangingWatched(widget.tmdbId, MediaType.show);
       void play() => _run(play: true, rewatch: watched);
-      return ContextMenu(
+      return PetalContextMenu(
         items: [
           MenuButton(
             leading: const Icon(LucideIcons.play),

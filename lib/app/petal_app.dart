@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart' as ios;
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/services.dart';
 import 'package:petal/api/api.dart';
+import 'package:petal/navigation/tv_layout.dart';
 import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_theme.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -36,32 +37,35 @@ class _PetalAppState extends State<PetalApp> {
     return ValueListenableBuilder(
       valueListenable: AppTheme.mode,
       builder: (context, mode, _) => Sizer(
-        maxTabletWidth: 500,
+        maxTabletWidth: tvTabletBreakpoint,
         builder: (context, orientation, screenType) {
-          double screenWidth = MediaQuery.sizeOf(context).width;
-          return ShadcnApp.router(
-            key: ValueKey(screenWidth),
-            routerConfig: AppRouter.appRouter,
-            builder: (context, child) {
-              final scheme = Theme.of(context).colorScheme;
-              return ios.CupertinoTheme(
-                data: ios.CupertinoThemeData(
-                  brightness: scheme.brightness,
-                  primaryColor: scheme.primary,
-                  primaryContrastingColor: scheme.primaryForeground,
-                  scaffoldBackgroundColor: scheme.background,
-                  barBackgroundColor: scheme.card,
-                ),
-                child: glass.GlassTheme(
-                  data: const glass.GlassThemeData.ios27().copyWith(brightness: scheme.brightness),
-                  child: DrawerOverlay(child: child!),
-                ),
-              );
-            },
-            debugShowCheckedModeBanner: false,
-            themeMode: mode,
-            theme: _theme(ColorSchemes.lightGray.pink),
-            darkTheme: _theme(AppTheme.darkScheme),
+          return TvLayout(
+            screenType: screenType,
+            child: ShadcnApp.router(
+              routerConfig: AppRouter.appRouter,
+              builder: (context, child) {
+                final scheme = Theme.of(context).colorScheme;
+                return ios.CupertinoTheme(
+                  data: ios.CupertinoThemeData(
+                    brightness: scheme.brightness,
+                    primaryColor: scheme.primary,
+                    primaryContrastingColor: scheme.primaryForeground,
+                    scaffoldBackgroundColor: scheme.background,
+                    barBackgroundColor: scheme.card,
+                  ),
+                  child: glass.GlassTheme(
+                    data: const glass.GlassThemeData.ios27().copyWith(
+                      brightness: scheme.brightness,
+                    ),
+                    child: DrawerOverlay(child: child!),
+                  ),
+                );
+              },
+              debugShowCheckedModeBanner: false,
+              themeMode: mode,
+              theme: _theme(ColorSchemes.lightGray.blue),
+              darkTheme: _theme(AppTheme.desktopDarkScheme),
+            ),
           );
         },
       ),

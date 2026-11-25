@@ -14,8 +14,8 @@ class RatingIndicator extends StatelessWidget {
     valueListenable: UserLibrary.ratings,
     builder: (context, _, __) {
       final rating = UserLibrary.ratingFor(tmdbId, type);
-      if (rating == TitleRating.none) return const SizedBox.shrink();
-      final label = rating == TitleRating.love ? 'Loved' : 'Liked';
+      if (rating != TitleRating.like) return const SizedBox.shrink();
+      const label = 'Liked';
       return Tooltip(
         tooltip: (_) => Text(label),
         child: Semantics(
@@ -26,10 +26,8 @@ class RatingIndicator extends StatelessWidget {
               color: const Color(0xE6101018),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(
-              rating == TitleRating.love
-                  ? LucideIcons.heart
-                  : LucideIcons.thumbsUp,
+            child: const Icon(
+              LucideIcons.thumbsUp,
               size: 16,
               color: Colors.pink,
             ),

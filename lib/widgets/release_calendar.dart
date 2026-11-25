@@ -2,6 +2,7 @@ import 'package:petal/api/upcoming_releases.dart';
 import 'package:petal/models/upcoming_item.dart';
 import 'package:petal/widgets/home/release_tile.dart';
 import 'package:petal/widgets/home_section.dart';
+import 'package:petal/widgets/library/library_panel.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class ReleaseCalendar extends StatefulWidget {
@@ -12,219 +13,210 @@ class ReleaseCalendar extends StatefulWidget {
 }
 
 class _ReleaseCalendarState extends State<ReleaseCalendar> {
-  late DateTime _month;
-  DateTime? _selected;
+  late DateTime _selected = _date(DateTime.now());
+  late DateTime _month = DateTime(_selected.year, _selected.month);
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _month = DateTime(now.year, now.month);
-    _selected = DateTime(now.year, now.month, now.day);
-    UpcomingReleases.fetch();
+    UpcomingReleases.fetch().ignore();
   }
 
-  DateTime _key(DateTime date) => DateTime(date.year, date.month, date.day);
+  static DateTime _date(DateTime day) => DateTime(day.year, day.month, day.day);
+
+  void _moveMonth(int delta) => setState(() {
+    _month = DateTime(_month.year, _month.month + delta);
+    _selected = _month;
+  });
+
+  void _goToToday() => setState(() {
+    _selected = _date(DateTime.now());
+    _month = DateTime(_selected.year, _selected.month);
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: UpcomingReleases.items,
-      builder: (context, items, _) {
-        final byDay = <DateTime, List<UpcomingItem>>{};
-        for (final item in items) {
-          final day = _key(item.airDate);
-          byDay.putIfAbsent(day, () => []).add(item);
-        }
-        final selected = _selected ?? DateTime(_month.year, _month.month, 1);
-        final dayItems = byDay[_key(selected)] ?? const <UpcomingItem>[];
-        return HomeSection(
-          title: 'Release calendar',
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            IconButton.ghost(
-                              icon: const Icon(LucideIcons.chevronLeft),
-                              onPressed: () => setState(() {
-                                _month = DateTime(
-                                  _month.year,
-                                  _month.month - 1,
-                                );
-                                _selected = DateTime(
-                                  _month.year,
-                                  _month.month,
-                                  1,
-                                );
-                              }),
-                            ),
-                            Expanded(
-                              child: Text(
-                                '${_monthName(_month.month)} ${_month.year}',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            IconButton.ghost(
-                              icon: const Icon(LucideIcons.chevronRight),
-                              onPressed: () => setState(() {
-                                _month = DateTime(
-                                  _month.year,
-                                  _month.month + 1,
-                                );
-                                _selected = DateTime(
-                                  _month.year,
-                                  _month.month,
-                                  1,
-                                );
-                              }),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            for (final label in const [
-                              'S',
-                              'M',
-                              'T',
-                              'W',
-                              'T',
-                              'F',
-                              'S',
-                            ])
-                              Expanded(
-                                child: Text(
-                                  label,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        ..._rows(byDay),
-                      ],
-                    ),
-                  ),
+  Widget build(BuildContext context) => ValueListenableBuilder(
+    valueListenable: UpcomingReleases.items,
+    builder: (context, items, _) {
+      final byDay = <DateTime, List<UpcomingItem>>{};
+      for (final item in items) {
+        byDay.putIfAbsent(_date(item.airDate), () => []).add(item);
+      }
+      final today = _date(DateTime.now());
+      final dayItems = byDay[_selected] ?? const <UpcomingItem>[];
+      return HomeSection(
+        title: 'Release calendar',
+        editorial: true,
+        trailing: Button.ghost(
+          onPressed: _selected == today ? null : _goToToday,
+          child: const Text('Today'),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final month = _monthPanel(context, byDay, today);
+              final agenda = dayItems.isEmpty ? null : _agenda(dayItems);
+              if (constraints.maxWidth < 630) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
+                  children: [month, if (agenda != null) agenda],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 12,
+                children: [
+                  SizedBox(width: 320, child: month),
+                  if (agenda != null) Expanded(child: agenda),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+    },
+  );
+
+  Widget _monthPanel(
+    BuildContext context,
+    Map<DateTime, List<UpcomingItem>> byDay,
+    DateTime today,
+  ) {
+    final colors = Theme.of(context).colorScheme;
+    final lead = _month.weekday % 7;
+    final days = DateTime(_month.year, _month.month + 1, 0).day;
+    final rows = (lead + days + 6) ~/ 7;
+    return LibraryPanel(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        spacing: 4,
+        children: [
+          Row(
+            children: [
+              IconButton.ghost(
+                icon: const Icon(
+                  LucideIcons.chevronLeft,
+                  semanticLabel: 'Previous month',
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  _dayTitle(selected),
+                onPressed: () => _moveMonth(-1),
+              ),
+              Expanded(
+                child: Text(
+                  '${_months[_month.month - 1]} ${_month.year}',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 6),
-                if (dayItems.isEmpty)
-                  Text(
-                    'No new episodes this day',
+              ),
+              IconButton.ghost(
+                icon: const Icon(
+                  LucideIcons.chevronRight,
+                  semanticLabel: 'Next month',
+                ),
+                onPressed: () => _moveMonth(1),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              for (final label in const [
+                'Su',
+                'Mo',
+                'Tu',
+                'We',
+                'Th',
+                'Fr',
+                'Sa',
+              ])
+                Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.55),
+                      fontSize: 11,
+                      color: colors.mutedForeground,
                     ),
-                  )
-                else
-                  for (final item in dayItems) ReleaseTile(item: item),
+                  ),
+                ),
+            ],
+          ),
+          for (var row = 0; row < rows; row++)
+            Row(
+              spacing: 2,
+              children: [
+                for (var col = 0; col < 7; col++)
+                  Expanded(
+                    child: _dayButton(
+                      context,
+                      row * 7 + col - lead + 1,
+                      days,
+                      byDay,
+                      today,
+                    ),
+                  ),
               ],
             ),
-          ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  List<Widget> _rows(Map<DateTime, List<UpcomingItem>> byDay) {
-    final first = DateTime(_month.year, _month.month, 1);
-    final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
-    final lead = first.weekday % 7;
-    final rows = ((lead + daysInMonth + 6) / 7).floor();
-    return [
-      for (var row = 0; row < rows; row++)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Row(
-            children: [
-              for (var col = 0; col < 7; col++)
-                Expanded(child: _cell(row * 7 + col, lead, daysInMonth, byDay)),
-            ],
-          ),
-        ),
-    ];
-  }
-
-  Widget _cell(
-    int index,
-    int lead,
-    int daysInMonth,
+  Widget _dayButton(
+    BuildContext context,
+    int number,
+    int days,
     Map<DateTime, List<UpcomingItem>> byDay,
+    DateTime today,
   ) {
-    final dayNum = index - lead + 1;
-    if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(height: 36);
-    final day = DateTime(_month.year, _month.month, dayNum);
+    if (number < 1 || number > days) return const SizedBox(height: 38);
+    final day = DateTime(_month.year, _month.month, number);
     final count = byDay[day]?.length ?? 0;
-    final selected =
-        _selected != null &&
-        _selected!.year == day.year &&
-        _selected!.month == day.month &&
-        _selected!.day == day.day;
-    final today = DateTime.now();
-    final isToday =
-        today.year == day.year &&
-        today.month == day.month &&
-        today.day == day.day;
-    return Padding(
-      padding: const EdgeInsets.all(2),
-      child: GestureDetector(
-        onTap: () => setState(() => _selected = day),
-        child: Container(
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: count == 0
-                ? Colors.white.withValues(alpha: 0.04)
-                : const Color(0xFF7C4DFF)
-                      .withValues(alpha: 0.28 + (count.clamp(1, 4) * 0.12)),
-            borderRadius: BorderRadius.circular(8),
-            border: selected
-                ? Border.all(color: Colors.white, width: 1.5)
-                : isToday
-                ? Border.all(color: const Color(0xFF7C4DFF), width: 1)
-                : null,
-          ),
+    final selected = day == _selected;
+    final colors = Theme.of(context).colorScheme;
+    final style = selected
+        ? ButtonVariance.primary
+        : day == today
+        ? ButtonVariance.outline
+        : ButtonVariance.ghost;
+    return Semantics(
+      label:
+          '${_months[day.month - 1]} $number, $count ${count == 1 ? 'release' : 'releases'}',
+      selected: selected,
+      child: Button(
+        style: style.withPadding(padding: EdgeInsets.zero),
+        onPressed: () => setState(() => _selected = day),
+        child: SizedBox(
+          height: 38,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            spacing: 3,
             children: [
-              Text(
-                '$dayNum',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: count == 0
-                      ? Colors.white.withValues(alpha: 0.45)
-                      : Colors.white,
-                ),
-              ),
-              if (count > 0)
-                Text(
-                  '$count',
+              ExcludeSemantics(
+                child: Text(
+                  '$number',
                   style: TextStyle(
-                    fontSize: 9,
-                    color: Colors.white.withValues(alpha: 0.75),
+                    fontSize: 12,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
+              ),
+              SizedBox.square(
+                dimension: 4,
+                child: count == 0
+                    ? null
+                    : DecoratedBox(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: selected
+                              ? colors.primaryForeground
+                              : colors.foreground,
+                        ),
+                      ),
+              ),
             ],
           ),
         ),
@@ -232,32 +224,48 @@ class _ReleaseCalendarState extends State<ReleaseCalendar> {
     );
   }
 
-  String _dayTitle(DateTime day) {
-    final today = DateTime.now();
-    final a = DateTime(today.year, today.month, today.day);
-    final b = DateTime(day.year, day.month, day.day);
-    final diff = b.difference(a).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Tomorrow';
-    if (diff == -1) return 'Yesterday';
-    return '${day.month}/${day.day}/${day.year}';
-  }
+  Widget _agenda(List<UpcomingItem> items) => LibraryPanel(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 8,
+      children: [
+        Row(
+          spacing: 8,
+          children: [
+            const Icon(LucideIcons.calendarDays, size: 18),
+            Expanded(
+              child: Text(
+                '${_months[_selected.month - 1]} ${_selected.day}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            SecondaryBadge(
+              child: Text(
+                '${items.length} ${items.length == 1 ? 'release' : 'releases'}',
+              ),
+            ),
+          ],
+        ),
+        for (final item in items) ReleaseTile(item: item),
+      ],
+    ),
+  );
 
-  static String _monthName(int month) {
-    const names = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return names[month - 1];
-  }
+  static const _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
 }

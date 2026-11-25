@@ -11,10 +11,11 @@ import 'package:petal/api/user_library.dart';
 import 'package:petal/models/media_card_target.dart';
 import 'package:petal/widgets/media/rating_indicator.dart';
 import 'package:petal/models/media_type.dart';
+import 'package:petal/models/tmdb/media_platform.dart';
 import 'package:petal/utils/app_notifications.dart';
 import 'package:petal/utils/watch_progress.dart';
 import 'package:petal/widgets/catalog/hoverable_item.dart';
-import 'package:petal/widgets/media/in_progress_indicator.dart';
+import 'package:petal/widgets/media/media_platform_badge.dart';
 import 'package:petal/widgets/media/media_title_logo.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
@@ -23,6 +24,7 @@ class MediaCard extends StatefulWidget {
   final String? imageUrl;
   final Widget? image;
   final String? label;
+  final String? semanticLabel;
   final Widget? overlay;
   final VoidCallback? onTap;
   final MediaCardTarget? target;
@@ -31,6 +33,7 @@ class MediaCard extends StatefulWidget {
   final String primaryActionLabel;
   final Orientation orientation;
   final double? progress;
+  final bool showProgress;
   final bool isLoading;
   final bool showLogo;
   final String? logoUrl;
@@ -40,6 +43,7 @@ class MediaCard extends StatefulWidget {
     this.imageUrl,
     this.image,
     this.label,
+    this.semanticLabel,
     this.overlay,
     this.onTap,
     this.target,
@@ -50,6 +54,7 @@ class MediaCard extends StatefulWidget {
     this.showLogo = true,
     this.isLoading = false,
     this.progress,
+    this.showProgress = true,
     this.logoUrl,
   });
 
@@ -60,6 +65,9 @@ class MediaCard extends StatefulWidget {
 class _MediaCardState extends State<MediaCard> {
   Future<int?>? _idFuture;
   Future<String?>? _logo;
+  Future<MediaPlatform?>? _platform;
+  String? _region;
+  bool _regionReady = false;
   int? _resolvedId;
   int _generation = 0;
   int? _totalEpisodes;
@@ -74,6 +82,19 @@ class _MediaCardState extends State<MediaCard> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final region =
+        Localizations.maybeLocaleOf(context)?.countryCode ??
+        View.of(context).platformDispatcher.locale.countryCode;
+    if (!_regionReady || _region != region) {
+      _region = region;
+      _regionReady = true;
+      _loadPlatform();
+    }
+  }
+
+  @override
   void didUpdateWidget(MediaCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.target?.tmdbId != widget.target?.tmdbId ||
@@ -83,8 +104,12 @@ class _MediaCardState extends State<MediaCard> {
         oldWidget.showLogo != widget.showLogo ||
         oldWidget.logoUrl != widget.logoUrl ||
         oldWidget.isLoading != widget.isLoading ||
-        oldWidget.target?.totalEpisodes != widget.target?.totalEpisodes)
+        oldWidget.target?.totalEpisodes != widget.target?.totalEpisodes) {
       _load();
+    } else if ((oldWidget.imageUrl?.isNotEmpty ?? false) !=
+        (widget.imageUrl?.isNotEmpty ?? false)) {
+      _loadPlatform();
+    }
   }
 
   void _load() {
@@ -94,6 +119,7 @@ class _MediaCardState extends State<MediaCard> {
     _totalEpisodes = widget.target?.totalEpisodes;
     _resolvedId = widget.target?.tmdbId;
     _logo = null;
+    if (_regionReady) _loadPlatform();
     if (widget.isLoading) return;
     _resolveProgressTarget();
     if (!widget.showLogo || widget.orientation != Orientation.landscape) return;
@@ -105,6 +131,31 @@ class _MediaCardState extends State<MediaCard> {
         (id) => id == null ? null : TMDB.titleLogo(id, type),
       );
     }
+  }
+
+  void _loadPlatform() {
+    _platform = null;
+    final target = widget.target;
+    final region = _region;
+    if (widget.isLoading ||
+        target == null ||
+        !(widget.imageUrl?.isNotEmpty ?? false) ||
+        (target.type == MediaType.movie && region == null) ||
+        (target.tmdbId == null &&
+            !RegExp(r'^tt\d+$').hasMatch(target.imdbId ?? '')))
+      return;
+    final generation = _generation;
+    _platform = () async {
+      try {
+        final id = await _resolveId();
+        if (!mounted || generation != _generation || id == null || id <= 0)
+          return null;
+        return await TMDB.mediaPlatform(id, target.type, region: region);
+      } catch (_) {
+        // Platform artwork is optional; the card remains usable anywhere.
+        return null;
+      }
+    }();
   }
 
   void _resolveProgressTarget() {
@@ -226,7 +277,12 @@ class _MediaCardState extends State<MediaCard> {
     final target = widget.target!;
     final id = _resolvedId;
     if (id == null) return false;
-    if (!target.isEpisode) return UserLibrary.isWatched(id, target.type, totalEpisodes: _totalEpisodes);
+    if (!target.isEpisode)
+      return UserLibrary.isWatched(
+        id,
+        target.type,
+        totalEpisodes: _totalEpisodes,
+      );
     return BackendCache.watchHistory.value
         .where((item) => item.tmdbId == id && item.mediaType == target.type)
         .any(
@@ -318,10 +374,19 @@ class _MediaCardState extends State<MediaCard> {
           ),
           MenuButton(
             leading: const Icon(LucideIcons.check),
-            child: Text(_resolvedId != null && UserLibrary.isChangingWatched(_resolvedId!, target.type)
-              ? 'Saving watch status…' : _watched ? 'Mark as Unwatched' : 'Mark as Watched'),
-            onPressed: _resolvedId != null && UserLibrary.isChangingWatched(_resolvedId!, target.type)
-              ? null : (_) => _run(() => _libraryAction(_toggleWatched)),
+            child: Text(
+              _resolvedId != null &&
+                      UserLibrary.isChangingWatched(_resolvedId!, target.type)
+                  ? 'Saving watch status…'
+                  : _watched
+                  ? 'Mark as Unwatched'
+                  : 'Mark as Watched',
+            ),
+            onPressed:
+                _resolvedId != null &&
+                    UserLibrary.isChangingWatched(_resolvedId!, target.type)
+                ? null
+                : (_) => _run(() => _libraryAction(_toggleWatched)),
           ),
           MenuButton(
             leading: const Icon(LucideIcons.thumbsUp),
@@ -353,7 +418,7 @@ class _MediaCardState extends State<MediaCard> {
         BackendCache.watchHistory,
       ]),
       builder: (context, _) => Semantics(
-        label: widget.label,
+        label: widget.semanticLabel ?? widget.label,
         button:
             !widget.isLoading &&
             (widget.onTap != null || widget.target != null),
@@ -396,8 +461,9 @@ class _MediaCardState extends State<MediaCard> {
                         ),
                       ),
                     if (widget.overlay != null) widget.overlay!,
-                    if (widget.progress != null ||
-                        (_resolvedId != null && widget.target != null))
+                    if (widget.showProgress &&
+                        (widget.progress != null ||
+                            (_resolvedId != null && widget.target != null)))
                       Positioned(
                         left: 0,
                         right: 0,
@@ -424,16 +490,18 @@ class _MediaCardState extends State<MediaCard> {
                           type: widget.target!.type,
                         ),
                       ),
-                    if (_resolvedId != null && widget.target != null)
+                    if (_platform != null)
                       Positioned(
-                        top: 12,
-                        right: 12,
-                        child: InProgressIndicator(
-                          target: MediaCardTarget(
-                            tmdbId: _resolvedId,
-                            type: widget.target!.type,
-                            totalEpisodes: _totalEpisodes,
-                          ),
+                        top: 8,
+                        right: 8,
+                        child: FutureBuilder<MediaPlatform?>(
+                          future: _platform,
+                          builder: (context, snapshot) =>
+                              snapshot.connectionState ==
+                                      ConnectionState.done &&
+                                  snapshot.hasData
+                              ? MediaPlatformBadge(platform: snapshot.data!)
+                              : const SizedBox.shrink(),
                         ),
                       ),
                   ],

@@ -15,6 +15,12 @@ class AppTheme {
     input: () => const Color(0xFF3C3046),
   );
 
+  static final desktopDarkScheme = ColorSchemes.darkGray.blue.copyWith(
+    background: () => const Color(0xFF101113),
+    card: () => const Color(0xFF1B1D20),
+    popover: () => const Color(0xFF25272B),
+  );
+
   static const _prefsKey = 'theme_mode';
 
   static Future<void> load() async {

@@ -97,7 +97,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
         isLoading: snapshot.connectionState != ConnectionState.done,
         orientation: Orientation.landscape,
         primaryActionLabel: widget.openOverview ? 'View episode' : 'Resume',
-        progress: next?.completion,
+        showProgress: false,
         target: MediaCardTarget(
           tmdbId: state.tmdbId,
           type: state.mediaType,
@@ -132,9 +132,9 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
         imageUrl: snapshot.data?.stillUrl,
         label: snapshot.data?.name,
         overlay: Positioned(
-          left: 8,
-          right: 8,
-          bottom: 8,
+          left: 0,
+          right: 0,
+          bottom: 0,
           child: FutureBuilder<TmdbShow>(
             future: _futureShow,
             builder: (context, showSnap) {
@@ -148,6 +148,8 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
               final watched = WatchMeta.watchedEpisodesFromShow(state);
               final left = aired > 0 ? (aired - watched).clamp(0, aired) : 0;
               return WatchMetaOverlay(
+                playback: true,
+                progress: next?.completion,
                 episodeLabel: next == null
                     ? null
                     : 'S${next.season} · E${next.episode}',
@@ -171,7 +173,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
       isLoading: snapshot.connectionState != ConnectionState.done,
       orientation: Orientation.landscape,
       primaryActionLabel: widget.openOverview ? 'View movie' : 'Resume',
-      progress: state.completion,
+      showProgress: false,
       target: MediaCardTarget(tmdbId: state.tmdbId, type: state.mediaType),
       extraContextItems: [
         if (widget.openOverview)
@@ -198,10 +200,12 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard>
       imageUrl: snapshot.data?.images?.backdrops.firstOrNull?.url,
       label: snapshot.data?.title,
       overlay: Positioned(
-        left: 8,
-        right: 8,
-        bottom: 8,
+        left: 0,
+        right: 0,
+        bottom: 0,
         child: WatchMetaOverlay(
+          playback: true,
+          progress: state.completion,
           episodeLabel: 'Movie',
           durationLabel: WatchMeta.minutes(snapshot.data?.runtime ?? 0),
           remainingLabel: () {

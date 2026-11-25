@@ -4,6 +4,7 @@ import 'package:petal/models/downloads/download_entry.dart';
 import 'package:petal/models/downloads/download_status.dart';
 import 'package:petal/models/stream_item.dart';
 import 'package:petal/utils/watch_progress.dart';
+import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class DownloadContextMenu extends StatelessWidget {
@@ -33,7 +34,7 @@ class DownloadContextMenu extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => ContextMenu(
+  Widget build(BuildContext context) => PetalContextMenu(
     items: [
       if (entry.status == DownloadStatus.done && entry.path != null)
         MenuButton(

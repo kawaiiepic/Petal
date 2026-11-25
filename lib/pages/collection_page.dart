@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/pages/collection_home_page.dart';
-import 'package:petal/widgets/back_button.dart';
+import 'package:petal/widgets/library/library_page_header.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class CollectionPage extends StatefulWidget {
@@ -22,15 +22,17 @@ class _CollectionPageState extends State<CollectionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       headers: [
-        AppBar(
-          leading: [BackButton()],
-          title: const Text('Collection'),
-          trailing: [
-            IconButton.ghost(
-              icon: const Icon(LucideIcons.activity),
-              onPressed: () => context.push('/stats'),
-            ),
-          ],
+        LibraryPageHeader(
+          title: 'Collection',
+          description:
+              'Pick up where you left off or find something you saved.',
+          icon: LucideIcons.library,
+          showAccount: true,
+          action: Button.secondary(
+            leading: const Icon(LucideIcons.activity),
+            onPressed: () => context.push('/stats'),
+            child: const Text('Stats'),
+          ),
         ),
       ],
       child: const CollectionHomePage(),

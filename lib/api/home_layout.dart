@@ -67,8 +67,13 @@ class HomeLayout extends ChangeNotifier {
 
   Future<void> move(String id, int delta) {
     final index = order.indexOf(id);
-    final next = index + delta;
-    if (index < 0 || next < 0 || next >= order.length) return Future.value();
+    var next = index + delta;
+    // The Surprise action stays pinned below Featured, even in saved layouts.
+    if (id == 'surprise' || index < 0 || delta == 0) return Future.value();
+    if (next >= 0 && next < order.length && order[next] == 'surprise') {
+      next += delta.sign;
+    }
+    if (next < 0 || next >= order.length) return Future.value();
     order.removeAt(index);
     order.insert(next, id);
     return _save();

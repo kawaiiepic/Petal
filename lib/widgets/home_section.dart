@@ -1,66 +1,64 @@
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:sizer/sizer.dart';
 
-class HomeSection extends StatefulWidget {
-  final String title;
-  final Widget child;
-  final bool initiallyOpen;
-  final Widget? trailing;
-  final EdgeInsetsGeometry? padding;
-
+class HomeSection extends StatelessWidget {
   const HomeSection({
     super.key,
     required this.title,
     required this.child,
-    this.initiallyOpen = true,
     this.trailing,
     this.padding,
+    this.editorial = false,
   });
 
-  @override
-  State<HomeSection> createState() => _HomeSectionState();
-}
-
-class _HomeSectionState extends State<HomeSection> {
-  late bool _open = widget.initiallyOpen;
+  final String title;
+  final Widget child;
+  final Widget? trailing;
+  final EdgeInsetsGeometry? padding;
+  final bool editorial;
 
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 600;
     final style = TextStyle(
-      fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 16.sp,
-      fontWeight: FontWeight.w600,
+      fontSize: editorial
+          ? 21
+          : Device.screenType == ScreenType.desktop
+          ? 12.sp
+          : 16.sp,
+      fontWeight: editorial ? FontWeight.w700 : FontWeight.w600,
     );
     return Padding(
-      padding: widget.padding ?? EdgeInsets.symmetric(
-        horizontal: compact ? 12 : 16, vertical: compact ? 4 : 8),
+      padding:
+          padding ??
+          (editorial
+              ? const EdgeInsets.only(top: 8, bottom: 18)
+              : EdgeInsets.symmetric(
+                  horizontal: compact ? 12 : 16,
+                  vertical: compact ? 4 : 8,
+                )),
       child: Column(
         spacing: compact ? 4 : 8,
         children: [
-          Button(
-            style: ButtonVariance.ghost,
-            onPressed: () => setState(() => _open = !_open),
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: editorial ? 20 : 8,
+              vertical: editorial ? 10 : 6,
+            ),
             child: Row(
+              spacing: 8,
               children: [
                 Expanded(
-                  child: Text(
-                    widget.title,
-                    style: style,
-                    textAlign: TextAlign.left,
+                  child: Semantics(
+                    header: true,
+                    child: Text(title, style: style),
                   ),
                 ),
-                if (widget.trailing != null) ...[
-                  widget.trailing!,
-                  const SizedBox(width: 8),
-                ],
-                Icon(
-                  _open ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-                  size: 16,
-                ),
+                if (trailing != null) trailing!,
               ],
             ),
           ),
-          if (_open) widget.child,
+          child,
         ],
       ),
     );

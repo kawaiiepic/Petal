@@ -6,12 +6,14 @@ class MediaArtwork extends StatelessWidget {
   final String? imageUrl;
   final bool isLoading;
   final BoxFit fit;
+  final Alignment alignment;
   final int? cacheWidth;
   const MediaArtwork({
     super.key,
     this.imageUrl,
     this.isLoading = false,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.cacheWidth,
   });
 
@@ -23,6 +25,7 @@ class MediaArtwork extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: url,
       fit: fit,
+      alignment: alignment,
       memCacheWidth: cacheWidth,
       fadeInDuration: Duration.zero,
       placeholder: (_, _) => const MediaArtworkPlaceholder(loading: true),

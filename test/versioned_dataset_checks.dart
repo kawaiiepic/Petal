@@ -17,11 +17,11 @@ Future<void> main() async {
         name: 'history', versionField: 'progress_version', maxAge: age,
         encode: (v) => v, decode: (v) => (v as List).cast<int>(),
         server: () => server, isCurrentScope: (s) => s == scope,
-        versions: (_, _) async { checks++; return checkOverride == null ? stamp : await checkOverride!(); },
+        versions: (_, _) async { checks++; return checkOverride == null ? stamp : await checkOverride(); },
         invalidateVersions: (_) {},
         read: (key) async => disk[key],
         write: (key, value) async {
-          if (writeOverride != null) await writeOverride!(key, value);
+          if (writeOverride != null) await writeOverride(key, value);
           disk[key] = value;
         },
         remove: (key) async { disk.remove(key); },

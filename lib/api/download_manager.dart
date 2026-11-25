@@ -384,7 +384,8 @@ class DownloadManager {
     if (changed) items.value = [...items.value];
     return DownloadStorage(
       usedBytes: used,
-      freeBytes: await DeviceStorage.freeBytes(dir.path),
+      freeBytes: await DeviceStorage.freeBytes(dir.path)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null),
     );
   }
 

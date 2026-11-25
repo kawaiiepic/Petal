@@ -294,8 +294,8 @@ void main() {
   test(
     'storage summary counts media files and fills old download sizes',
     () async {
+      expect((await DownloadManager.storage()).usedBytes, 0);
       final dir = Directory('${root.path}/downloads');
-      await dir.create();
       final file = File('${dir.path}/movie.mp4');
       await file.writeAsBytes(List.filled(2048, 0));
       await File('${dir.path}/index.json').writeAsString('[]');

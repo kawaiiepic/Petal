@@ -15,6 +15,7 @@ import 'package:petal/models/tmdb/tmdb_movie.dart';
 import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/utils/media_formatting.dart';
+import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:petal/widgets/overview/overview_back_button.dart';
 import 'package:petal/widgets/overview/cast_card.dart';
 import 'package:petal/widgets/overview/movie_recommendation_card.dart';
@@ -171,7 +172,7 @@ class _MovieOverviewPageState extends State<MovieOverviewPage> {
                         onTrailer: trailer != null
                             ? () => launchUrl(Uri.parse(trailer.youtubeUrl))
                             : null,
-                        play: ContextMenu(
+                        play: PetalContextMenu(
                           items: [
                             MenuButton(
                               trailing: const MenuShortcut(

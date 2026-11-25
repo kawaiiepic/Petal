@@ -8,17 +8,20 @@ class HomeShelfSkeleton extends StatelessWidget {
   final String title;
   final Orientation orientation;
   final double cardHeight;
+  final bool editorial;
 
   const HomeShelfSkeleton({
     super.key,
     required this.title,
     this.orientation = Orientation.portrait,
     this.cardHeight = 180,
+    this.editorial = false,
   });
 
   @override
   Widget build(BuildContext context) => HomeSection(
     title: title,
+    editorial: editorial,
     child: ExcludeFocus(
       child: IgnorePointer(
         child: MediaShelf(

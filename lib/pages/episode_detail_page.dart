@@ -17,6 +17,7 @@ import 'package:petal/models/tmdb/tmdb_episode.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
+import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:petal/widgets/overview/overview_back_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
@@ -133,7 +134,7 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
           listenable: Listenable.merge([
             BackendCache.watchHistory, UserLibrary.pendingWatched,
           ]),
-          builder: (context, _) => ContextMenu(
+          builder: (context, _) => PetalContextMenu(
             items: [
               MenuButton(
                 leading: const Icon(LucideIcons.check),

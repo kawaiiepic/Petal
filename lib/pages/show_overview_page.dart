@@ -1,3 +1,4 @@
+import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
 import 'package:petal/widgets/overview/episode_action_menu.dart';
 import 'package:petal/api/user_library.dart';
@@ -245,7 +246,7 @@ class _ShowOverviewPageState extends State<ShowOverviewPage> {
                         onTrailer: trailer == null
                             ? null
                             : () => launchUrl(Uri.parse(trailer.youtubeUrl)),
-                        play: ContextMenu(
+                        play: PetalContextMenu(
                           items: [
                             MenuButton(
                               trailing: const MenuShortcut(

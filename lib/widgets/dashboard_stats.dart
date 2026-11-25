@@ -55,6 +55,7 @@ class _DashboardStatsState extends State<DashboardStats> {
         ];
         return HomeSection(
           title: 'Stats',
+          editorial: true,
           child: LayoutBuilder(
             builder: (context, constraints) => MediaShelf(
               orientation: Orientation.landscape,
@@ -62,7 +63,10 @@ class _DashboardStatsState extends State<DashboardStats> {
               itemBuilder: (context, index) => cards[index],
               cardHeight: 110,
               cardWidth: MediaQuery.sizeOf(context).width < 600
-                  ? ((constraints.maxWidth - 8) / 2.2).clamp(120.0, 320.0).toDouble() : null,
+                  ? ((constraints.maxWidth - 8) / 2.2)
+                        .clamp(120.0, 320.0)
+                        .toDouble()
+                  : null,
             ),
           ),
         );

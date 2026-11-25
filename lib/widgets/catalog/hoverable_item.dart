@@ -1,3 +1,5 @@
+import 'package:petal/widgets/ios/ios_context_menu.dart';
+import 'package:petal/widgets/media/artwork_frame.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class HoverableItem extends StatefulWidget {
@@ -25,33 +27,20 @@ class _HoverableItemState extends State<HoverableItem> {
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
-      color: Colors.transparent,
-      child: AspectRatio(
-        aspectRatio: widget.orientation == Orientation.portrait
-            ? 3 / 4
-            : 16 / 9,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: _isHovering ? Colors.white : Colors.transparent,
+    final card = AspectRatio(
+      aspectRatio: widget.orientation == Orientation.portrait ? 3 / 4 : 16 / 9,
+      child: ArtworkFrame(
+        highlighted: _isHovering,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            AnimatedScale(
+              scale: _isHovering ? 1.07 : 1,
+              duration: const Duration(milliseconds: 250),
+              child: widget.image,
             ),
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadiusGeometry.circular(12.0),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                AnimatedScale(
-                  scale: _isHovering ? 1.1 : 1,
-                  duration: const Duration(milliseconds: 300),
-                  child: widget.image,
-                ),
-                if (widget.extraWidget != null) widget.extraWidget!,
-              ],
-            ),
-          ),
+            if (widget.extraWidget != null) widget.extraWidget!,
+          ],
         ),
       ),
     );
@@ -69,10 +58,6 @@ class _HoverableItemState extends State<HoverableItem> {
     if (widget.contextItems == null || widget.contextItems!.isEmpty)
       return tappable;
 
-    return ContextMenu(
-      enabled: true,
-      items: widget.contextItems!,
-      child: tappable,
-    );
+    return PetalContextMenu(items: widget.contextItems!, child: tappable);
   }
 }

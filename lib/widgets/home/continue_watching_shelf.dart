@@ -6,7 +6,9 @@ import 'package:petal/widgets/media/media_shelf.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class ContinueWatchingShelf extends StatefulWidget {
-  const ContinueWatchingShelf({super.key});
+  const ContinueWatchingShelf({super.key, this.editorial = false});
+
+  final bool editorial;
 
   @override
   State<StatefulWidget> createState() => _ContinueWatchingShelfState();
@@ -38,9 +40,20 @@ class _ContinueWatchingShelfState extends State<ContinueWatchingShelf> {
       valueListenable: BackendCache.continueWatching,
       builder: (context, list, _) {
         if (list.isEmpty) return const SizedBox.shrink();
+        final width = (MediaQuery.sizeOf(context).width * .62).clamp(
+          172.0,
+          286.0,
+        );
         return HomeSection(
           title: 'Continue Watching',
+          editorial: widget.editorial,
           child: MediaShelf(
+            cardWidth: widget.editorial ? width : null,
+            cardHeight: widget.editorial ? width * .66 : 180,
+            spacing: widget.editorial ? 12 : 16,
+            padding: widget.editorial
+                ? const EdgeInsets.symmetric(horizontal: 20)
+                : null,
             orientation: Orientation.landscape,
             itemCount: list.length,
             itemBuilder: (context, index) => ContinueWatchingCard(

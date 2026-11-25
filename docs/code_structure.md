@@ -39,6 +39,24 @@ which owns scroll controllers, spacing, sizing, and horizontal arrows. Its
 selects a horizontal row or a vertical grid. Vertical grids expand within a page
 scroll view and scroll themselves when given a bounded height.
 
+`TvLayout` passes Sizer's screen type to the router shell and widgets. Desktop
+sizes use `DesktopTvShell` with a Liquid Glass sidebar; phone and tablet sizes
+use a floating dock for Home and Search. Both open `SearchDiscovery`, which
+browses addon catalog titles by media type and genre before a query is entered.
+
+Both Home layouts feature full-bleed artwork from existing addon catalogs,
+then Continue Watching and popular movie/show rows. On desktop, the artwork
+meets the sidebar without overlapping it. Shelf headings are static; their
+contents stay open. `FeaturedAutoplay` rotates visible banners while hovered,
+but pauses for a press, keyboard focus, or backgrounding and honors
+reduced-motion settings. Its shared pagination dots track the autoplay timer
+and can be tapped to jump to a title. Portrait catalog cards show centered
+subtext without repeating the title; the title stays in the accessibility label.
+Rank badges, playback metadata and inset artwork outlines are shared across
+compact and desktop layouts. Media cards show the original TV network or a
+local subscription platform when TMDB supplies a logo; playback progress
+remains on the card without a watched badge.
+
 Each data adapter returns a `MediaCard` with an image URL, optional overlay,
 accessibility label, and actions. Loading images, error images, hover behavior,
 and clipping are shared. Captions are not rendered below artwork.
@@ -46,6 +64,8 @@ and clipping are shared. Captions are not rendered below artwork.
 Give `MediaCard` a `MediaCardTarget` to enable the shared Play/Resume, Select Source,
 More Info, Watchlist, Watched, and Rate menu. Shelf-specific commands belong in
 `extraContextItems`; `showDefaultContextMenu: false` allows an extra-only menu.
+`PetalContextMenu` gives these actions a frosted, rounded popover on both
+right-click and mobile long press without changing the action definitions.
 Landscape cards automatically display TMDB title artwork at the top. English
 artwork is preferred, then language-neutral artwork; missing logos are hidden.
 
@@ -127,9 +147,18 @@ the same artwork skeleton and stop animating on failure. Overview failures expos
 retry controls instead of permanent skeletons. Finished badges require all regular
 episodes to meet the 90% watched threshold and a known episode total.
 
-Collections resolve metadata through a bounded queue before splitting Watching,
-Watched, and Planned rows. Cards never remove their own allocated slots, and
-missing posters or failed metadata stay visible with fallback artwork.
+Collection, Playback History, and Downloads share `LibraryPageHeader`, with the
+account avatar in the compact Collection and Downloads headers. Collection uses
+always-open artwork shelves with counts and shares Home's playback caption for
+Watching, Watched, and Planned. Metadata loads through a bounded queue; failed
+lookups stay visible with fallback artwork. Playback History uses the same
+landscape cards, showing each title once under its latest local activity date.
+Opening a show card reveals season-grouped episodes and their editing controls.
+Downloads separates its queue from titles saved offline and reports unavailable
+storage measurements instead of remaining in a loading state.
+
+Friend Activity uses the shared artwork shelf. Release Calendar pairs a month
+grid with a selected-day agenda, stacking the panels on narrower layouts.
 
 Backend cache notifiers store values immediately and defer widget notifications
 until the end of the frame during build/disposal. This lets final player progress

@@ -4,7 +4,10 @@ import 'package:petal/api/social_api.dart';
 import 'package:petal/api/stream_api.dart';
 import 'package:petal/models/catalog_item.dart';
 import 'package:petal/models/social/social_profile.dart';
-import 'package:petal/widgets/back_button.dart';
+import 'package:petal/navigation/ios_navigation_dock.dart';
+import 'package:petal/navigation/tv_layout.dart';
+import 'package:petal/widgets/search/search_discovery.dart';
+import 'package:petal/widgets/search/search_field.dart';
 import 'package:petal/widgets/catalog/catalog_item_widget.dart';
 import 'package:petal/widgets/connection_error_view.dart';
 import 'package:petal/widgets/home_section.dart';
@@ -29,7 +32,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   void initState() {
     super.initState();
     _future = _load(widget.query);
-    _profiles = SocialApi.searchProfiles(widget.query);
+    _profiles = _loadProfiles();
   }
 
   @override
@@ -43,9 +46,13 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
   void _reload() {
     setState(() {
       _future = _load(widget.query);
-      _profiles = SocialApi.searchProfiles(widget.query);
+      _profiles = _loadProfiles();
     });
   }
+
+  Future<List<SocialProfile>> _loadProfiles() => widget.query.trim().isEmpty
+      ? Future.value(const [])
+      : SocialApi.searchProfiles(widget.query);
 
   Future<List<CatalogItem>> _load(String query) async {
     final trimmed = query.trim();
@@ -73,12 +80,16 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = TvLayout.isCompact(context);
+    if (widget.query.trim().isEmpty) return const SearchDiscovery();
     return Scaffold(
       headers: [
         AppBar(
-          leading: [BackButton()],
-          title: Text(
-            widget.query.trim().isEmpty ? 'Search' : widget.query.trim(),
+          title: SearchField(
+            key: ValueKey(widget.query),
+            initialQuery: widget.query,
+            replaceResults: true,
+            placeholder: 'Shows, Movies, and More',
           ),
         ),
       ],
@@ -98,6 +109,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
           final movies = items.where((i) => i.type == 'movie').toList();
 
           return CustomScrollView(
+            primary: false,
             slivers: [
               SliverToBoxAdapter(
                 child: FutureBuilder<List<SocialProfile>>(
@@ -146,7 +158,14 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                     },
                   ),
                 ),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: compact
+                      ? IosNavigationDock.clearance +
+                            MediaQuery.viewPaddingOf(context).bottom
+                      : 24,
+                ),
+              ),
             ],
           );
         },

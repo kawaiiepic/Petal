@@ -13,6 +13,7 @@ class CollectionMetadata {
   static final Map<String, Map<String, dynamic>> _data = {};
   static final Map<String, Future<Object>> _pending = {};
   static Future<void>? _restore;
+  static bool _restored = false;
   static Future<void> _saves = Future.value();
   static Timer? _saveTimer;
   static const _ttl = Duration(hours: 6);
@@ -31,7 +32,15 @@ class CollectionMetadata {
     return row == null ? null : _decode(row, type);
   }
 
-  static Future<void> restore() => _restore ??= () async {
+  static Future<void> restore() {
+    if (_restored) return Future.value();
+    return _restore ??= _restoreFromDisk().whenComplete(() {
+      _restored = true;
+      _restore = null;
+    });
+  }
+
+  static Future<void> _restoreFromDisk() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString('collection_metadata_v1');
@@ -51,7 +60,7 @@ class CollectionMetadata {
     } catch (_) {
       // Cache storage is optional.
     }
-  }();
+  }
 
   static Future<Object> get(int id, MediaType type) async {
     await restore();

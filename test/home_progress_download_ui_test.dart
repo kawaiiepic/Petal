@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:petal/api/backend/backend_cache.dart';
 import 'package:petal/models/downloads/download_entry.dart';
 import 'package:petal/models/downloads/download_status.dart';
@@ -7,58 +8,90 @@ import 'package:petal/models/media_card_target.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/stream_item.dart';
 import 'package:petal/models/watch_history/watch_history_item.dart';
+import 'package:petal/widgets/downloads/download_storage_card.dart';
 import 'package:petal/widgets/downloads/download_tile.dart';
+import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:petal/widgets/media/media_card.dart';
+import 'package:petal/widgets/media/media_progress_bar.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
+class _UnavailableStoragePath extends PathProviderPlatform {
+  @override
+  Future<String?> getApplicationDocumentsPath() async => null;
+}
+
 void main() {
-  testWidgets('shared Home card badge follows progress regardless of shelf', (
-    tester,
-  ) async {
-    WatchHistoryItem history(List<double> progress) =>
-        WatchHistoryItem.fromJson({
-          'tmdb_id': 42,
-          'media_type': 'show',
-          'updated_at': 1700000000,
-          'episodes': [
-            for (var i = 0; i < progress.length; i++)
-              {'season': 1, 'episode': i + 1, 'completion': progress[i]},
-          ],
-        });
-    BackendCache.continueWatching.value = [];
-    BackendCache.watchHistory.value = [
-      history([0.3]),
-    ];
-    Widget card(String shelf) => ShadcnApp(
-      home: Scaffold(
-        child: SizedBox(
-          width: 320,
-          height: 180,
-          child: MediaCard(
-            label: shelf,
-            showLogo: false,
-            image: const ColoredBox(color: Colors.pink),
-            target: const MediaCardTarget(
-              tmdbId: 42,
-              type: MediaType.show,
-              totalEpisodes: 2,
+  testWidgets(
+    'storage card stops calculating when the storage path is unavailable',
+    (tester) async {
+      final originalPaths = PathProviderPlatform.instance;
+      PathProviderPlatform.instance = _UnavailableStoragePath();
+      addTearDown(() => PathProviderPlatform.instance = originalPaths);
+      await tester.pumpWidget(
+        const ShadcnApp(home: Scaffold(child: DownloadStorageCard())),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Download size unavailable'), findsOneWidget);
+      expect(find.text('Calculating download size…'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+  testWidgets(
+    'shared Home cards keep their progress bar without a watched badge',
+    (tester) async {
+      WatchHistoryItem history(List<double> progress) =>
+          WatchHistoryItem.fromJson({
+            'tmdb_id': 42,
+            'media_type': 'show',
+            'updated_at': 1700000000,
+            'episodes': [
+              for (var i = 0; i < progress.length; i++)
+                {'season': 1, 'episode': i + 1, 'completion': progress[i]},
+            ],
+          });
+      BackendCache.continueWatching.value = [];
+      BackendCache.watchHistory.value = [
+        history([0.3]),
+      ];
+      Widget card(String shelf) => ShadcnApp(
+        home: Scaffold(
+          child: SizedBox(
+            width: 320,
+            height: 180,
+            child: MediaCard(
+              label: shelf,
+              showLogo: false,
+              image: const ColoredBox(color: Colors.pink),
+              target: const MediaCardTarget(
+                tmdbId: 42,
+                type: MediaType.show,
+                totalEpisodes: 2,
+                season: 1,
+                episode: 1,
+              ),
             ),
           ),
         ),
-      ),
-    );
-    for (final shelf in ['Liked', 'Stalled', 'Most Watched']) {
-      await tester.pumpWidget(card(shelf));
+      );
+      for (final shelf in ['Liked', 'Stalled', 'Most Watched']) {
+        await tester.pumpWidget(card(shelf));
+        await tester.pumpAndSettle();
+        expect(find.byType(MediaProgressBar), findsOneWidget);
+        expect(
+          find.bySemanticsLabel(RegExp('Playback progress')),
+          findsOneWidget,
+        );
+        expect(find.byIcon(LucideIcons.circlePlay), findsNothing);
+      }
+      BackendCache.watchHistory.value = [
+        history([1, 1]),
+      ];
       await tester.pumpAndSettle();
-      expect(find.byIcon(LucideIcons.circlePlay), findsOneWidget);
-    }
-    BackendCache.watchHistory.value = [
-      history([1, 1]),
-    ];
-    await tester.pumpAndSettle();
-    expect(find.byIcon(LucideIcons.circlePlay), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.byIcon(LucideIcons.circleCheck), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('Playback progress')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'download shows saved names and creates an offline playback request',
@@ -101,7 +134,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Example Show'), findsOneWidget);
       expect(find.text('S01E02 · The second episode'), findsOneWidget);
-      final menu = tester.widget<ContextMenu>(find.byType(ContextMenu));
+      final menu = tester.widget<PetalContextMenu>(
+        find.byType(PetalContextMenu),
+      );
       final labels = menu.items.whereType<MenuButton>().map(
         (button) => (button.child as Text).data,
       );

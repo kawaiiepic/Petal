@@ -8,7 +8,14 @@ import 'package:petal/widgets/profile/profile_card.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class UserProfile extends StatefulWidget {
-  const UserProfile({super.key});
+  const UserProfile({
+    super.key,
+    this.horizontal = false,
+    this.avatarOnly = false,
+  });
+
+  final bool horizontal;
+  final bool avatarOnly;
 
   @override
   State<UserProfile> createState() => _UserProfileState();
@@ -22,6 +29,12 @@ class _UserProfileState extends State<UserProfile> {
     super.initState();
     _profilesFuture = BackendApi.profiles();
     BackendApi.authState.addListener(_onAuthStateChanged);
+  }
+
+  @override
+  void dispose() {
+    BackendApi.authState.removeListener(_onAuthStateChanged);
+    super.dispose();
   }
 
   void _onAuthStateChanged() {
@@ -40,7 +53,36 @@ class _UserProfileState extends State<UserProfile> {
 
   @override
   Widget build(BuildContext context) {
-    const avatarSize = 32.0;
+    final avatarSize = widget.avatarOnly
+        ? 38.0
+        : widget.horizontal
+        ? 26.0
+        : 32.0;
+    final profile = BackendApi.authState.selectedProfile;
+    final fallback = Icon(
+      RadixIcons.avatar,
+      size: avatarSize,
+      color: widget.avatarOnly ? Colors.white : null,
+    );
+    final avatar = profile?.avatar != null
+        ? CachedNetworkImage(
+            imageUrl: '${Api.ProfileUrl}/${profile?.avatar}',
+            placeholder: (_, _) => fallback,
+            errorWidget: (_, _, _) => fallback,
+            imageBuilder: (context, imageProvider) => Avatar(
+              initials: '',
+              provider: imageProvider,
+              size: avatarSize,
+              badge: const AvatarBadge(size: 8, color: Colors.green),
+            ),
+          )
+        : fallback;
+    final name = Text(
+      profile?.name ?? (widget.horizontal ? 'Account' : ''),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+    );
 
     return FutureBuilder<List<Profile>>(
       future: _profilesFuture,
@@ -50,7 +92,14 @@ class _UserProfileState extends State<UserProfile> {
         return Builder(
           builder: (buttonContext) {
             return Button(
-              style: ButtonVariance.text,
+              alignment: widget.horizontal
+                  ? Alignment.centerLeft
+                  : Alignment.center,
+              style: widget.horizontal
+                  ? ButtonVariance.text.withPadding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    )
+                  : ButtonVariance.text,
               onPressed: () {
                 showDropdown(
                   context: buttonContext,
@@ -161,33 +210,32 @@ class _UserProfileState extends State<UserProfile> {
                   },
                 );
               },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  BackendApi.authState.selectedProfile?.avatar != null
-                      ? CachedNetworkImage(
-                          imageUrl:
-                              '${Api.ProfileUrl}/${BackendApi.authState.selectedProfile?.avatar}',
-                          imageBuilder: (context, imageProvider) => Avatar(
-                            initials: '',
-                            provider: imageProvider,
-                            size: avatarSize,
-                            badge: const AvatarBadge(
-                              size: 8,
-                              color: Colors.green,
-                            ),
-                          ),
-                        )
-                      : const Icon(RadixIcons.avatar, size: avatarSize),
-                  Text(
-                    BackendApi.authState.selectedProfile?.name ?? '',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+              child: widget.avatarOnly
+                  ? Semantics(
+                      label: 'Account',
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0x66000000),
+                        ),
+                        child: SizedBox.square(
+                          dimension: 44,
+                          child: Center(child: avatar),
+                        ),
+                      ),
+                    )
+                  : widget.horizontal
+                  ? Row(
+                      spacing: 8,
+                      children: [
+                        avatar,
+                        Expanded(child: name),
+                      ],
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [avatar, name],
                     ),
-                  ),
-                ],
-              ),
             );
           },
         );

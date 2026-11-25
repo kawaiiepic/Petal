@@ -31,45 +31,61 @@ class _HomeCustomizationPageState extends State<HomeCustomizationPage> {
   Widget build(BuildContext context) {
     final layout = HomeLayout.instance;
     return Scaffold(
-      headers: widget.popup ? const [] : const [
-        AppBar(leading: [BackButton()], title: Text('Customize Home')),
-      ],
+      headers: widget.popup
+          ? const []
+          : const [
+              AppBar(leading: [BackButton()], title: Text('Customize Home')),
+            ],
       child: ListenableBuilder(
         listenable: layout,
-        builder: (context, _) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text(
-              'Show, hide, and reorder Home sections. Start now is hidden by default because On Deck includes watchlist suggestions.',
-            ),
-            for (final id in layout.order)
+        builder: (context, _) {
+          final sections = layout.order
+              .where((id) => id != 'surprise')
+              .toList();
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const Text(
+                'Show, hide, and reorder Home sections. Start now is hidden by default because On Deck includes watchlist suggestions.',
+              ),
               Row(
                 children: [
-                  Expanded(child: Text(HomeLayout.labels[id]!)),
-                  IconButton.ghost(
-                    icon: const Icon(LucideIcons.arrowUp),
-                    onPressed: layout.order.first == id
-                        ? null
-                        : () => _save(layout.move(id, -1)),
-                  ),
-                  IconButton.ghost(
-                    icon: const Icon(LucideIcons.arrowDown),
-                    onPressed: layout.order.last == id
-                        ? null
-                        : () => _save(layout.move(id, 1)),
-                  ),
+                  const Expanded(child: Text('Surprise me (below Featured)')),
                   PetalSwitch(
-                    value: !layout.hidden.contains(id),
-                    onChanged: (v) => _save(layout.setVisible(id, v)),
+                    value: !layout.hidden.contains('surprise'),
+                    onChanged: (v) => _save(layout.setVisible('surprise', v)),
                   ),
                 ],
               ),
-            PetalButton.outline(
-              onPressed: () => _save(layout.reset()),
-              child: const Text('Restore defaults'),
-            ),
-          ],
-        ),
+              for (final id in sections)
+                Row(
+                  children: [
+                    Expanded(child: Text(HomeLayout.labels[id]!)),
+                    IconButton.ghost(
+                      icon: const Icon(LucideIcons.arrowUp),
+                      onPressed: sections.first == id
+                          ? null
+                          : () => _save(layout.move(id, -1)),
+                    ),
+                    IconButton.ghost(
+                      icon: const Icon(LucideIcons.arrowDown),
+                      onPressed: sections.last == id
+                          ? null
+                          : () => _save(layout.move(id, 1)),
+                    ),
+                    PetalSwitch(
+                      value: !layout.hidden.contains(id),
+                      onChanged: (v) => _save(layout.setVisible(id, v)),
+                    ),
+                  ],
+                ),
+              PetalButton.outline(
+                onPressed: () => _save(layout.reset()),
+                child: const Text('Restore defaults'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

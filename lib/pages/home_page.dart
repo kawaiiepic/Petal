@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:petal/api/upcoming_releases.dart';
 import 'package:petal/api/backend/backend_api.dart';
 import 'package:petal/api/backend/backend_cache.dart';
@@ -10,6 +11,8 @@ import 'package:petal/api/api_cache.dart';
 import 'package:petal/api/exceptions/connection_exception.dart';
 import 'package:petal/models/addon.dart';
 import 'package:petal/models/catalog.dart';
+import 'package:petal/models/catalog_item.dart';
+import 'package:petal/navigation/tv_layout.dart';
 import 'package:petal/widgets/catalog/catalog_row.dart';
 import 'package:petal/widgets/catalog/catalog_section.dart';
 import 'package:petal/widgets/connection_error_view.dart';
@@ -17,11 +20,14 @@ import 'package:petal/widgets/dashboard_stats.dart';
 import 'package:petal/widgets/downloads/downloads_shelf.dart';
 import 'package:petal/widgets/friend_activity.dart';
 import 'package:petal/widgets/home/because_you_watched_shelf.dart';
+import 'package:petal/widgets/home/continue_watching_shelf.dart';
+import 'package:petal/widgets/home/desktop_featured_hero.dart';
+import 'package:petal/widgets/home/home_quick_actions.dart';
+import 'package:petal/widgets/home/ios_featured_hero.dart';
 import 'package:petal/widgets/home/liked_shelf.dart';
 import 'package:petal/widgets/home/on_deck_shelf.dart';
 import 'package:petal/widgets/home/recent_and_stalled_shelves.dart';
 import 'package:petal/widgets/home/start_now_shelf.dart';
-import 'package:petal/widgets/home/surprise_watchlist_button.dart';
 import 'package:petal/widgets/home/watchlist_shelf.dart';
 import 'package:petal/widgets/release_calendar.dart';
 import 'package:petal/widgets/upcoming_episodes.dart';
@@ -38,6 +44,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late Future<List<Catalog>> _catalogs;
+  Future<List<CatalogItem>>? _featured;
   late Future<void> _homeData;
   String? _profileKey;
   Timer? _refreshTimer;
@@ -114,13 +121,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _ => HomeLayout.labels[id]!,
       },
       orientation: landscape.contains(id) || id == 'stats'
-          ? Orientation.landscape : Orientation.portrait,
-      cardHeight: id == 'stats' ? 110 : 180,
+          ? Orientation.landscape
+          : Orientation.portrait,
+      cardHeight: switch (id) {
+        'stats' => 110,
+        'friends' => 148,
+        _ => 180,
+      },
+      editorial: id == 'stats' || id == 'upcoming' || id == 'friends',
     );
   }
 
   void _reload() {
     setState(() {
+      _featured = null;
       _catalogs = _loadCatalogs();
       _homeData = _loadHomeData();
     });
@@ -149,7 +163,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
 
     for (final catalog in catalogs) {
-      ApiCache.getCatalogItems(catalog);
+      ApiCache.getCatalogItems(catalog).ignore();
     }
 
     return catalogs;
@@ -163,17 +177,68 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return ApiCache.getCatalogs(addon);
   }
 
+  Future<List<CatalogItem>> _loadFeatured(List<Catalog> catalogs) async {
+    const pageLimit = 8;
+    final backdrops = <String, CatalogItem>{};
+    final posters = <String, CatalogItem>{};
+    for (final catalog in catalogs) {
+      try {
+        for (final item in await ApiCache.getCatalogItems(catalog)) {
+          if (item.type != 'movie' && item.type != 'series') continue;
+          final id = int.tryParse(item.id);
+          if ((id == null || id <= 0) && !RegExp(r'^tt\d+$').hasMatch(item.id))
+            continue;
+          final key = '${item.type}:${item.id}';
+          if (item.background.isNotEmpty) {
+            backdrops.putIfAbsent(key, () => item);
+          } else if (item.poster.isNotEmpty) {
+            posters.putIfAbsent(key, () => item);
+          }
+          if (backdrops.length >= pageLimit) break;
+        }
+      } catch (_) {
+        // A failed catalog still gets its own retry/error UI in the browse row.
+      }
+      if (backdrops.length >= pageLimit) break;
+    }
+    return [
+      ...backdrops.values,
+      ...posters.entries
+          .where((entry) => !backdrops.containsKey(entry.key))
+          .map((entry) => entry.value),
+    ].take(pageLimit).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final compact = TvLayout.isCompact(context);
     return FutureBuilder<List<Catalog>>(
       future: _catalogs,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return ConnectionErrorView(error: snapshot.error, onRetry: _reload);
+          final error = ConnectionErrorView(
+            error: snapshot.error,
+            onRetry: _reload,
+          );
+          return compact
+              ? Column(
+                  children: [
+                    const IosFeaturedHero(items: []),
+                    Expanded(child: error),
+                  ],
+                )
+              : error;
         }
 
         final catalogs = snapshot.data ?? const <Catalog>[];
         final loading = snapshot.connectionState != ConnectionState.done;
+        final promoted = <String, Catalog>{};
+        for (final catalog in catalogs) {
+          if (catalog.id == 'top' &&
+              {'series', 'movie'}.contains(catalog.type)) {
+            promoted.putIfAbsent(catalog.type, () => catalog);
+          }
+        }
 
         final catalogSlivers = <Widget>[
           if (loading && catalogs.isEmpty)
@@ -197,15 +262,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             SliverList(
               delegate: SliverChildListDelegate([
                 for (final catalog in catalogs)
-                  CatalogSection(
-                    key: ValueKey('${catalog.id}-${catalog.type}'),
-                    catalog: catalog,
-                  ),
+                  if (promoted[catalog.type]?.url != catalog.url)
+                    CatalogSection(
+                      key: ValueKey(catalog.url),
+                      catalog: catalog,
+                    ),
               ], addAutomaticKeepAlives: true),
             ),
         ];
         final sections = <String, Widget>{
-          'surprise': const SurpriseWatchlistButton(),
           'stats': const DashboardStats(),
           'upcoming': const UpcomingEpisodes(),
           'deck': const OnDeckShelf(),
@@ -223,31 +288,72 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         return FutureBuilder<void>(
           future: _homeData,
           builder: (context, data) {
-            final loadingRows = _profileKey != null &&
+            final loadingRows =
+                _profileKey != null &&
                 data.connectionState != ConnectionState.done;
             return ListenableBuilder(
               listenable: HomeLayout.instance,
               builder: (context, _) => CustomScrollView(
-                primary: usesPetalIosNavigation ? true : null,
+                primary: compact,
                 scrollCacheExtent: ScrollCacheExtent.pixels(200),
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
+                  SliverToBoxAdapter(
+                    child: FutureBuilder<List<CatalogItem>>(
+                      future:
+                          catalogs.isNotEmpty &&
+                              !HomeLayout.instance.hidden.contains('catalogs')
+                          ? _featured ??= _loadFeatured(catalogs)
+                          : null,
+                      builder: (context, featured) {
+                        final items =
+                            featured.connectionState == ConnectionState.done
+                            ? featured.data ?? const <CatalogItem>[]
+                            : const <CatalogItem>[];
+                        return compact
+                            ? IosFeaturedHero(items: items)
+                            : DesktopFeaturedHero(items: items);
+                      },
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: HomeQuickActions(
+                      showSurprise: !HomeLayout.instance.hidden.contains(
+                        'surprise',
+                      ),
+                    ),
+                  ),
+                  if (!HomeLayout.instance.hidden.contains('deck'))
+                    const SliverToBoxAdapter(
+                      child: ContinueWatchingShelf(editorial: true),
+                    ),
+                  if (!HomeLayout.instance.hidden.contains('catalogs'))
+                    for (final catalog in promoted.values)
+                      SliverToBoxAdapter(
+                        key: ValueKey(catalog.url),
+                        child: CatalogSection(catalog: catalog),
+                      ),
                   for (final id in HomeLayout.instance.order.where(
-                    (id) => !HomeLayout.instance.hidden.contains(id),
+                    (id) =>
+                        id != 'surprise' &&
+                        !HomeLayout.instance.hidden.contains(id),
                   ))
                     if (id == 'catalogs')
                       ...catalogSlivers
                     else
                       SliverToBoxAdapter(
                         key: ValueKey('home-$_profileKey-$id'),
-                        child: loadingRows && !{'surprise', 'downloads', 'calendar'}.contains(id)
-                            ? _placeholder(id) : sections[id]!,
+                        child:
+                            loadingRows &&
+                                !{'downloads', 'calendar'}.contains(id)
+                            ? _placeholder(id)
+                            : sections[id]!,
                       ),
                   SliverToBoxAdapter(
                     child: SizedBox(
-                      height: usesPetalIosNavigation
+                      height: compact
                           ? IosNavigationDock.clearance +
-                              MediaQuery.viewPaddingOf(context).bottom
+                                MediaQuery.viewPaddingOf(context).bottom
                           : 32,
                     ),
                   ),

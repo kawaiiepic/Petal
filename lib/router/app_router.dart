@@ -1,7 +1,6 @@
-import 'package:flutter/cupertino.dart' show CupertinoPage;
-import 'package:petal/navigation/ios_navigation_dock.dart';
 import 'package:petal/router/popup_page.dart';
-import 'package:shadcn_flutter/shadcn_flutter_experimental.dart' show Page, ShadcnPage, Widget;
+import 'package:shadcn_flutter/shadcn_flutter_experimental.dart'
+    show Page, ShadcnPage, Widget;
 import 'package:petal/pages/watch_history_page.dart';
 import 'package:petal/pages/home_customization_page.dart';
 import 'package:go_router/go_router.dart';
@@ -31,9 +30,32 @@ import 'package:petal/pages/streams_page.dart';
 import 'package:petal/pages/trakt_import_page.dart';
 
 Page<void> _navigationPage(GoRouterState state, Widget child) =>
-    usesPetalIosNavigation
-        ? CupertinoPage<void>(key: state.pageKey, child: child)
-        : ShadcnPage<void>(key: state.pageKey, child: child);
+    ShadcnPage<void>(key: state.pageKey, child: child);
+
+List<GoRoute> _libraryRoutes() => [
+  GoRoute(
+    path: '/collection',
+    pageBuilder: (context, state) => _navigationPage(state, CollectionPage()),
+  ),
+  GoRoute(
+    path: '/history',
+    pageBuilder: (context, state) =>
+        _navigationPage(state, const WatchHistoryPage()),
+  ),
+  GoRoute(
+    path: '/downloads',
+    pageBuilder: (context, state) =>
+        _navigationPage(state, const DownloadsPage()),
+  ),
+];
+
+GoRoute _searchRoute() => GoRoute(
+  path: '/search',
+  pageBuilder: (context, state) => _navigationPage(
+    state,
+    SearchResultsPage(query: state.uri.queryParameters['q'] ?? ''),
+  ),
+);
 
 class AppRouter {
   static final appRouter = GoRouter(
@@ -55,25 +77,15 @@ class AppRouter {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/history',
-        pageBuilder: (context, state) =>
-            _navigationPage(state, const WatchHistoryPage()),
-      ),
       ShellRoute(
         navigatorKey: PetalApp.shellNavigatorKey,
         builder: (context, state, child) =>
             AppNavigation(state: state, child: child),
         routes: [
           GoRoute(path: '/', builder: (context, state) => const HomePage()),
+          ..._libraryRoutes(),
+          _searchRoute(),
         ],
-      ),
-      GoRoute(
-        path: '/search',
-        pageBuilder: (context, state) {
-          final q = state.uri.queryParameters['q'] ?? '';
-          return _navigationPage(state, SearchResultsPage(query: q));
-        },
       ),
       GoRoute(
         path: '/series',
@@ -124,10 +136,6 @@ class AppRouter {
           );
         },
       ),
-      GoRoute(
-        path: '/collection',
-        pageBuilder: (context, state) => _navigationPage(state, CollectionPage()),
-      ),
       GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
       GoRoute(
         path: '/profile/:id',
@@ -170,11 +178,6 @@ class AppRouter {
             download: download,
           );
         },
-      ),
-      GoRoute(
-        path: '/downloads',
-        pageBuilder: (context, state) =>
-            _navigationPage(state, const DownloadsPage()),
       ),
       GoRoute(
         path: '/settings',

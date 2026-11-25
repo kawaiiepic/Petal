@@ -32,7 +32,7 @@ class ApiCache {
 
   static Future<List<CatalogItem>> getCatalogItems(Catalog catalog) {
     return _catalogItemsFuture.putIfAbsent(
-      catalog.id + catalog.type,
+      catalog.url,
       () => CatalogApi.fetchCatalogItems(catalog),
     );
   }
