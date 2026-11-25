@@ -1,3 +1,4 @@
+import 'package:petal/navigation/desktop_media_tabs.dart';
 import 'package:petal/api/retained_player.dart';
 import 'package:petal/navigation/retained_player_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -96,6 +97,7 @@ class DesktopTvShell extends StatelessWidget {
                               'Home',
                               LucideIcons.house,
                             ),
+                            DesktopMediaTabsView(location: location, onNavigate: onNavigate),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(10, 18, 8, 4),
                               child: Text(
@@ -150,7 +152,7 @@ class DesktopTvShell extends StatelessWidget {
     String label,
     IconData icon,
   ) {
-    final selected = location == path;
+    final selected = Uri.parse(location).path == path;
     final colors = Theme.of(context).colorScheme;
     final foreground = selected ? Colors.white : colors.foreground;
     return Padding(

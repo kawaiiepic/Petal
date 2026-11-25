@@ -105,7 +105,7 @@ class _AppNavigationState extends State<AppNavigation> {
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     void navigate(String path) {
-      if (path != location || (search && hasQuery)) {
+      if (path != widget.state.uri.toString() || (search && hasQuery)) {
         context.go(path);
       } else if (home) {
         setState(() {
@@ -138,7 +138,7 @@ class _AppNavigationState extends State<AppNavigation> {
         child: !TvLayout.isCompact(context)
             ? SafeArea(
                 child: DesktopTvShell(
-                  location: selectedDestination.path,
+                  location: widget.state.uri.toString(),
                   onNavigate: navigate,
                   child: home ? PrimaryScrollController(controller: _homeScroll, child: widget.child) : widget.child,
                 ),

@@ -1,3 +1,5 @@
+import 'package:petal/navigation/desktop_media_tabs.dart';
+import 'package:petal/navigation/tv_layout.dart';
 import 'package:petal/models/media_type.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
 import 'package:petal/widgets/overview/library_actions.dart';
@@ -31,6 +33,8 @@ class OverviewHeroActions extends StatelessWidget {
           spacing: 8,
           children: [
             play,
+            if (tmdbId != null && title != null && !TvLayout.isCompact(context))
+              MediaTabPinButton(tmdbId: tmdbId!, type: mediaType, title: title!),
             if (tmdbId != null)
               LibraryActions(
                 tmdbId: tmdbId!,

@@ -2,7 +2,7 @@ import 'package:petal/api/retained_player.dart';
 import 'package:petal/router/popup_page.dart';
 import 'package:petal/router/episode_sheet_page.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart'
-    show Page, ShadcnPage, Widget;
+    show Page, ShadcnPage, Widget, ValueKey;
 import 'package:petal/pages/watch_history_page.dart';
 import 'package:petal/pages/home_customization_page.dart';
 import 'package:go_router/go_router.dart';
@@ -97,6 +97,7 @@ class AppRouter {
               return _navigationPage(
                 state,
                 ShowOverviewPage(
+                  key: ValueKey('series:${tmdbId ?? imdbId}'),
                   tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
                   imdbId: imdbId,
                 ),
@@ -111,6 +112,7 @@ class AppRouter {
               return _navigationPage(
                 state,
                 MovieOverviewPage(
+                  key: ValueKey('movie:${tmdbId ?? imdbId}'),
                   tmdbId: tmdbId != null ? int.tryParse(tmdbId) : null,
                   imdbId: imdbId,
                 ),
