@@ -50,19 +50,36 @@ Install Apple's [TestFlight app](https://apps.apple.com/app/testflight/id8992476
 
 ## 🖼️ Screenshots
 
+### Desktop
+
 <div align="center">
 
-### Dashboard
-
-<img src="assets/screenshots/dashboard.png" alt="Petal dashboard" width="900" />
-
-### Video player
-
-<img src="assets/screenshots/player.png" alt="Petal video player" width="900" />
+<img src="assets/screenshots/desktop-home.webp" alt="Petal desktop home with featured titles, sidebar and On Deck shelf" width="100%" />
 
 </div>
 
-*Existing development screenshots; the latest interface may differ.*
+| Show overview | Video player |
+|:---:|:---:|
+| <img src="assets/screenshots/show-overview.webp" alt="TV show details, episode dates and trailers" width="440" /> | <img src="assets/screenshots/video-player.webp" alt="Full-screen video player with Liquid Glass controls" width="440" /> |
+| **Collection** | **Search** |
+| <img src="assets/screenshots/collection.webp" alt="Collection with watchlist, liked titles and watch progress" width="440" /> | <img src="assets/screenshots/search.webp" alt="Search results and category filters" width="440" /> |
+| **Actor overview** | **User profile** |
+| <img src="assets/screenshots/actor.webp" alt="Actor biography and filmography" width="440" /> | <img src="assets/screenshots/profile.webp" alt="User profile and watch history" width="440" /> |
+
+### Compact layout
+
+<div align="center">
+
+<img src="assets/screenshots/compact-home.webp" alt="Petal compact home layout with bottom navigation" width="320" />
+
+</div>
+
+<details>
+<summary>Source selection preview</summary>
+
+<img src="assets/screenshots/source-picker.webp" alt="Petal source selection sheet" width="900" />
+
+</details>
 
 ---
 
