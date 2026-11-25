@@ -42,10 +42,12 @@ class _PlayPauseButtonState extends State<PlayPauseButton> {
   @override
   Widget build(BuildContext context) {
     return ControlButton(
+      filled: true,
+      padding: 16,
       onTap: () => widget.player.playOrPause(),
       icon: _buffering
-          ? const PetalActivityIndicator(size: 50, color: Colors.white)
-          : Icon(_playing ? ios.CupertinoIcons.pause_fill : ios.CupertinoIcons.play_fill, size: 50),
+          ? const PetalActivityIndicator(size: 32, color: Colors.white)
+          : Icon(_playing ? ios.CupertinoIcons.pause_fill : ios.CupertinoIcons.play_fill, size: 32),
     );
   }
 }

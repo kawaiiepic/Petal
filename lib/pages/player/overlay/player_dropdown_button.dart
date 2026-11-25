@@ -1,3 +1,4 @@
+import 'package:petal/pages/player/overlay/control_button.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
 class PlayerDropdownButton extends StatelessWidget {
@@ -10,9 +11,8 @@ class PlayerDropdownButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    variance: ButtonVariance.ghost,
-    onPressed: () {
+  Widget build(BuildContext context) => ControlButton(
+    onTap: () {
       showDropdown(
         context: context,
         consumeOutsideTaps: true,

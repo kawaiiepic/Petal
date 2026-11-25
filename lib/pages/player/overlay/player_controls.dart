@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:flutter/services.dart';
 import 'package:petal/api/playback_preferences.dart';
 import 'package:petal/api/playback_volume_store.dart';
@@ -30,9 +31,7 @@ import 'package:petal/pages/player/overlay/timed_comments_overlay.dart';
 import 'package:petal/pages/player/overlay/subtitle_audio_menu_button.dart';
 import 'package:petal/pages/player/overlay/volume_button.dart';
 import 'package:petal/pages/splash_screen.dart';
-import 'package:petal/theme/app_typography.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:shadcn_flutter_skeletonizer/shadcn_flutter_skeletonizer.dart';
 
 Widget videoControls(VideoState state) {
   return PlayerControls(state: state);
@@ -413,7 +412,7 @@ class _PlayerControlsState extends State<PlayerControls> {
           },
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final nextBottom = _showControls ? 100.0 : 24.0;
+              final nextBottom = _showControls ? 136.0 : 24.0;
               final nextWidth = math.min(
                 320.0,
                 math.min(
@@ -430,7 +429,7 @@ class _PlayerControlsState extends State<PlayerControls> {
                     duration: const Duration(milliseconds: 300),
                     child: TickerMode(
                       enabled: _showControls,
-                      child: _buildControlsBar(),
+                      child: IgnorePointer(ignoring: !_showControls, child: _buildControlsBar()),
                     ),
                   ),
                   if (!_offline && mediaId > 0)
@@ -500,210 +499,125 @@ class _PlayerControlsState extends State<PlayerControls> {
     );
   }
 
+  Widget _titleHeader() {
+    Widget title(String name, String? subtitle) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+        if (subtitle != null && subtitle.isNotEmpty)
+          Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: Colors.white.withValues(alpha: .75), fontSize: 12)),
+      ],
+    );
+    if (_offline) return title(extras?['title'] as String? ?? 'Downloaded video',
+      extras?['subtitle'] as String?);
+    return FutureBuilder(
+      future: _isShow ? _showData : _movie,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return title('Loading title', null);
+        if (_isShow) {
+          final data = snapshot.data! as (TmdbShow, TmdbEpisode);
+          return title(data.$1.name,
+            'S${data.$2.seasonNumber} · E${data.$2.episodeNumber} · ${data.$2.name}');
+        }
+        return title((snapshot.data! as TmdbMovie).title, null);
+      },
+    );
+  }
+
+  Widget _glassTransport({required Widget child}) => glass.GlassButton.custom(
+    useOwnLayer: true,
+    style: glass.GlassButtonStyle.filled,
+    shape: const glass.LiquidRoundedRectangle(borderRadius: 28),
+    // The surface is visual only; each nested control owns its interaction.
+    onTap: () {},
+    child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), child: child),
+  );
+
   Widget _buildControlsBar() {
-    return Padding(
-      padding: EdgeInsetsGeometry.all(8),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    variance: ButtonVariance.ghost,
-                    onPressed: () => context.pop(),
-                    icon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          size: AppTypography.normalIconSize,
-                          LucideIcons.chevronLeft,
-                        ),
-                        Text(style: AppTypography.normalTextStyle, "Return"),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Center(
-                  child: _offline
-                      ? Column(
-                          children: [
-                            Text(
-                              extras?['title'] as String? ?? 'Downloaded video',
-                              style: AppTypography.normalTextStyle,
-                            ),
-                            if (extras?['subtitle'] != null)
-                              Text(
-                                extras!['subtitle'] as String,
-                                style: AppTypography.normalTextStyle,
-                              ),
-                          ],
-                        )
-                      : FutureBuilder(
-                          future: _isShow ? _showData : _movie,
-                          builder: (context, snapshot) {
-                            return Column(
-                              spacing: 8,
-                              children: [
-                                Text(
-                                  style: AppTypography.normalTextStyle,
-                                  snapshot.hasData
-                                      ? _isShow
-                                            ? (snapshot.data!
-                                                      as (
-                                                        TmdbShow,
-                                                        TmdbEpisode,
-                                                      ))
-                                                  .$1
-                                                  .name
-                                            : (snapshot.data! as TmdbMovie)
-                                                  .title
-                                      : "Example Media Name",
-                                ),
-                                if (_isShow)
-                                  Text(
-                                    style: AppTypography.normalTextStyle,
-                                    snapshot.hasData
-                                        ? "${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.seasonNumber}x${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.episodeNumber} ${(snapshot.data! as (TmdbShow, TmdbEpisode)).$2.name}"
-                                        : "Example Episode Name",
-                                  ),
-                              ],
-                            ).asSkeleton(
-                              enabled:
-                                  snapshot.connectionState !=
-                                  ConnectionState.done,
-                            );
-                          },
-                        ),
-                ),
-              ),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!_offline && mediaId > 0)
-                        Tooltip(
-                          tooltip: (_) => const Text('Timed comments'),
-                          child: ControlButton(
-                            onTap: () => _timedCommentsKey.currentState?.openComposer(),
-                            icon: Icon(LucideIcons.messageCircle, size: AppTypography.normalIconSize),
-                          ),
-                        ),
-                      Tooltip(
-                    tooltip: (_) => Text(
-                      _showDebug
-                          ? 'Hide playback diagnostics'
-                          : 'Show playback diagnostics',
-                    ),
-                    child: Semantics(
-                      label: 'Playback diagnostics',
-                      toggled: _showDebug,
-                      child: ControlButton(
-                        onTap: _toggleDebug,
-                        icon: Icon(
-                          LucideIcons.info,
-                          size: AppTypography.normalIconSize,
-                          color: _showDebug ? Colors.pink : null,
-                        ),
-                      ),
-                    ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Center(child: PlayPauseButton(player: player)),
-          Column(
-            spacing: 8,
-            children: [
-              RepaintBoundary(
-                child: SeekSlider(player: player, visible: _showControls,
-                  commentMarkers: _commentMarkers),
-              ),
-              Row(
-                spacing: 8,
-                children: [
-                  ControlButton(
-                    onTap: () => setState(() {
-                      player.playOrPause();
-                    }),
-                    icon: Icon(
-                      size: AppTypography.normalIconSize,
-                      player.state.playing
-                          ? LucideIcons.pause
-                          : LucideIcons.play,
-                    ),
-                  ),
-                  if (!Api.isMobile()) VolumeButton(player: player),
-                  PositionDisplay(player: player, visible: _showControls),
-                  if (_isShow) ...[
-                    const SizedBox(width: 2),
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    Row(
-                      spacing: 8,
-                      children: [
-                        Text(
-                          style: AppTypography.normalTextStyle,
-                          'S${episode.seasonNumber}',
-                        ),
-                        Text(
-                          style: AppTypography.normalTextStyle,
-                          'E${episode.episodeNumber}',
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    if (!_offline)
-                      EpisodeDrawer(showData: _showData, tmdbId: mediaId),
-                    if (!_offline)
-                      ControlButton(
-                        onTap: () async {
-                          _playNextEpisode();
-                        },
-                        icon: Icon(
-                          size: AppTypography.normalIconSize,
-                          LucideIcons.skipForward,
-                        ),
-                      ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        IgnorePointer(child: DecoratedBox(
+          decoration: BoxDecoration(gradient: LinearGradient(
+            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+            stops: const [0, .23, .60, 1],
+            colors: [Colors.black.withValues(alpha: .70), Colors.transparent,
+              Colors.transparent, Colors.black.withValues(alpha: .82)],
+          )),
+        )),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    ControlButton(filled: true, onTap: () => context.pop(),
+                      icon: const Icon(LucideIcons.chevronLeft, size: 22)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _titleHeader()),
+                    if (!_offline && mediaId > 0)
+                      Tooltip(tooltip: (_) => const Text('Timed comments'),
+                        child: ControlButton(filled: true,
+                          onTap: () => _timedCommentsKey.currentState?.openComposer(),
+                          icon: const Icon(LucideIcons.messageCircle, size: 19))),
+                    const SizedBox(width: 6),
+                    Tooltip(tooltip: (_) => Text(_showDebug ? 'Hide playback diagnostics' : 'Playback diagnostics'),
+                      child: ControlButton(filled: true, onTap: _toggleDebug,
+                        icon: Icon(LucideIcons.info, size: 19,
+                          color: _showDebug ? Colors.pink : Colors.white))),
                   ],
-                  if (!_isShow) ...[const Spacer()],
-                  SubtitleAudioMenuButton(
-                    player: player,
-                    onChanged: () => setState(() {}),
-                  ),
-                  PlayerSettingsMenuButton(player: player),
-                  ControlButton(
-                    onTap: _toggleFullscreen,
-                    icon: Icon(
-                      size: AppTypography.normalIconSize,
-                      _isFullscreen()
-                          ? RadixIcons.exitFullScreen
-                          : RadixIcons.enterFullScreen,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ControlButton(filled: true, onTap: _seekBackward,
+                      icon: const Icon(LucideIcons.rotateCcw, size: 27)),
+                    const SizedBox(width: 18),
+                    PlayPauseButton(player: player),
+                    const SizedBox(width: 18),
+                    ControlButton(filled: true, onTap: _seekForward,
+                      icon: const Icon(LucideIcons.rotateCw, size: 27)),
+                  ],
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RepaintBoundary(child: SeekSlider(player: player,
+                      visible: _showControls, commentMarkers: _commentMarkers)),
+                    const SizedBox(height: 4),
+                    PositionDisplay(player: player, visible: _showControls),
+                    const SizedBox(height: 8),
+                    LayoutBuilder(builder: (context, constraints) {
+                      final controls = [
+                        if (!Api.isMobile()) VolumeButton(player: player),
+                        if (_isShow && !_offline) ...[
+                          EpisodeDrawer(showData: _showData, tmdbId: mediaId),
+                          ControlButton(onTap: _playNextEpisode,
+                            icon: const Icon(LucideIcons.skipForward, size: 20)),
+                        ],
+                        SubtitleAudioMenuButton(player: player, onChanged: () => setState(() {})),
+                        PlayerSettingsMenuButton(player: player),
+                        ControlButton(onTap: _toggleFullscreen,
+                          icon: Icon(_isFullscreen() ? RadixIcons.exitFullScreen : RadixIcons.enterFullScreen, size: 20)),
+                      ];
+                      return Align(alignment: Alignment.centerRight,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: _glassTransport(child: Row(mainAxisSize: MainAxisSize.min, children: controls)),
+                        ));
+                    }),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

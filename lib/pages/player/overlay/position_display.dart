@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:media_kit/media_kit.dart';
-import 'package:petal/theme/app_typography.dart';
 import 'package:petal/utils/media_formatting.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
@@ -55,17 +54,12 @@ class _PositionDisplayState extends State<PositionDisplay> {
   @override
   Widget build(BuildContext context) => RepaintBoundary(
     child: Row(
-      spacing: 4,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          style: AppTypography.normalTextStyle,
-          MediaFormatting.fmt(_position),
-        ),
-        Text(style: AppTypography.normalTextStyle, '/'),
-        Text(
-          style: AppTypography.normalTextStyle,
-          MediaFormatting.fmt(widget.player.state.duration),
-        ),
+        Text(MediaFormatting.fmt(_position),
+          style: const TextStyle(fontSize: 12, color: Colors.white)),
+        Text(MediaFormatting.fmt(widget.player.state.duration),
+          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: .75))),
       ],
     ),
   );
