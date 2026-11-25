@@ -1,4 +1,5 @@
 import 'package:petal/api/user_library.dart';
+import 'package:petal/navigation/tv_layout.dart';
 import 'package:petal/widgets/overview/episode_action_menu.dart';
 import 'package:petal/api/history_actions.dart';
 import 'package:petal/widgets/media/media_progress_bar.dart';
@@ -248,10 +249,10 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
-                        MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+                        TvLayout.isCompact(context) ? 12 : 24,
                         8,
-                        MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
-                        MediaQuery.sizeOf(context).width < 600 ? 24 : 32,
+                        TvLayout.isCompact(context) ? 12 : 24,
+                        TvLayout.isCompact(context) ? 24 : 32,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

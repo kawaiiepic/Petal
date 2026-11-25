@@ -1,9 +1,10 @@
 import 'package:flutter/services.dart';
+import 'package:petal/navigation/tv_layout.dart';
 import 'package:flutter/widgets.dart' show DraggableScrollableSheet, DraggableScrollableController, DraggableScrollableNotification;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as glass;
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
 
-/// A route-backed episode preview: phone sheet, tablet/desktop dialog.
+/// A route-backed episode preview: compact-layout sheet, desktop-layout dialog.
 class EpisodeSheetPage extends Page<void> {
   final Widget Function(ScrollController?) builder;
   const EpisodeSheetPage({required super.key, required this.builder});
@@ -19,7 +20,7 @@ class EpisodeSheetPage extends Page<void> {
         _EpisodeSheet(builder: builder),
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       final eased = animation.drive(CurveTween(curve: Curves.easeOutCubic));
-      if (MediaQuery.sizeOf(context).width < 600) {
+      if (TvLayout.isCompact(context)) {
         return SlideTransition(
           position: eased.drive(Tween(begin: const Offset(0, 1), end: Offset.zero)),
           child: child,
@@ -40,7 +41,7 @@ class _EpisodeSheet extends StatefulWidget {
 
 class _EpisodeSheetState extends State<_EpisodeSheet> {
   final _drag = DraggableScrollableController();
-  static const _initial = .85;
+  static const _initial = .72;
   static const _minimum = .40;
   bool _closing = false;
 
@@ -58,10 +59,10 @@ class _EpisodeSheetState extends State<_EpisodeSheet> {
 
   void _finishDrag() {
     if (!_drag.isAttached || _closing) return;
-    if (_drag.size < .65) {
+    if (_drag.size < .55) {
       _close();
     } else {
-      _drag.animateTo(_drag.size > .92 ? 1 : _initial,
+      _drag.animateTo(_drag.size > .86 ? 1 : _initial,
         duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic);
     }
   }
@@ -129,7 +130,7 @@ class _EpisodeSheetState extends State<_EpisodeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 600;
+    final compact = TvLayout.isCompact(context);
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): _close},
       child: Focus(
