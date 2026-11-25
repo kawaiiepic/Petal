@@ -52,8 +52,9 @@ class _HistoryPlayCardState extends State<HistoryPlayCard> {
             ? 'Movie'
             : 'S${episode.season} · E${episode.episode}';
         final date = play.date?.toLocal();
-        final time = date == null ? null :
-            '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+        final time = date == null
+            ? null
+            : '${date.hour % 12 == 0 ? 12 : date.hour % 12}:${date.minute.toString().padLeft(2, '0')} ${date.hour < 12 ? 'AM' : 'PM'}';
         final route = episode == null
             ? '/movie?tmdb=${item.tmdbId}'
             : '/episode?tmdb=${item.tmdbId}&s=${episode.season}&e=${episode.episode}';
