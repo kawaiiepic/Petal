@@ -5,7 +5,7 @@ import 'package:petal/api/external_player.dart';
 import 'package:petal/models/episode.dart';
 import 'package:petal/models/stream_item.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
+import 'package:petal/widgets/ios/ios_controls.dart';
 
 class StreamTile extends StatelessWidget {
   final StreamItem stream;
@@ -29,33 +29,42 @@ class StreamTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Button.card(
-      leading: stream.external
-          ? const Icon(RadixIcons.externalLink)
-          : CachedNetworkImage(
-              imageUrl: stream.addon.manifest?['logo'],
-              imageBuilder: (context, imageProvider) => Avatar(
-                initials: '',
-                provider: imageProvider,
-                backgroundColor: Colors.transparent,
-              ),
-              progressIndicatorBuilder: (context, url, downloadProgress) =>
-                  CircularProgressIndicator(value: downloadProgress.progress),
-            ),
-      child: Column(
+    final colors = Theme.of(context).colorScheme;
+    final logo = stream.addon.manifest?['logo'];
+    final fallback = Icon(stream.external ? LucideIcons.externalLink : LucideIcons.server,
+      size: 22, color: colors.mutedForeground);
+    return PetalButton.card(
+      child: Row(
         children: [
-          Text(
-            style: TextStyle(
-              fontSize: Device.screenType == ScreenType.desktop ? 12.sp : 14.sp,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox.square(
+              dimension: 42,
+              child: logo is String && logo.isNotEmpty
+                  ? CachedNetworkImage(imageUrl: logo, fit: BoxFit.contain,
+                      errorWidget: (_, _, _) => fallback,
+                      placeholder: (_, _) => fallback)
+                  : fallback,
             ),
-            stream.name,
           ),
-          Text(
-            style: TextStyle(
-              fontSize: Device.screenType == ScreenType.desktop ? 11.sp : 13.sp,
-            ),
-            stream.title,
-          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(stream.name.trim().isEmpty ? 'Source' : stream.name,
+                style: TextStyle(color: colors.foreground, fontSize: 14,
+                  fontWeight: FontWeight.w600)),
+              if (stream.title.trim().isNotEmpty && stream.title != stream.name) ...[
+                const SizedBox(height: 4),
+                Text(stream.title, style: TextStyle(color: colors.mutedForeground,
+                  fontSize: 12, height: 1.4)),
+              ],
+            ],
+          )),
+          const SizedBox(width: 10),
+          Icon(download ? LucideIcons.download : stream.external
+              ? LucideIcons.externalLink : LucideIcons.play,
+            size: 18, color: colors.foreground),
         ],
       ),
       onPressed: () async {
@@ -94,12 +103,12 @@ class StreamTile extends StatelessWidget {
         if (stream.external) return;
         if (!context.mounted) return;
         if (episode != null) {
-          context.pushReplacement(
+          context.push(
             '/player?media=$tmdbId&s=${episode?.seasonNumber}&e=${episode?.episodeNumber}',
             extra: stream,
           );
         } else {
-          context.pushReplacement('/player?media=$tmdbId', extra: stream);
+          context.push('/player?media=$tmdbId', extra: stream);
         }
       },
     );

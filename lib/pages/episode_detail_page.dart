@@ -16,7 +16,6 @@ import 'package:go_router/go_router.dart';
 import 'package:petal/api/tmdb/tmdb.dart';
 import 'package:petal/models/tmdb/tmdb_episode.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
-import 'package:petal/router/app_router.dart';
 import 'package:petal/theme/app_typography.dart';
 import 'package:petal/widgets/ios/ios_context_menu.dart';
 import 'package:petal/widgets/ios/ios_controls.dart';
@@ -96,6 +95,20 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
           const Text('Could not update episode'),
           const Text('Please try again.'),
         );
+    }
+  }
+
+  void _openSourcePicker({bool download = false}) {
+    final router = GoRouter.of(context);
+    final route = '/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}'
+        '${download ? '&download=1' : ''}';
+    if (widget.popup && router.canPop()) router.pop();
+    const shellPaths = {'/', '/collection', '/history', '/downloads',
+      '/search', '/series', '/movie', '/streams'};
+    if (shellPaths.contains(router.state.uri.path)) {
+      router.push(route);
+    } else {
+      router.go(route);
     }
   }
 
@@ -299,18 +312,14 @@ class _EpisodeDetailPageState extends State<EpisodeDetailPage> {
                               ),
                               PetalButton.secondary(
                                 onPressed: snapshot.hasData
-                                    ? () => AppRouter.appRouter.push(
-                                        '/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}',
-                                      )
+                                    ? () => _openSourcePicker()
                                     : null,
                                 leading: const Icon(LucideIcons.server, size: 18),
                                 child: const Text('Source'),
                               ),
                               PetalButton.secondary(
                                 onPressed: snapshot.hasData
-                                    ? () => AppRouter.appRouter.push(
-                                        '/streams?show=${widget.tmdbId}&s=${widget.season}&e=${widget.episode}&download=1',
-                                      )
+                                    ? () => _openSourcePicker(download: true)
                                     : null,
                                 leading: const Icon(LucideIcons.download, size: 18),
                                 child: const Text('Download'),

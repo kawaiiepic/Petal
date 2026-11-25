@@ -6,10 +6,12 @@ import 'package:petal/models/stream_item.dart';
 import 'package:petal/models/tmdb/tmdb_episode.dart';
 import 'package:petal/models/tmdb/tmdb_movie.dart';
 import 'package:petal/models/tmdb/tmdb_show.dart';
-import 'package:petal/widgets/back_button.dart';
+import 'package:petal/navigation/ios_navigation_dock.dart';
+import 'package:petal/navigation/tv_layout.dart';
+import 'package:petal/theme/app_typography.dart';
+import 'package:petal/widgets/media/media_artwork.dart';
 import 'package:petal/widgets/streams/stream_tile.dart';
 import 'package:shadcn_flutter/shadcn_flutter_experimental.dart';
-import 'package:sizer/sizer.dart';
 
 class StreamsPage extends StatefulWidget {
   final int? showId;
@@ -17,166 +19,156 @@ class StreamsPage extends StatefulWidget {
   final Episode? episode;
   final bool download;
 
-  const StreamsPage({
-    super.key,
-    this.showId,
-    this.movieId,
-    this.episode,
-    this.download = false,
-  });
+  const StreamsPage({super.key, this.showId, this.movieId, this.episode,
+    this.download = false});
 
   @override
   State<StreamsPage> createState() => _StreamsPageState();
 }
 
 class _StreamsPageState extends State<StreamsPage> {
-  late Future<List<StreamItem>> _streamsFuture;
-  late bool isShow;
-  late Future<List<dynamic>> _showData;
-  late Future<TmdbMovie> movie;
+  late Future<({String title, String? subtitle, String? artwork, String? imdbId})> _metadata;
+  late Future<List<StreamItem>> _streams;
 
   @override
   void initState() {
     super.initState();
-    _streamsFuture = _loadStreams();
-    isShow = widget.showId != null;
-    if (isShow) {
-      _showData = Future.wait([
-        TMDB.tvShow(widget.showId!),
-        TMDB.tvEpisode(
-          widget.showId!,
-          widget.episode!.seasonNumber,
-          widget.episode!.episodeNumber,
-        ),
-      ]);
-    } else {
-      movie = TMDB.movie(widget.movieId!);
+    _reload();
+  }
+
+  @override
+  void didUpdateWidget(covariant StreamsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.showId != widget.showId || oldWidget.movieId != widget.movieId ||
+        oldWidget.episode?.seasonNumber != widget.episode?.seasonNumber ||
+        oldWidget.episode?.episodeNumber != widget.episode?.episodeNumber) {
+      _reload();
     }
   }
 
-  Future<List<StreamItem>> _loadStreams() async {
-    final mediaImdb = widget.showId != null
-        ? (await TMDB.tvShow(widget.showId!)).imdbId
-        : (await TMDB.movie(widget.movieId!)).imdbId;
-    return StreamApi.fetchStreams(mediaImdb!, widget.episode);
+  void _reload() {
+    final showId = widget.showId, movieId = widget.movieId, episode = widget.episode;
+    _metadata = _loadMetadata(showId, movieId, episode);
+    _streams = _metadata.then((data) {
+      if (data.imdbId == null || data.imdbId!.isEmpty) {
+        throw StateError('No IMDb identifier available');
+      }
+      return StreamApi.fetchStreams(data.imdbId!, episode);
+    });
+  }
+
+  Future<({String title, String? subtitle, String? artwork, String? imdbId})>
+      _loadMetadata(int? showId, int? movieId, Episode? episode) async {
+    if (showId != null && episode != null) {
+      final details = await Future.wait([
+        TMDB.tvShow(showId),
+        TMDB.tvEpisode(showId, episode.seasonNumber, episode.episodeNumber),
+      ]);
+      final show = details[0] as TmdbShow;
+      final ep = details[1] as TmdbEpisode;
+      return (title: show.name, subtitle: ep.name,
+        artwork: ep.stillUrl ?? show.backdropUrl, imdbId: show.imdbId);
+    }
+    if (movieId == null) throw StateError('Missing media identifier');
+    final TmdbMovie movie = await TMDB.movie(movieId);
+    return (title: movie.title, subtitle: null,
+      artwork: movie.backdropPath == null ? null :
+        'https://image.tmdb.org/t/p/w780${movie.backdropPath}', imdbId: movie.imdbId);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isShow) {
-      return FutureBuilder(
-        future: _showData,
-        builder: (context, showSnapshot) {
-          return Scaffold(
-            headers: [
-              AppBar(
-                leading: [BackButton()],
-                title: Text(
-                  style: TextStyle(
-                    fontSize: Device.screenType == ScreenType.desktop
-                        ? 15.sp
-                        : 18.sp,
-                  ),
-                  showSnapshot.hasData
-                      ? "${(showSnapshot.data![0] as TmdbShow).name} ${(showSnapshot.data![1] as TmdbEpisode).seasonNumber}x${(showSnapshot.data![1] as TmdbEpisode).episodeNumber}"
-                      : '',
-                ),
-              ),
-            ],
-            child: FutureBuilder<List<StreamItem>>(
-              future: _streamsFuture,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData)
-                  return const Center(child: PetalActivityIndicator());
-                final streams = snapshot.data!;
-                if (streams.isEmpty) {
-                  return Center(
-                    child: Text(
-                      style: TextStyle(
-                        fontSize: Device.screenType == ScreenType.desktop
-                            ? 10.sp
-                            : 13.sp,
-                      ),
-                      'No streams found',
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  itemCount: streams.length,
-                  itemBuilder: (context, index) {
-                    final stream = streams[index];
-                    return StreamTile(
-                      stream: stream,
-                      tmdbId: widget.showId!,
-                      episode: widget.episode,
-                      download: widget.download,
-                      mediaTitle: showSnapshot.hasData
-                          ? (showSnapshot.data![0] as TmdbShow).name
-                          : null,
-                      episodeTitle: showSnapshot.hasData
-                          ? (showSnapshot.data![1] as TmdbEpisode).name
-                          : null,
-                      title: widget.episode == null
-                          ? 'Episode'
-                          : 'S${widget.episode!.seasonNumber}:E${widget.episode!.episodeNumber}',
-                    );
-                  },
-                );
-              },
-            ),
-          );
-        },
-      );
-    }
+    final colors = Theme.of(context).colorScheme;
+    final bottom = TvLayout.isCompact(context) && MediaQuery.viewInsetsOf(context).bottom == 0
+        ? MediaQuery.viewPaddingOf(context).bottom + IosNavigationDock.clearance : 0.0;
+    final episodeLabel = widget.episode == null ? null :
+      'S${widget.episode!.seasonNumber} · E${widget.episode!.episodeNumber}';
     return FutureBuilder(
-      future: movie,
-      builder: (context, movieSnapshot) {
-        return Scaffold(
-          headers: [
-            AppBar(
-              title: Text(
-                style: TextStyle(
-                  fontSize: Device.screenType == ScreenType.desktop
-                      ? 15.sp
-                      : 18.sp,
-                ),
-                movieSnapshot.hasData ? movieSnapshot.data!.title : '',
-              ),
-            ),
-          ],
-          child: FutureBuilder<List<StreamItem>>(
-            future: _streamsFuture,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData)
-                return const Center(child: PetalActivityIndicator());
-              final streams = snapshot.data!;
-              if (streams.isEmpty) {
-                return Center(
-                  child: Text(
-                    style: TextStyle(
-                      fontSize: Device.screenType == ScreenType.desktop
-                          ? 10.sp
-                          : 13.sp,
+      future: _metadata,
+      builder: (context, metadata) {
+        final data = metadata.data;
+        return FutureBuilder<List<StreamItem>>(
+          future: _streams,
+          builder: (context, snapshot) {
+            final streams = snapshot.data ?? const <StreamItem>[];
+            final loading = snapshot.connectionState != ConnectionState.done;
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 16, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.download ? 'Download source' : 'Select source',
+                          style: TextStyle(fontSize: AppTypography.h3Size, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(width: 112, height: 63,
+                                child: MediaArtwork(imageUrl: data?.artwork,
+                                  isLoading: !metadata.hasData && !metadata.hasError)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(data?.title ?? 'Loading title',
+                                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                if (episodeLabel != null)
+                                  Text([episodeLabel, if (data?.subtitle?.isNotEmpty == true) data!.subtitle!].join(' · '),
+                                    maxLines: 2, overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 13, color: colors.mutedForeground)),
+                              ],
+                            )),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        if (!loading && !snapshot.hasError)
+                          Text('${streams.length} ${streams.length == 1 ? 'source' : 'sources'} available',
+                            style: TextStyle(color: colors.mutedForeground, fontSize: 13)),
+                      ],
                     ),
-                    'No streams found',
                   ),
-                );
-              }
-              return ListView.builder(
-                itemCount: streams.length,
-                itemBuilder: (context, index) {
-                  final stream = streams[index];
-                  return StreamTile(
-                    stream: stream,
-                    tmdbId: widget.movieId!,
-                    download: widget.download,
-                    title: movieSnapshot.data?.title ?? stream.title,
-                    mediaTitle: movieSnapshot.data?.title,
-                  );
-                },
-              );
-            },
-          ),
+                ),
+                if (loading)
+                  const SliverToBoxAdapter(child: Padding(
+                    padding: EdgeInsets.all(32), child: Center(child: PetalActivityIndicator())))
+                else if (snapshot.hasError || streams.isEmpty)
+                  SliverToBoxAdapter(child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(children: [
+                      Icon(LucideIcons.server, color: colors.mutedForeground, size: 28),
+                      const SizedBox(height: 12),
+                      Text(snapshot.hasError ? 'Could not load sources' : 'No sources found'),
+                      const SizedBox(height: 12),
+                      PetalButton.secondary(onPressed: () => setState(_reload),
+                        child: const Text('Try again')),
+                    ]),
+                  ))
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(delegate: SliverChildBuilderDelegate(
+                      (context, index) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: StreamTile(
+                          stream: streams[index], tmdbId: widget.showId ?? widget.movieId!,
+                          episode: widget.episode, download: widget.download,
+                          mediaTitle: data?.title, episodeTitle: data?.subtitle,
+                          title: episodeLabel ?? data?.title ?? streams[index].title,
+                        ),
+                      ),
+                      childCount: streams.length,
+                    )),
+                  ),
+                SliverToBoxAdapter(child: SizedBox(height: bottom + 24)),
+              ],
+            );
+          },
         );
       },
     );
